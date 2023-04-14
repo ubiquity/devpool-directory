@@ -40,7 +40,6 @@ async function main() {
             const projectIssues: Issue[] = await getAllIssues(ownerName, repoName);
             // for all issues
             for (let projectIssue of projectIssues) {
-                console.log(`Working on ${projectIssue.html_url}`);
                 // if issue exists in devpool
                 const devpoolIssue = getIssueByLabel(devpoolIssues, `id: ${projectIssue.node_id}`);
                 if (devpoolIssue) {
@@ -54,6 +53,9 @@ async function main() {
                             state: projectIssue.state,
                             labels: getDevpoolIssueLabels(projectIssue, ownerName, repoName),
                         });
+                        console.log(`Updated: ${projectIssue.html_url}`);
+                    } else {
+                        console.log(`No updates: ${projectIssue.html_url}`);
                     }
                 } else {
                     // issue does not exist in devpool, create a new one
@@ -65,6 +67,7 @@ async function main() {
                         state: projectIssue.state,
                         labels: getDevpoolIssueLabels(projectIssue, ownerName, repoName),
                     });
+                    console.log(`Created: ${projectIssue.html_url}`);
                 }
             }
         }
