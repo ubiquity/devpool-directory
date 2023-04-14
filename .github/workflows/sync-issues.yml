@@ -1,0 +1,25 @@
+name: Sync Issues
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '0 1 * * *' # every day at 1:00 AM
+
+jobs:
+  sync-issues:
+    name: Sync Issues
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      - name: Setup Node
+        uses: actions/setup-node@v3
+        with:
+          node-version: "18.14.1"
+
+      - name: Yarn Install
+        run: yarn install --mode=skip-build && yarn allow-scripts
+
+      - name: Sync Issues
+        run: npx tsx index.ts
