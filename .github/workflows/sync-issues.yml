@@ -19,7 +19,7 @@ jobs:
           node-version: "18.14.1"
 
       - name: Yarn Install
-        run: yarn install --mode=skip-build && yarn allow-scripts
+        run: yarn install --mode=skip-build
 
       - name: Sync Issues
         run: npx tsx index.ts
