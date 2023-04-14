@@ -25,7 +25,8 @@ const octokit = new Octokit({ auth: process.env.DEVPOOL_GITHUB_API_TOKEN });
 
 /**
  * Main function
- * TODO: retry on error
+ * TODO: retry on rate limit error
+ * TODO: handle project deletion
  */
 async function main() {
     try {
