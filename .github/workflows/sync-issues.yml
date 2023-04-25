@@ -23,7 +23,14 @@ jobs:
       - name: Yarn Install
         run: yarn install --mode=skip-build
 
+      - name: Get GitHub App token
+        uses: tibdex/github-app-token@v1.7.0
+        id: get_installation_token
+        with:
+          app_id: ${{ secrets.UBIQUITY_BOUNTY_BOT_APP_ID }}
+          private_key: ${{ secrets.UBIQUITY_BOUNTY_BOT_PRIVATE_KEY }}
+
       - name: Sync Issues
         env:
-          DEVPOOL_GITHUB_API_TOKEN: ${{ secrets.DEVPOOL_GITHUB_API_TOKEN }}
+          DEVPOOL_GITHUB_API_TOKEN: ${{ steps.get_installation_token.outputs.token }}
         run: npx tsx index.ts
