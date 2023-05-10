@@ -59,7 +59,10 @@ async function main() {
                         console.log(`No updates: ${projectIssue.html_url}`);
                     }
                 } else {
-                    // issue does not exist in devpool, create a new one
+                    // issue does not exist in devpool
+                    // if issue is "closed" then skip it, no need to copy/paste already "closed" issues
+                    if (projectIssue.state === 'closed') continue;
+                    // create a new issue
                     const createdIssue = await octokit.rest.issues.create({
                         owner: DEVPOOL_OWNER_NAME,
                         repo: DEVPOOL_REPO_NAME,
@@ -67,16 +70,6 @@ async function main() {
                         body: projectIssue.html_url,
                         labels: getDevpoolIssueLabels(projectIssue, ownerName, repoName),
                     });
-                    // if project issue is closed then update devpool issue
-                    // NOTICE: we can not create a new issue with the "closed" state
-                    if (projectIssue.state === 'closed') {
-                        await octokit.rest.issues.update({
-                            owner: DEVPOOL_OWNER_NAME,
-                            repo: DEVPOOL_REPO_NAME,
-                            issue_number: createdIssue.data.number,
-                            state: projectIssue.state,
-                        });
-                    }
 
                     console.log(`Created: ${projectIssue.html_url}`);
                 }
