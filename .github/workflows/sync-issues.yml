@@ -5,7 +5,7 @@ on:
   pull_request:
     types: [closed]
   schedule:
-    - cron: '0 1 * * *' # every day at 1:00 AM
+    - cron: '15 * * * *' # every hour at minute 15 (github recommends to set such cron jobs not at the start of an hour)
 
 jobs:
   sync-issues:
