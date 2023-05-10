@@ -6,7 +6,7 @@ import { Octokit } from "octokit";
 import * as projects from './projects.json';
 
 const DEVPOOL_OWNER_NAME = 'ubiquity';
-const DEVPOOL_REPO_NAME = 'devpool';
+const DEVPOOL_REPO_NAME = 'devpool-directory';
 
 type Issue = {
     html_url: string,
