@@ -1,4 +1,4 @@
-# DevPool Network - The Bounties Directory
+# DevPool - Bounties Directory
 
 All available bounties are viewable in the [issues section](https://github.com/ubiquity/devpool/issues).
 
