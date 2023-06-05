@@ -35,7 +35,7 @@ async function main() {
         const devpoolIssues: Issue[] = await getAllIssues(DEVPOOL_OWNER_NAME, DEVPOOL_REPO_NAME);
 
         //to assign issues as unavailable with do have an assignee
-        assignLabelToUnavailableIssues(devpoolIssues);
+        assignAssigneeToUnavailableIssues(devpoolIssues);
 
         // for each project URL
         for (let projectUrl of projects.urls) {
@@ -165,7 +165,7 @@ function getRepoCredentials(projectUrl: string) {
  * @param devpoolIssues list of all devpool issues
  */
 
-function assignLabelToUnavailableIssues(devpoolIssues: Issue[]){
+function assignAssigneeToUnavailableIssues(devpoolIssues: Issue[]){
   devpoolIssues.map(async (item) => {
     //get owner name , reponame and issue name from a link of the issue
     const [ownerName, repoName, issueNumber] = getIssueDetailsWithLink(
@@ -177,20 +177,14 @@ function assignLabelToUnavailableIssues(devpoolIssues: Issue[]){
       repo: repoName,
       issue_number: parseInt(issueNumber, 10),
     });
+    console.log(issueDetails.data?.assignee)
     //check if there is an assignie to the issue and update the issue
     if (issueDetails.data?.assignee) {
       await octokit.rest.issues.update({
         owner: DEVPOOL_OWNER_NAME,
         repo: DEVPOOL_REPO_NAME,
         issue_number: item.number,
-        labels: [
-          ...getDevpoolIssueLabels(
-            issueDetails?.data as Issue,
-            ownerName,
-            repoName
-          ),
-          "Unavailable",
-        ],
+        assignees:[issueDetails.data?.assignee.login]
       });
       console.log(`Updated: ${item.html_url}`);
     }
