@@ -177,7 +177,6 @@ function assignAssigneeToUnavailableIssues(devpoolIssues: Issue[]){
       repo: repoName,
       issue_number: parseInt(issueNumber, 10),
     });
-    console.log(issueDetails.data?.assignee)
     //check if there is an assignie to the issue and update the issue
     if (issueDetails.data?.assignee) {
       await octokit.rest.issues.update({
