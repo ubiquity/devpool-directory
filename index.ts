@@ -18,6 +18,7 @@ type Issue = {
     pull_request: null | {},
     state: 'open' | 'closed',
     title: string,
+    body?: string;
 }
 
 // init octokit
@@ -32,6 +33,9 @@ async function main() {
     try {
         // get devpool issues
         const devpoolIssues: Issue[] = await getAllIssues(DEVPOOL_OWNER_NAME, DEVPOOL_REPO_NAME);
+
+        //to assign issues as unavailable with do have an assignee
+        assignLabelToUnavailableIssues(devpoolIssues);
 
         // for each project URL
         for (let projectUrl of projects.urls) {
@@ -154,4 +158,56 @@ function getRepoCredentials(projectUrl: string) {
     const ownerName = urlPath[1];
     const repoName = urlPath[2];
     return [ownerName, repoName];
+}
+
+/**
+ * Add a label on bounties that are currently assigned e.g. Unavailable
+ * @param devpoolIssues list of all devpool issues
+ */
+
+function assignLabelToUnavailableIssues(devpoolIssues: Issue[]){
+  devpoolIssues.map(async (item) => {
+    //get owner name , reponame and issue name from a link of the issue
+    const [ownerName, repoName, issueNumber] = getIssueDetailsWithLink(
+      item?.body ?? ""
+    );
+    //get the issue details
+    const issueDetails = await octokit.rest.issues.get({
+      owner: ownerName,
+      repo: repoName,
+      issue_number: parseInt(issueNumber, 10),
+    });
+    //check if there is an assignie to the issue and update the issue
+    if (issueDetails.data?.assignee) {
+      await octokit.rest.issues.update({
+        owner: DEVPOOL_OWNER_NAME,
+        repo: DEVPOOL_REPO_NAME,
+        issue_number: item.number,
+        labels: [
+          ...getDevpoolIssueLabels(
+            issueDetails?.data as Issue,
+            ownerName,
+            repoName
+          ),
+          "Unavailable",
+        ],
+      });
+      console.log(`Updated: ${item.html_url}`);
+    }
+  });
+};
+
+/**
+ * Returns owner, repository names and issues number from a issue URL
+ * @param projectUrl issue URL
+ * @returns array of owner , repository names and issue number
+ */
+
+function getIssueDetailsWithLink(projectUrl: string) {
+  const urlObject = new URL(projectUrl);
+  const urlPath = urlObject.pathname.split("/");
+  const ownerName = urlPath[1];
+  const repoName = urlPath[2];
+  const issueNumber = urlPath[4];
+  return [ownerName, repoName, issueNumber];
 }
