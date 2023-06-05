@@ -34,7 +34,7 @@ async function main() {
         // get devpool issues
         const devpoolIssues: Issue[] = await getAllIssues(DEVPOOL_OWNER_NAME, DEVPOOL_REPO_NAME);
 
-        //to assign issues as unavailable with do have an assignee
+        //to assign issues to assignee when they have been taken
         assignAssigneeToUnavailableIssues(devpoolIssues);
 
         // for each project URL
@@ -161,7 +161,7 @@ function getRepoCredentials(projectUrl: string) {
 }
 
 /**
- * Add a label on bounties that are currently assigned e.g. Unavailable
+ * Add a assignee on bounties that are currently assigned
  * @param devpoolIssues list of all devpool issues
  */
 
