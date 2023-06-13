@@ -157,7 +157,8 @@ function getRepoCredentials(projectUrl: string) {
     const urlPath = urlObject.pathname.split('/');
     const ownerName = urlPath[1];
     const repoName = urlPath[2];
-    return [ownerName, repoName];
+    const issueNumber = urlPath?.[4];
+    return [ownerName, repoName, issueNumber];
 }
 
 /**
@@ -168,7 +169,7 @@ function getRepoCredentials(projectUrl: string) {
 function assignLabelToUnavailableIssues(devpoolIssues: Issue[]){
   devpoolIssues.map(async (item) => {
     //get owner name , reponame and issue name from a link of the issue
-    const [ownerName, repoName, issueNumber] = getIssueDetailsWithLink(
+    const [ownerName, repoName, issueNumber] = getRepoCredentials(
       item?.body ?? ""
     );
     //get the issue details
@@ -196,18 +197,3 @@ function assignLabelToUnavailableIssues(devpoolIssues: Issue[]){
     }
   });
 };
-
-/**
- * Returns owner, repository names and issues number from a issue URL
- * @param projectUrl issue URL
- * @returns array of owner , repository names and issue number
- */
-
-function getIssueDetailsWithLink(projectUrl: string) {
-  const urlObject = new URL(projectUrl);
-  const urlPath = urlObject.pathname.split("/");
-  const ownerName = urlPath[1];
-  const repoName = urlPath[2];
-  const issueNumber = urlPath[4];
-  return [ownerName, repoName, issueNumber];
-}
