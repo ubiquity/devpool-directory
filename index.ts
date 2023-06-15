@@ -70,26 +70,19 @@ async function main() {
                     // if issue is "closed" then skip it, no need to copy/paste already "closed" issues
                     if (projectIssue.state === 'closed') continue;
                     // create a new issue
-                    const createdIssue = await octokit.rest.issues.create({
-                        owner: DEVPOOL_OWNER_NAME,
-                        repo: DEVPOOL_REPO_NAME,
-                        title: projectIssue.title,
-                        body: projectIssue.html_url,
-                        labels: getDevpoolIssueLabels(projectIssue, ownerName, repoName),
-                    });
                     const issueDetails = await octokit.rest.issues.get({
                         owner: ownerName,
                         repo: repoName,
                         issue_number: projectIssue.number,
                     });
                     const additionalLabelsToAdd = issueDetails.data?.assignee ?['Unavailable']:[]
-                    await octokit.rest.issues.update({
+                    const createdIssue = await octokit.rest.issues.create({
                         owner: DEVPOOL_OWNER_NAME,
                         repo: DEVPOOL_REPO_NAME,
-                        issue_number: createdIssue.data.number,
+                        title: projectIssue.title,
+                        body: projectIssue.html_url,
                         labels: [...getDevpoolIssueLabels(projectIssue, ownerName, repoName),...additionalLabelsToAdd],
                     });
-
                     console.log(`Created: ${projectIssue.html_url}`);
                 }
             }
