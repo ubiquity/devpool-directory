@@ -8,6 +8,14 @@ import * as projects from './projects.json';
 const DEVPOOL_OWNER_NAME = 'ubiquity';
 const DEVPOOL_REPO_NAME = 'devpool-directory';
 
+// supported labels which should be synced
+enum LABELS {
+    PRICE = 'Price',
+    PRICING = 'Pricing',
+    PRIORITY = 'Priority',
+    TIME = 'Time',
+};
+
 type Issue = {
     html_url: string,
     labels: {
@@ -44,8 +52,19 @@ async function main() {
                 // if issue exists in devpool
                 const devpoolIssue = getIssueByLabel(devpoolIssues, `id: ${projectIssue.node_id}`);
                 if (devpoolIssue) {
-                    // if title or state or pricing was updated then update a devpool issue
-                    if (devpoolIssue.title !== projectIssue.title || devpoolIssue.state !== projectIssue.state || getIssuePriceLabel(devpoolIssue) !== getIssuePriceLabel(projectIssue)) {
+                    // update a devpool isssue if any of the following has been updated:
+                    // - title
+                    // - state 
+                    // - price
+                    // - time
+                    // - priority
+                    if (
+                        devpoolIssue.title !== projectIssue.title || 
+                        devpoolIssue.state !== projectIssue.state || 
+                        getIssueLabelValue(devpoolIssue, LABELS.PRICING) !== getIssueLabelValue(projectIssue, LABELS.PRICE).replace(LABELS.PRICE, LABELS.PRICING) ||
+                        getIssueLabelValue(devpoolIssue, LABELS.TIME) !== getIssueLabelValue(projectIssue, LABELS.TIME) ||
+                        getIssueLabelValue(devpoolIssue, LABELS.PRIORITY) !== getIssueLabelValue(projectIssue, LABELS.PRIORITY)
+                    ) {
                         await octokit.rest.issues.update({
                             owner: DEVPOOL_OWNER_NAME,
                             repo: DEVPOOL_REPO_NAME,
@@ -112,7 +131,10 @@ async function getAllIssues(ownerName: string, repoName: string) {
  */
 function getDevpoolIssueLabels(issue: Issue, ownerName: string, repoName: string) {
     return [
-        getIssuePriceLabel(issue), // price
+        getIssueLabelValue(issue, LABELS.PRIORITY),
+        getIssueLabelValue(issue, LABELS.TIME),
+        // NOTICE: we rename "Price" to "Pricing" because the bot removes all manually added price labels starting with "Price:"
+        getIssueLabelValue(issue, LABELS.PRICE).replace(LABELS.PRICE, LABELS.PRICING), // price
         `Partner: ${ownerName}/${repoName}`, // partner
         `id: ${issue.node_id}`, // id
     ];
@@ -132,15 +154,15 @@ function getIssueByLabel(issues: Issue[], label: string) {
 }
 
 /**
- * Returns price label from an issue
+ * Returns issue label value by label name
  * @param issue issue object
- * @returns price label
+ * @param labelName label name
+ * @returns label value
  */
-function getIssuePriceLabel(issue: Issue) {
-    let defaultPriceLabel = 'Pricing: not set';
-    let priceLabels = issue.labels.filter(label => label.name.includes('Price:') || label.name.includes('Pricing:'));
-    // NOTICE: we rename "Price" to "Pricing" because the bot removes all manually added price labels starting with "Price:"
-    return priceLabels.length > 0 ? priceLabels[0].name.replace('Price', 'Pricing') : defaultPriceLabel;
+function getIssueLabelValue(issue: Issue, labelName: LABELS) {
+    let defaultLabel = `${labelName}: not set`;
+    let labels = issue.labels.filter(label => label.name.includes(labelName));
+    return labels.length > 0 ? labels[0].name : defaultLabel;
 }
 
 /**
