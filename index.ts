@@ -45,14 +45,14 @@ async function main() {
                 // if issue exists in devpool
                 const devpoolIssue = getIssueByLabel(devpoolIssues, `id: ${projectIssue.node_id}`);
                 if (devpoolIssue) {
+                    const issueDetails = await octokit.rest.issues.get({
+                        owner: ownerName,
+                        repo: repoName,
+                        issue_number: devpoolIssue.number,
+                    });
+                    const additionalLabelsToAdd = issueDetails.data?.assignee ?['Unavailable']:[]
                     // if title or state or pricing was updated then update a devpool issue
                     if (devpoolIssue.title !== projectIssue.title || devpoolIssue.state !== projectIssue.state || getIssuePriceLabel(devpoolIssue) !== getIssuePriceLabel(projectIssue)) {
-                        const issueDetails = await octokit.rest.issues.get({
-                            owner: ownerName,
-                            repo: repoName,
-                            issue_number: devpoolIssue.number,
-                        });
-                        const additionalLabelsToAdd = issueDetails.data?.assignee ?['Unavailable']:[]
                         await octokit.rest.issues.update({
                             owner: DEVPOOL_OWNER_NAME,
                             repo: DEVPOOL_REPO_NAME,
@@ -76,6 +76,18 @@ async function main() {
                         title: projectIssue.title,
                         body: projectIssue.html_url,
                         labels: getDevpoolIssueLabels(projectIssue, ownerName, repoName),
+                    });
+                    const issueDetails = await octokit.rest.issues.get({
+                        owner: ownerName,
+                        repo: repoName,
+                        issue_number: projectIssue.number,
+                    });
+                    const additionalLabelsToAdd = issueDetails.data?.assignee ?['Unavailable']:[]
+                    await octokit.rest.issues.update({
+                        owner: DEVPOOL_OWNER_NAME,
+                        repo: DEVPOOL_REPO_NAME,
+                        issue_number: createdIssue.data.number,
+                        labels: [...getDevpoolIssueLabels(projectIssue, ownerName, repoName),...additionalLabelsToAdd],
                     });
 
                     console.log(`Created: ${projectIssue.html_url}`);
