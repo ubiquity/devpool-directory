@@ -34,9 +34,6 @@ async function main() {
         // get devpool issues
         const devpoolIssues: Issue[] = await getAllIssues(DEVPOOL_OWNER_NAME, DEVPOOL_REPO_NAME);
 
-        //to assign issues as unavailable with do have an assignee
-        assignLabelToUnavailableIssues(devpoolIssues);
-
         // for each project URL
         for (let projectUrl of projects.urls) {
             // get owner and repository names from project URL
@@ -50,13 +47,19 @@ async function main() {
                 if (devpoolIssue) {
                     // if title or state or pricing was updated then update a devpool issue
                     if (devpoolIssue.title !== projectIssue.title || devpoolIssue.state !== projectIssue.state || getIssuePriceLabel(devpoolIssue) !== getIssuePriceLabel(projectIssue)) {
+                        const issueDetails = await octokit.rest.issues.get({
+                            owner: ownerName,
+                            repo: repoName,
+                            issue_number: devpoolIssue.number,
+                        });
+                        const additionalLabelsToAdd = issueDetails.data?.assignee ?['Unavailable']:[]
                         await octokit.rest.issues.update({
                             owner: DEVPOOL_OWNER_NAME,
                             repo: DEVPOOL_REPO_NAME,
                             issue_number: devpoolIssue.number,
                             title: projectIssue.title,
                             state: projectIssue.state,
-                            labels: getDevpoolIssueLabels(projectIssue, ownerName, repoName),
+                            labels: [...getDevpoolIssueLabels(projectIssue, ownerName, repoName),...additionalLabelsToAdd],
                         });
                         console.log(`Updated: ${projectIssue.html_url}`);
                     } else {
@@ -160,40 +163,3 @@ function getRepoCredentials(projectUrl: string) {
     const issueNumber = urlPath?.[4];
     return [ownerName, repoName, issueNumber];
 }
-
-/**
- * Add a label on bounties that are currently assigned e.g. Unavailable
- * @param devpoolIssues list of all devpool issues
- */
-
-function assignLabelToUnavailableIssues(devpoolIssues: Issue[]){
-  devpoolIssues.map(async (item) => {
-    //get owner name , reponame and issue name from a link of the issue
-    const [ownerName, repoName, issueNumber] = getRepoCredentials(
-      item?.body ?? ""
-    );
-    //get the issue details
-    const issueDetails = await octokit.rest.issues.get({
-      owner: ownerName,
-      repo: repoName,
-      issue_number: parseInt(issueNumber, 10),
-    });
-    //check if there is an assignie to the issue and update the issue
-    if (issueDetails.data?.assignee) {
-      await octokit.rest.issues.update({
-        owner: DEVPOOL_OWNER_NAME,
-        repo: DEVPOOL_REPO_NAME,
-        issue_number: item.number,
-        labels: [
-          ...getDevpoolIssueLabels(
-            issueDetails?.data as Issue,
-            ownerName,
-            repoName
-          ),
-          "Unavailable",
-        ],
-      });
-      console.log(`Updated: ${item.html_url}`);
-    }
-  });
-};
