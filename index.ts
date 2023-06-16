@@ -21,23 +21,6 @@ type Issue = {
     body?: string;
     assignee: {
       login: string;
-      id: number;
-      node_id: string;
-      avatar_url: string;
-      gravatar_id: string;
-      url: string;
-      html_url: string;
-      followers_url: string;
-      following_url: string;
-      gists_url: string;
-      starred_url: string;
-      subscriptions_url: string;
-      organizations_url: string;
-      repos_url: string;
-      events_url: string;
-      received_events_url: string;
-      type: string;
-      site_admin: boolean;
     };
 }
 
@@ -71,10 +54,9 @@ async function main() {
                   const additionalLabelsToAdd = projectIssue?.assignee?.login
                     ? ["Unavailable"]
                     : [];
-                    const isUnavailableTag = projectIssue?.labels?.some((item)=>item.name==="Unavailable");
+                    const isUnavailableTag = devpoolIssue?.labels?.some((item)=>item.name==="Unavailable");
                     // if title or state or pricing was updated then update a devpool issue
-                    if (devpoolIssue.title !== projectIssue.title || devpoolIssue.state !== projectIssue.state ||
-                       devpoolIssue.assignee?.login !== projectIssue?.assignee?.login || (projectIssue?.assignee?.login === undefined && isUnavailableTag) || (projectIssue?.assignee?.login !== undefined && !isUnavailableTag) || getIssuePriceLabel(devpoolIssue) !== getIssuePriceLabel(projectIssue)) {
+                    if (devpoolIssue.title !== projectIssue.title || devpoolIssue.state !== projectIssue.state || (projectIssue?.assignee?.login === undefined && isUnavailableTag)|| (projectIssue?.assignee?.login !== undefined && !isUnavailableTag) || getIssuePriceLabel(devpoolIssue) !== getIssuePriceLabel(projectIssue)) {
                         await octokit.rest.issues.update({
                             owner: DEVPOOL_OWNER_NAME,
                             repo: DEVPOOL_REPO_NAME,
