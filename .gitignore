@@ -1,2 +1,6 @@
 # dependencies
 node_modules
+.pnp.cjs
+.gitignore
+.yarn
+.pnp.loader.mjs
