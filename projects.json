@@ -1,12 +1,15 @@
 {
-    "urls": [
-        "https://github.com/Alpha-Labs-Global/blockalizer",
-        "https://github.com/ubiquity/pay.ubq.fi",
-        "https://github.com/ubiquity/ubq.fi",
-        "https://github.com/ubiquity/ts-template",
-        "https://github.com/ubiquity/scraper-kernel",
-        "https://github.com/ubiquity/bounty-bot",
-        "https://github.com/ubiquity/ubiquity-dollar",
-        "https://github.com/ubiquity/devpool-directory-bounties"
-    ]
+  "urls": [
+    "https://github.com/Alpha-Labs-Global/blockalizer",
+    "https://github.com/ubiquity/pay.ubq.fi",
+    "https://github.com/ubiquity/ubq.fi",
+    "https://github.com/ubiquity/ts-template",
+    "https://github.com/ubiquity/scraper-kernel",
+    "https://github.com/ubiquity/bounty-bot",
+    "https://github.com/ubiquity/ubiquity-dollar",
+    "https://github.com/ubiquity/devpool-directory-bounties",
+    "https://github.com/ubiquity/gnosischain.world",
+    "https://github.com/ubiquibot/QA-Improvements",
+    "https://github.com/ubiquity/action-conventional-commits"
+  ]
 }

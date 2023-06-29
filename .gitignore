@@ -1,5 +1,8 @@
 # dependencies
 node_modules
 
-# env variables
 .env
+.pnp.cjs
+.gitignore
+.yarn
+.pnp.loader.mjs

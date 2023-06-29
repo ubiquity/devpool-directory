@@ -6,8 +6,8 @@ import dotenv from 'dotenv';
 import { Octokit } from 'octokit';
 import * as projects from './projects.json';
 
-const DEVPOOL_OWNER_NAME = 'ubiquity';
-const DEVPOOL_REPO_NAME = 'devpool-directory';
+const DEVPOOL_OWNER_NAME = "ubiquity";
+const DEVPOOL_REPO_NAME = "devpool-directory";
 
 type Issue = {
     html_url: string,
@@ -19,7 +19,10 @@ type Issue = {
     pull_request: null | {},
     state: 'open' | 'closed',
     title: string,
-    body: string,
+    body?: string;
+    assignee: {
+      login: string;
+    };
 }
 
 // init env variables
@@ -34,9 +37,12 @@ const octokit = new Octokit({ auth: process.env.DEVPOOL_GITHUB_API_TOKEN });
  * TODO: handle project deletion
  */
 async function main() {
-    try {
-        // get devpool issues
-        const devpoolIssues: Issue[] = await getAllIssues(DEVPOOL_OWNER_NAME, DEVPOOL_REPO_NAME);
+  try {
+    // get devpool issues
+    const devpoolIssues: Issue[] = await getAllIssues(
+      DEVPOOL_OWNER_NAME,
+      DEVPOOL_REPO_NAME
+    );
 
         // for each project URL
         for (let projectUrl of projects.urls) {
@@ -49,16 +55,23 @@ async function main() {
                 // if issue exists in devpool
                 const devpoolIssue = getIssueByLabel(devpoolIssues, `id: ${projectIssue.node_id}`);
                 if (devpoolIssue) {
+                  const additionalLabelsToAdd = projectIssue?.assignee?.login
+                    ? ["Unavailable"]
+                    : [];
+                    const isUnavailableTag = devpoolIssue?.labels?.some((item)=>item.name==="Unavailable");
                     // update a devpool issue if 1 of the following has changed in a partner project issue:
                     // - title
                     // - state
                     // - pricing
                     // - repository name (devpool issue body contains a partner project issue URL)
+                    // - bounty hunter assigned/unassigned an issue
                     if (devpoolIssue.title !== projectIssue.title || 
                         devpoolIssue.state !== projectIssue.state || 
                         getIssuePriceLabel(devpoolIssue) !== getIssuePriceLabel(projectIssue) ||
-                        devpoolIssue.body !== projectIssue.html_url
-                    ) {
+                        devpoolIssue.body !== projectIssue.html_url ||
+                        (projectIssue?.assignee?.login === undefined && isUnavailableTag) || 
+                        (projectIssue?.assignee?.login !== undefined && !isUnavailableTag)
+                      ) {
                         await octokit.rest.issues.update({
                             owner: DEVPOOL_OWNER_NAME,
                             repo: DEVPOOL_REPO_NAME,
@@ -66,7 +79,7 @@ async function main() {
                             title: projectIssue.title,
                             body: projectIssue.html_url,
                             state: projectIssue.state,
-                            labels: getDevpoolIssueLabels(projectIssue),
+                            labels: [...getDevpoolIssueLabels(projectIssue),...additionalLabelsToAdd],
                         });
                         console.log(`Updated: ${projectIssue.html_url}`);
                     } else {
@@ -77,21 +90,23 @@ async function main() {
                     // if issue is "closed" then skip it, no need to copy/paste already "closed" issues
                     if (projectIssue.state === 'closed') continue;
                     // create a new issue
+                    const additionalLabelsToAdd = projectIssue?.assignee?.login
+                    ? ["Unavailable"]
+                    : [];
                     const createdIssue = await octokit.rest.issues.create({
                         owner: DEVPOOL_OWNER_NAME,
                         repo: DEVPOOL_REPO_NAME,
                         title: projectIssue.title,
                         body: projectIssue.html_url,
-                        labels: getDevpoolIssueLabels(projectIssue),
+                        labels: [...getDevpoolIssueLabels(projectIssue),...additionalLabelsToAdd],
                     });
-
                     console.log(`Created: ${projectIssue.html_url}`);
                 }
             }
-        }
-    } catch (err) {
-        console.log(err);
-    }
+          }
+          } catch (err) {
+            console.log(err);
+          }
 }
 
 main();
@@ -107,15 +122,15 @@ main();
  * @returns array of issues
  */
 async function getAllIssues(ownerName: string, repoName: string) {
-    // get all project issues (opened and closed)
-    let issues: Issue[] = await octokit.paginate({
-        method: 'GET',
-        url: `/repos/${ownerName}/${repoName}/issues?state=all`,
-    });
-    // remove PRs from the project issues
-    issues = issues.filter(issue => !issue.pull_request);
-    
-    return issues;
+  // get all project issues (opened and closed)
+  let issues: Issue[] = await octokit.paginate({
+    method: "GET",
+    url: `/repos/${ownerName}/${repoName}/issues?state=all`,
+  });
+  // remove PRs from the project issues
+  issues = issues.filter((issue) => !issue.pull_request);
+
+  return issues;
 }
 
 /**
@@ -138,11 +153,11 @@ function getDevpoolIssueLabels(issue: Issue) {
  * @param label label string
  */
 function getIssueByLabel(issues: Issue[], label: string) {
-    issues = issues.filter(issue => {
-        const labels = issue.labels.filter(obj => obj.name === label);
-        return labels.length > 0;
-    });
-    return issues.length > 0 ? issues[0] : null;
+  issues = issues.filter((issue) => {
+    const labels = issue.labels.filter((obj) => obj.name === label);
+    return labels.length > 0;
+  });
+  return issues.length > 0 ? issues[0] : null;
 }
 
 /**
@@ -151,10 +166,14 @@ function getIssueByLabel(issues: Issue[], label: string) {
  * @returns price label
  */
 function getIssuePriceLabel(issue: Issue) {
-    let defaultPriceLabel = 'Pricing: not set';
-    let priceLabels = issue.labels.filter(label => label.name.includes('Price:') || label.name.includes('Pricing:'));
-    // NOTICE: we rename "Price" to "Pricing" because the bot removes all manually added price labels starting with "Price:"
-    return priceLabels.length > 0 ? priceLabels[0].name.replace('Price', 'Pricing') : defaultPriceLabel;
+  let defaultPriceLabel = "Pricing: not set";
+  let priceLabels = issue.labels.filter(
+    (label) => label.name.includes("Price:") || label.name.includes("Pricing:")
+  );
+  // NOTICE: we rename "Price" to "Pricing" because the bot removes all manually added price labels starting with "Price:"
+  return priceLabels.length > 0
+    ? priceLabels[0].name.replace("Price", "Pricing")
+    : defaultPriceLabel;
 }
 
 /**
