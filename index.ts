@@ -2,8 +2,9 @@
  * Syncs issues with partner projects
  */
 
-import { Octokit } from "octokit";
-import * as projects from "./projects.json";
+import dotenv from 'dotenv';
+import { Octokit } from 'octokit';
+import * as projects from './projects.json';
 
 const DEVPOOL_OWNER_NAME = "ubiquity";
 const DEVPOOL_REPO_NAME = "devpool-directory";
@@ -23,6 +24,9 @@ type Issue = {
       login: string;
     };
 }
+
+// init env variables
+dotenv.config();
 
 // init octokit
 const octokit = new Octokit({ auth: process.env.DEVPOOL_GITHUB_API_TOKEN });
@@ -55,15 +59,27 @@ async function main() {
                     ? ["Unavailable"]
                     : [];
                     const isUnavailableTag = devpoolIssue?.labels?.some((item)=>item.name==="Unavailable");
-                    // if title or state or pricing was updated then update a devpool issue
-                    if (devpoolIssue.title !== projectIssue.title || devpoolIssue.state !== projectIssue.state || (projectIssue?.assignee?.login === undefined && isUnavailableTag)|| (projectIssue?.assignee?.login !== undefined && !isUnavailableTag) || getIssuePriceLabel(devpoolIssue) !== getIssuePriceLabel(projectIssue)) {
+                    // update a devpool issue if 1 of the following has changed in a partner project issue:
+                    // - title
+                    // - state
+                    // - pricing
+                    // - repository name (devpool issue body contains a partner project issue URL)
+                    // - bounty hunter assigned/unassigned an issue
+                    if (devpoolIssue.title !== projectIssue.title || 
+                        devpoolIssue.state !== projectIssue.state || 
+                        getIssuePriceLabel(devpoolIssue) !== getIssuePriceLabel(projectIssue) ||
+                        devpoolIssue.body !== projectIssue.html_url ||
+                        (projectIssue?.assignee?.login === undefined && isUnavailableTag) || 
+                        (projectIssue?.assignee?.login !== undefined && !isUnavailableTag)
+                      ) {
                         await octokit.rest.issues.update({
                             owner: DEVPOOL_OWNER_NAME,
                             repo: DEVPOOL_REPO_NAME,
                             issue_number: devpoolIssue.number,
                             title: projectIssue.title,
+                            body: projectIssue.html_url,
                             state: projectIssue.state,
-                            labels: [...getDevpoolIssueLabels(projectIssue, ownerName, repoName),...additionalLabelsToAdd],
+                            labels: [...getDevpoolIssueLabels(projectIssue),...additionalLabelsToAdd],
                         });
                         console.log(`Updated: ${projectIssue.html_url}`);
                     } else {
@@ -82,7 +98,7 @@ async function main() {
                         repo: DEVPOOL_REPO_NAME,
                         title: projectIssue.title,
                         body: projectIssue.html_url,
-                        labels: [...getDevpoolIssueLabels(projectIssue, ownerName, repoName),...additionalLabelsToAdd],
+                        labels: [...getDevpoolIssueLabels(projectIssue),...additionalLabelsToAdd],
                     });
                     console.log(`Created: ${projectIssue.html_url}`);
                 }
@@ -120,19 +136,15 @@ async function getAllIssues(ownerName: string, repoName: string) {
 /**
  * Returns array of labels for a devpool issue
  * @param issue issue object
- * @param ownerName owner name
- * @param repoName repo name
  */
-function getDevpoolIssueLabels(
-  issue: Issue,
-  ownerName: string,
-  repoName: string
-) {
-  return [
-    getIssuePriceLabel(issue), // price
-    `Partner: ${ownerName}/${repoName}`, // partner
-    `id: ${issue.node_id}`, // id
-  ];
+function getDevpoolIssueLabels(issue: Issue) {
+    // get owner and repo name from issue's URL because the repo name could be updated
+    const [ownerName, repoName] = getRepoCredentials(issue.html_url);
+    return [
+        getIssuePriceLabel(issue), // price
+        `Partner: ${ownerName}/${repoName}`, // partner
+        `id: ${issue.node_id}`, // id
+    ];
 }
 
 /**
