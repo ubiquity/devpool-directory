@@ -9,6 +9,8 @@ import * as projects from './projects.json';
 const DEVPOOL_OWNER_NAME = "ubiquity";
 const DEVPOOL_REPO_NAME = "devpool-directory";
 
+const DEFAULT_PRICE_LABEL = "Pricing: not set";
+
 type Issue = {
     html_url: string,
     labels: {
@@ -65,6 +67,11 @@ async function main() {
                     // - pricing
                     // - repository name (devpool issue body contains a partner project issue URL)
                     // - bounty hunter assigned/unassigned an issue
+                    const issuePriceLabel  = getIssuePriceLabel(projectIssue) 
+                    if(issuePriceLabel === DEFAULT_PRICE_LABEL){
+                      console.log(`Pricing not set for the issue, skipping. ${projectIssue.html_url}`)
+                      return
+                    }
                     if (devpoolIssue.title !== projectIssue.title || 
                         devpoolIssue.state !== projectIssue.state || 
                         getIssuePriceLabel(devpoolIssue) !== getIssuePriceLabel(projectIssue) ||
@@ -166,14 +173,13 @@ function getIssueByLabel(issues: Issue[], label: string) {
  * @returns price label
  */
 function getIssuePriceLabel(issue: Issue) {
-  let defaultPriceLabel = "Pricing: not set";
   let priceLabels = issue.labels.filter(
     (label) => label.name.includes("Price:") || label.name.includes("Pricing:")
   );
   // NOTICE: we rename "Price" to "Pricing" because the bot removes all manually added price labels starting with "Price:"
   return priceLabels.length > 0
     ? priceLabels[0].name.replace("Price", "Pricing")
-    : defaultPriceLabel;
+    : DEFAULT_PRICE_LABEL;
 }
 
 /**
