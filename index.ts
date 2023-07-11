@@ -100,6 +100,11 @@ async function main() {
                     const additionalLabelsToAdd = projectIssue?.assignee?.login
                     ? ["Unavailable"]
                     : [];
+                    const issuePriceLabel  = getIssuePriceLabel(projectIssue) 
+                    if(issuePriceLabel === DEFAULT_PRICE_LABEL){
+                      console.log(`Pricing not set for the issue, skipping. ${projectIssue.html_url}`)
+                      return
+                    }
                     const createdIssue = await octokit.rest.issues.create({
                         owner: DEVPOOL_OWNER_NAME,
                         repo: DEVPOOL_REPO_NAME,
