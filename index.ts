@@ -12,19 +12,19 @@ const DEVPOOL_REPO_NAME = "devpool-directory";
 const DEFAULT_PRICE_LABEL = "Pricing: not set";
 
 type Issue = {
-    html_url: string,
-    labels: {
-        name: string,
-    }[],
-    node_id: string,
-    number: number,
-    pull_request: null | {},
-    state: 'open' | 'closed',
-    title: string,
-    body?: string;
-    assignee: {
-      login: string;
-    };
+  html_url: string,
+  labels: {
+    name: string,
+  }[],
+  node_id: string,
+  number: number,
+  pull_request: null | {},
+  state: 'open' | 'closed',
+  title: string,
+  body?: string;
+  assignee: {
+    login: string;
+  };
 }
 
 // init env variables
@@ -46,79 +46,76 @@ async function main() {
       DEVPOOL_REPO_NAME
     );
 
-        // for each project URL
-        for (let projectUrl of projects.urls) {
-            // get owner and repository names from project URL
-            const [ownerName, repoName] = getRepoCredentials(projectUrl);
-            // get all project issues (opened and closed)
-            const projectIssues: Issue[] = await getAllIssues(ownerName, repoName);
-            // for all issues
-            for (let projectIssue of projectIssues) {
-                // if issue exists in devpool
-                const devpoolIssue = getIssueByLabel(devpoolIssues, `id: ${projectIssue.node_id}`);
-                if (devpoolIssue) {
-                  const additionalLabelsToAdd = projectIssue?.assignee?.login
-                    ? ["Unavailable"]
-                    : [];
-                    const isUnavailableTag = devpoolIssue?.labels?.some((item)=>item.name==="Unavailable");
-                    // update a devpool issue if 1 of the following has changed in a partner project issue:
-                    // - title
-                    // - state
-                    // - pricing
-                    // - repository name (devpool issue body contains a partner project issue URL)
-                    // - bounty hunter assigned/unassigned an issue
-                    const issuePriceLabel  = getIssuePriceLabel(projectIssue) 
-                    if(issuePriceLabel === DEFAULT_PRICE_LABEL){
-                      console.log(`Pricing not set for the issue, skipping. ${projectIssue.html_url}`)
-                      return
-                    }
-                    if (devpoolIssue.title !== projectIssue.title || 
-                        devpoolIssue.state !== projectIssue.state || 
-                        getIssuePriceLabel(devpoolIssue) !== getIssuePriceLabel(projectIssue) ||
-                        devpoolIssue.body !== projectIssue.html_url ||
-                        (projectIssue?.assignee?.login === undefined && isUnavailableTag) || 
-                        (projectIssue?.assignee?.login !== undefined && !isUnavailableTag)
-                      ) {
-                        await octokit.rest.issues.update({
-                            owner: DEVPOOL_OWNER_NAME,
-                            repo: DEVPOOL_REPO_NAME,
-                            issue_number: devpoolIssue.number,
-                            title: projectIssue.title,
-                            body: projectIssue.html_url,
-                            state: projectIssue.state,
-                            labels: [...getDevpoolIssueLabels(projectIssue),...additionalLabelsToAdd],
-                        });
-                        console.log(`Updated: ${projectIssue.html_url}`);
-                    } else {
-                        console.log(`No updates: ${projectIssue.html_url}`);
-                    }
-                } else {
-                    // issue does not exist in devpool
-                    // if issue is "closed" then skip it, no need to copy/paste already "closed" issues
-                    if (projectIssue.state === 'closed') continue;
-                    // create a new issue
-                    const additionalLabelsToAdd = projectIssue?.assignee?.login
-                    ? ["Unavailable"]
-                    : [];
-                    const issuePriceLabel  = getIssuePriceLabel(projectIssue) 
-                    if(issuePriceLabel === DEFAULT_PRICE_LABEL){
-                      console.log(`Pricing not set for the issue, skipping. ${projectIssue.html_url}`)
-                      return
-                    }
-                    const createdIssue = await octokit.rest.issues.create({
-                        owner: DEVPOOL_OWNER_NAME,
-                        repo: DEVPOOL_REPO_NAME,
-                        title: projectIssue.title,
-                        body: projectIssue.html_url,
-                        labels: [...getDevpoolIssueLabels(projectIssue),...additionalLabelsToAdd],
-                    });
-                    console.log(`Created: ${projectIssue.html_url}`);
-                }
-            }
+    // for each project URL
+    for (let projectUrl of projects.urls) {
+      // get owner and repository names from project URL
+      const [ownerName, repoName] = getRepoCredentials(projectUrl);
+      // get all project issues (opened and closed)
+      const projectIssues: Issue[] = await getAllIssues(ownerName, repoName);
+      // for all issues
+      for (let projectIssue of projectIssues) {
+        // if issue exists in devpool
+        const devpoolIssue = getIssueByLabel(devpoolIssues, `id: ${projectIssue.node_id}`);
+        if (devpoolIssue) {
+          const additionalLabelsToAdd = projectIssue?.assignee?.login
+            ? ["Unavailable"]
+            : [];
+          const isUnavailableTag = devpoolIssue?.labels?.some((item) => item.name === "Unavailable");
+          // update a devpool issue if 1 of the following has changed in a partner project issue:
+          // - title
+          // - state
+          // - pricing
+          // - repository name (devpool issue body contains a partner project issue URL)
+          // - bounty hunter assigned/unassigned an issue
+          if (devpoolIssue.title !== projectIssue.title ||
+            devpoolIssue.state !== projectIssue.state ||
+            getIssuePriceLabel(devpoolIssue) !== getIssuePriceLabel(projectIssue) ||
+            devpoolIssue.body !== projectIssue.html_url ||
+            (projectIssue?.assignee?.login === undefined && isUnavailableTag) ||
+            (projectIssue?.assignee?.login !== undefined && !isUnavailableTag)
+          ) {
+            await octokit.rest.issues.update({
+              owner: DEVPOOL_OWNER_NAME,
+              repo: DEVPOOL_REPO_NAME,
+              issue_number: devpoolIssue.number,
+              title: projectIssue.title,
+              body: projectIssue.html_url,
+              state: projectIssue.state,
+              labels: [...getDevpoolIssueLabels(projectIssue), ...additionalLabelsToAdd],
+            });
+            console.log(`Updated: ${projectIssue.html_url}`);
+          } else {
+            console.log(`No updates: ${projectIssue.html_url}`);
           }
-          } catch (err) {
-            console.log(err);
+        } else {
+          // issue does not exist in devpool
+          // if issue is "closed" then skip it, no need to copy/paste already "closed" issues
+          if (projectIssue.state === 'closed') continue;
+          // create a new issue
+          const additionalLabelsToAdd = projectIssue?.assignee?.login
+            ? ["Unavailable"]
+            : [];
+
+          const defaultPriceLabel = await isDefaultPriceLabel(projectIssue)
+
+          if(defaultPriceLabel) {
+            continue
           }
+
+          const createdIssue = await octokit.rest.issues.create({
+            owner: DEVPOOL_OWNER_NAME,
+            repo: DEVPOOL_REPO_NAME,
+            title: projectIssue.title,
+            body: projectIssue.html_url,
+            labels: [...getDevpoolIssueLabels(projectIssue), ...additionalLabelsToAdd],
+          });
+          console.log(`Created: ${projectIssue.html_url}`);
+        }
+      }
+    }
+  } catch (err) {
+    console.log(err);
+  }
 }
 
 main();
@@ -126,6 +123,21 @@ main();
 //=============
 // Helpers
 //=============
+
+/**
+ * @param issue Issue
+ * @returns true or false
+ */
+
+async function isDefaultPriceLabel(issue: Issue) {
+  const issuePriceLabel = getIssuePriceLabel(issue)
+  if (issuePriceLabel === DEFAULT_PRICE_LABEL) {
+    console.log(`Pricing not set for the issue, skipping. ${issue.html_url}`)
+    return true
+  }
+
+  return false
+}
 
 /**
  * Returns all issues in a repo
@@ -150,13 +162,13 @@ async function getAllIssues(ownerName: string, repoName: string) {
  * @param issue issue object
  */
 function getDevpoolIssueLabels(issue: Issue) {
-    // get owner and repo name from issue's URL because the repo name could be updated
-    const [ownerName, repoName] = getRepoCredentials(issue.html_url);
-    return [
-        getIssuePriceLabel(issue), // price
-        `Partner: ${ownerName}/${repoName}`, // partner
-        `id: ${issue.node_id}`, // id
-    ];
+  // get owner and repo name from issue's URL because the repo name could be updated
+  const [ownerName, repoName] = getRepoCredentials(issue.html_url);
+  return [
+    getIssuePriceLabel(issue), // price
+    `Partner: ${ownerName}/${repoName}`, // partner
+    `id: ${issue.node_id}`, // id
+  ];
 }
 
 /**
@@ -193,9 +205,9 @@ function getIssuePriceLabel(issue: Issue) {
  * @returns array of owner and repository names
  */
 function getRepoCredentials(projectUrl: string) {
-    const urlObject = new URL(projectUrl);
-    const urlPath = urlObject.pathname.split('/');
-    const ownerName = urlPath[1];
-    const repoName = urlPath[2];
-    return [ownerName, repoName];
+  const urlObject = new URL(projectUrl);
+  const urlPath = urlObject.pathname.split('/');
+  const ownerName = urlPath[1];
+  const repoName = urlPath[2];
+  return [ownerName, repoName];
 }
