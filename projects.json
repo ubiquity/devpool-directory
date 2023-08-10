@@ -9,9 +9,10 @@
     "https://github.com/ubiquity/ubiquity-dollar",
     "https://github.com/ubiquity/devpool-directory-bounties",
     "https://github.com/ubiquity/gnosischain.world",
-    "https://github.com/ubiquibot/QA-Improvements",
+    "https://github.com/ubiquibot/quality-assurance-improvements",
     "https://github.com/ubiquity/action-conventional-commits",
     "https://github.com/ubiquity/github-agents",
-    "https://github.com/ubiquity/telegram-ubiquibot"
+    "https://github.com/ubiquity/telegram-ubiquibot",
+    "https://github.com/ubiquity/testing-telegram-ubiquibot"
   ]
 }
