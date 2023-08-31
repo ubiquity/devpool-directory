@@ -25,6 +25,7 @@ type Issue = {
 }
 
 enum LABELS {
+  PRICE = 'Price',
   UNAVAILABLE = 'Unavailable',
 };
 
@@ -55,6 +56,14 @@ async function main() {
                 // if issue exists in devpool
                 const devpoolIssue = getIssueByLabel(devpoolIssues, `id: ${projectIssue.node_id}`);
                 if (devpoolIssue) {
+                    // If project issue doesn't have the "Price" label (i.e. it has been removed) then remove 
+                    // the devpool issue, no need to pollute devpool repo with draft issues
+                    if (!projectIssue.labels.some(label => label.name.includes(LABELS.PRICE))) {
+                      await deleteIssue(devpoolIssue.node_id);
+                      console.log(`Deleted: ${devpoolIssue.html_url} (${projectIssue.html_url})`);
+                      continue;
+                    }
+                    // prepare for issue updating
                     const isDevpoolUnavailableLabel = devpoolIssue.labels?.some((label) => label.name === LABELS.UNAVAILABLE);
                     const devpoolIssueLabelsStringified = devpoolIssue.labels.map(label => label.name).sort().toString();
                     const projectIssueLabelsStringified = getDevpoolIssueLabels(projectIssue, ownerName, repoName).sort().toString();
@@ -77,14 +86,16 @@ async function main() {
                             state: projectIssue.state,
                             labels: [...getDevpoolIssueLabels(projectIssue, ownerName, repoName)],
                         });
-                        console.log(`Updated: ${projectIssue.html_url}`);
+                        console.log(`Updated: ${devpoolIssue.html_url} (${projectIssue.html_url})`);
                     } else {
-                        console.log(`No updates: ${projectIssue.html_url}`);
+                        console.log(`No updates: ${devpoolIssue.html_url} (${projectIssue.html_url})`);
                     }
                 } else {
                     // issue does not exist in devpool
                     // if issue is "closed" then skip it, no need to copy/paste already "closed" issues
                     if (projectIssue.state === 'closed') continue;
+                    // if issue doesn't have the "Price" label then skip it, no need to pollute repo with draft issues
+                    if (!projectIssue.labels.some(label => label.name.includes(LABELS.PRICE))) continue;
                     // create a new issue
                     const createdIssue = await octokit.rest.issues.create({
                         owner: DEVPOOL_OWNER_NAME,
@@ -93,7 +104,7 @@ async function main() {
                         body: projectIssue.html_url,
                         labels: [...getDevpoolIssueLabels(projectIssue, ownerName, repoName)],
                     });
-                    console.log(`Created: ${projectIssue.html_url}`);
+                    console.log(`Created: ${createdIssue.data.html_url} (${projectIssue.html_url})`);
                 }
             }
           }
@@ -107,6 +118,28 @@ main();
 //=============
 // Helpers
 //=============
+
+/**
+ * Deletes github issue
+ * @param nodeId issue node id
+ */
+async function deleteIssue(nodeId: string) {
+  await octokit.graphql(
+    `
+      mutation($input:DeleteIssueInput!) {
+        deleteIssue(input:$input) {
+          clientMutationId
+        }
+      }
+    `, 
+    {
+      input: {
+        issueId: nodeId,
+        clientMutationId: 'devpool',
+      }
+    }
+  );
+}
 
 /**
  * Returns all issues in a repo
