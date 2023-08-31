@@ -49,12 +49,17 @@ async function main() {
       DEVPOOL_REPO_NAME
     );
 
+    // aggregate all project issues
+    const allProjectIssues: Issue[] = [];
+
     // for each project URL
     for (let projectUrl of projects.urls) {
       // get owner and repository names from project URL
       const [ownerName, repoName] = getRepoCredentials(projectUrl);
       // get all project issues (opened and closed)
       const projectIssues: Issue[] = await getAllIssues(ownerName, repoName);
+      // aggregate all project issues
+      allProjectIssues.push(...projectIssues);
       // for all issues
       for (let projectIssue of projectIssues) {
         // if issue exists in devpool
@@ -70,9 +75,9 @@ async function main() {
                 issue_number: devpoolIssue.number,
                 state: 'closed',
               });
-              console.log(`Closed: ${devpoolIssue.html_url} (${projectIssue.html_url})`);
+              console.log(`Closed (price label not set): ${devpoolIssue.html_url} (${projectIssue.html_url})`);
             } else {
-              console.log(`Already closed: ${devpoolIssue.html_url} (${projectIssue.html_url})`);
+              console.log(`Already closed (price label not set): ${devpoolIssue.html_url} (${projectIssue.html_url})`);
             }
             continue;
           }
@@ -124,6 +129,10 @@ async function main() {
         }
       }
     }
+
+    // close missing issues
+    await forceCloseMissingIssues(devpoolIssues, allProjectIssues);
+
   } catch (err) {
     console.log(err);
   }
@@ -155,6 +164,40 @@ async function deleteIssue(nodeId: string) {
       }
     }
   );
+}
+
+/**
+ * Closes issues that exist in the devpool but are missing in partner projects
+ * 
+ * Devpool and partner project issues can be
+ * out of sync in the following cases:
+ * - partner project issue was deleted or transferred to another repo
+ * - partner project repo was deleted from https://github.com/ubiquity/devpool-directory/blob/development/projects.json
+ * - partner project repo was made private
+ * @param devpoolIssues all devpool issues array
+ * @param projectIssues all partner project issues array
+ */
+async function forceCloseMissingIssues(
+  devpoolIssues: Issue[],
+  projectIssues: Issue[],
+) {
+  // for all devpool issues
+  for (let devpoolIssue of devpoolIssues) {
+    // if devpool issue does not exist in partners' projects then close it
+    if (!projectIssues.some(projectIssue => projectIssue.node_id === getIssueLabelValue(devpoolIssue, 'id:'))) {
+      if (devpoolIssue.state === 'open') {
+        await octokit.rest.issues.update({
+          owner: DEVPOOL_OWNER_NAME,
+          repo: DEVPOOL_REPO_NAME,
+          issue_number: devpoolIssue.number,
+          state: 'closed',
+        });
+        console.log(`Closed (missing in partners projects): ${devpoolIssue.html_url}`);
+      } else {
+        console.log(`Already closed (missing in partners projects): ${devpoolIssue.html_url}`);
+      }
+    }
+  }
 }
 
 /**
@@ -217,6 +260,24 @@ function getIssueByLabel(issues: Issue[], label: string) {
     return labels.length > 0;
   });
   return issues.length > 0 ? issues[0] : null;
+}
+
+/**
+ * Returns label value by label prefix
+ * Example: "Partner: my/repo" => "my/repo"
+ * Example: "id: 123qwe" => "123qwe"
+ * @param issue issue
+ * @param labelPrefix label prefix
+ */
+function getIssueLabelValue(issue: Issue, labelPrefix: string) {
+  let labelValue = null;
+  for (let labelObj of issue.labels) {
+    if (labelObj.name.includes(labelPrefix)) {
+      labelValue = labelObj.name.split(':')[1].trim();
+      break;
+    }
+  }
+  return labelValue;
 }
 
 /**
