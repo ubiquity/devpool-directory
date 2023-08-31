@@ -24,6 +24,10 @@ type Issue = {
     };
 }
 
+enum LABELS {
+  UNAVAILABLE = 'Unavailable',
+};
+
 // init octokit
 const octokit = new Octokit({ auth: process.env.DEVPOOL_GITHUB_API_TOKEN });
 
@@ -51,19 +55,25 @@ async function main() {
                 // if issue exists in devpool
                 const devpoolIssue = getIssueByLabel(devpoolIssues, `id: ${projectIssue.node_id}`);
                 if (devpoolIssue) {
-                  const additionalLabelsToAdd = projectIssue?.assignee?.login
-                    ? ["Unavailable"]
-                    : [];
-                    const isUnavailableTag = devpoolIssue?.labels?.some((item)=>item.name==="Unavailable");
-                    // if title or state or pricing was updated then update a devpool issue
-                    if (devpoolIssue.title !== projectIssue.title || devpoolIssue.state !== projectIssue.state || (projectIssue?.assignee?.login === undefined && isUnavailableTag)|| (projectIssue?.assignee?.login !== undefined && !isUnavailableTag) || getIssuePriceLabel(devpoolIssue) !== getIssuePriceLabel(projectIssue)) {
+                    const isDevpoolUnavailableLabel = devpoolIssue.labels?.some((label) => label.name === LABELS.UNAVAILABLE);
+                    // Update devpool issue if any of the following has been updated:
+                    // - issue title
+                    // - issue state (open/closed)
+                    // - assignee (exists or not)
+                    // - issue price label
+                    if (devpoolIssue.title !== projectIssue.title || 
+                        devpoolIssue.state !== projectIssue.state || 
+                        (!isDevpoolUnavailableLabel && projectIssue.assignee?.login) || 
+                        (isDevpoolUnavailableLabel && !projectIssue.assignee?.login) || 
+                        getIssuePriceLabel(devpoolIssue) !== getIssuePriceLabel(projectIssue)
+                      ) {
                         await octokit.rest.issues.update({
                             owner: DEVPOOL_OWNER_NAME,
                             repo: DEVPOOL_REPO_NAME,
                             issue_number: devpoolIssue.number,
                             title: projectIssue.title,
                             state: projectIssue.state,
-                            labels: [...getDevpoolIssueLabels(projectIssue, ownerName, repoName),...additionalLabelsToAdd],
+                            labels: [...getDevpoolIssueLabels(projectIssue, ownerName, repoName)],
                         });
                         console.log(`Updated: ${projectIssue.html_url}`);
                     } else {
@@ -74,15 +84,12 @@ async function main() {
                     // if issue is "closed" then skip it, no need to copy/paste already "closed" issues
                     if (projectIssue.state === 'closed') continue;
                     // create a new issue
-                    const additionalLabelsToAdd = projectIssue?.assignee?.login
-                    ? ["Unavailable"]
-                    : [];
                     const createdIssue = await octokit.rest.issues.create({
                         owner: DEVPOOL_OWNER_NAME,
                         repo: DEVPOOL_REPO_NAME,
                         title: projectIssue.title,
                         body: projectIssue.html_url,
-                        labels: [...getDevpoolIssueLabels(projectIssue, ownerName, repoName),...additionalLabelsToAdd],
+                        labels: [...getDevpoolIssueLabels(projectIssue, ownerName, repoName)],
                     });
                     console.log(`Created: ${projectIssue.html_url}`);
                 }
@@ -128,11 +135,17 @@ function getDevpoolIssueLabels(
   ownerName: string,
   repoName: string
 ) {
-  return [
+  // default labels
+  const devpoolIssueLabels = [
     getIssuePriceLabel(issue), // price
     `Partner: ${ownerName}/${repoName}`, // partner
     `id: ${issue.node_id}`, // id
   ];
+
+  // if project is already assigned then add the "Unavailable" label
+  if (issue.assignee?.login) devpoolIssueLabels.push(LABELS.UNAVAILABLE);
+  
+  return devpoolIssueLabels;
 }
 
 /**
