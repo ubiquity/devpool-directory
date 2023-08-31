@@ -2,8 +2,12 @@
  * Syncs issues with partner projects
  */
 
-import { Octokit } from "octokit";
-import * as projects from "./projects.json";
+import dotenv from 'dotenv';
+import { Octokit } from 'octokit';
+import * as projects from './projects.json';
+
+// init env variables
+dotenv.config();
 
 const DEVPOOL_OWNER_NAME = "ubiquity";
 const DEVPOOL_REPO_NAME = "devpool-directory";
@@ -66,16 +70,18 @@ async function main() {
                     // prepare for issue updating
                     const isDevpoolUnavailableLabel = devpoolIssue.labels?.some((label) => label.name === LABELS.UNAVAILABLE);
                     const devpoolIssueLabelsStringified = devpoolIssue.labels.map(label => label.name).sort().toString();
-                    const projectIssueLabelsStringified = getDevpoolIssueLabels(projectIssue, ownerName, repoName).sort().toString();
+                    const projectIssueLabelsStringified = getDevpoolIssueLabels(projectIssue).sort().toString();
                     // Update devpool issue if any of the following has been updated:
                     // - issue title
                     // - issue state (open/closed)
                     // - assignee (exists or not)
+                    // - repository name (devpool issue body contains a partner project issue URL)
                     // - any label
                     if (devpoolIssue.title !== projectIssue.title || 
                         devpoolIssue.state !== projectIssue.state || 
                         (!isDevpoolUnavailableLabel && projectIssue.assignee?.login) || 
                         (isDevpoolUnavailableLabel && !projectIssue.assignee?.login) || 
+                        devpoolIssue.body !== projectIssue.html_url ||
                         devpoolIssueLabelsStringified !== projectIssueLabelsStringified
                       ) {
                         await octokit.rest.issues.update({
@@ -83,8 +89,9 @@ async function main() {
                             repo: DEVPOOL_REPO_NAME,
                             issue_number: devpoolIssue.number,
                             title: projectIssue.title,
+                            body: projectIssue.html_url,
                             state: projectIssue.state,
-                            labels: [...getDevpoolIssueLabels(projectIssue, ownerName, repoName)],
+                            labels: getDevpoolIssueLabels(projectIssue),
                         });
                         console.log(`Updated: ${devpoolIssue.html_url} (${projectIssue.html_url})`);
                     } else {
@@ -102,7 +109,7 @@ async function main() {
                         repo: DEVPOOL_REPO_NAME,
                         title: projectIssue.title,
                         body: projectIssue.html_url,
-                        labels: [...getDevpoolIssueLabels(projectIssue, ownerName, repoName)],
+                        labels: getDevpoolIssueLabels(projectIssue),
                     });
                     console.log(`Created: ${createdIssue.data.html_url} (${projectIssue.html_url})`);
                 }
@@ -162,14 +169,13 @@ async function getAllIssues(ownerName: string, repoName: string) {
 /**
  * Returns array of labels for a devpool issue
  * @param issue issue object
- * @param ownerName owner name
- * @param repoName repo name
  */
 function getDevpoolIssueLabels(
-  issue: Issue,
-  ownerName: string,
-  repoName: string
+  issue: Issue
 ) {
+  // get owner and repo name from issue's URL because the repo name could be updated
+  const [ownerName, repoName] = getRepoCredentials(issue.html_url);
+
   // default labels
   const devpoolIssueLabels = [
     getIssuePriceLabel(issue), // price
