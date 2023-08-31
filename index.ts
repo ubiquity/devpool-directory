@@ -56,16 +56,18 @@ async function main() {
                 const devpoolIssue = getIssueByLabel(devpoolIssues, `id: ${projectIssue.node_id}`);
                 if (devpoolIssue) {
                     const isDevpoolUnavailableLabel = devpoolIssue.labels?.some((label) => label.name === LABELS.UNAVAILABLE);
+                    const devpoolIssueLabelsStringified = devpoolIssue.labels.map(label => label.name).sort().toString();
+                    const projectIssueLabelsStringified = getDevpoolIssueLabels(projectIssue, ownerName, repoName).sort().toString();
                     // Update devpool issue if any of the following has been updated:
                     // - issue title
                     // - issue state (open/closed)
                     // - assignee (exists or not)
-                    // - issue price label
+                    // - any label
                     if (devpoolIssue.title !== projectIssue.title || 
                         devpoolIssue.state !== projectIssue.state || 
                         (!isDevpoolUnavailableLabel && projectIssue.assignee?.login) || 
                         (isDevpoolUnavailableLabel && !projectIssue.assignee?.login) || 
-                        getIssuePriceLabel(devpoolIssue) !== getIssuePriceLabel(projectIssue)
+                        devpoolIssueLabelsStringified !== projectIssueLabelsStringified
                       ) {
                         await octokit.rest.issues.update({
                             owner: DEVPOOL_OWNER_NAME,
@@ -144,6 +146,14 @@ function getDevpoolIssueLabels(
 
   // if project is already assigned then add the "Unavailable" label
   if (issue.assignee?.login) devpoolIssueLabels.push(LABELS.UNAVAILABLE);
+
+  // add all missing labels that exist in a project's issue and don't exist in devpool issue
+  for (let projectIssueLabel of issue.labels) {
+    // skip the "Price" label in order to not accidentally generate a permit
+    if (projectIssueLabel.name.includes('Price')) continue;
+    // if project issue label does not exist in devpool issue then add it
+    if (!devpoolIssueLabels.includes(projectIssueLabel.name)) devpoolIssueLabels.push(projectIssueLabel.name);
+  }
   
   return devpoolIssueLabels;
 }
