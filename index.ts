@@ -60,11 +60,20 @@ async function main() {
                 // if issue exists in devpool
                 const devpoolIssue = getIssueByLabel(devpoolIssues, `id: ${projectIssue.node_id}`);
                 if (devpoolIssue) {
-                    // If project issue doesn't have the "Price" label (i.e. it has been removed) then remove 
-                    // the devpool issue, no need to pollute devpool repo with draft issues
+                    // If project issue doesn't have the "Price" label (i.e. it has been removed) then close 
+                    // the devpool issue if it is not already closed, no need to pollute devpool repo with draft issues
                     if (!projectIssue.labels.some(label => label.name.includes(LABELS.PRICE))) {
-                      await deleteIssue(devpoolIssue.node_id);
-                      console.log(`Deleted: ${devpoolIssue.html_url} (${projectIssue.html_url})`);
+                      if (devpoolIssue.state === 'open') {
+                        await octokit.rest.issues.update({
+                          owner: DEVPOOL_OWNER_NAME,
+                          repo: DEVPOOL_REPO_NAME,
+                          issue_number: devpoolIssue.number,
+                          state: 'closed',
+                        });
+                        console.log(`Closed: ${devpoolIssue.html_url} (${projectIssue.html_url})`);
+                      } else {
+                        console.log(`Already closed: ${devpoolIssue.html_url} (${projectIssue.html_url})`);
+                      }
                       continue;
                     }
                     // prepare for issue updating
