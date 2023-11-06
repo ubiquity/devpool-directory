@@ -8,7 +8,7 @@ import _projects from './projects.json';
 
 interface Projects{
   urls: string[];
-  category?: { projectUrl: string}
+  category?: Record<string, string>
 }
 
 const projects = _projects as Projects;
@@ -255,7 +255,7 @@ function getDevpoolIssueLabels(
   }
 
   // if project category for the project is defined, add its category label
-  if (projects.category && projectUrl in projects.category) devpoolIssueLabels.push(projects.category.projectUrl);
+  if (projects.category && projectUrl in projects.category) devpoolIssueLabels.push(projects.category[projectUrl]);
 
   return devpoolIssueLabels;
 }
