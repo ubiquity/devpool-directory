@@ -4,7 +4,14 @@
 
 import dotenv from 'dotenv';
 import { Octokit } from 'octokit';
-import * as projects from './projects.json';
+import _projects from './projects.json';
+
+interface Projects{
+  urls: string[];
+  category?: Record<string, string>
+}
+
+const projects = _projects as Projects;
 
 // init env variables
 dotenv.config();
@@ -84,7 +91,7 @@ async function main() {
           // prepare for issue updating
           const isDevpoolUnavailableLabel = devpoolIssue.labels?.some((label) => label.name === LABELS.UNAVAILABLE);
           const devpoolIssueLabelsStringified = devpoolIssue.labels.map(label => label.name).sort().toString();
-          const projectIssueLabelsStringified = getDevpoolIssueLabels(projectIssue).sort().toString();
+          const projectIssueLabelsStringified = getDevpoolIssueLabels(projectIssue, projectUrl).sort().toString();
           // Update devpool issue if any of the following has been updated:
           // - issue title
           // - issue state (open/closed)
@@ -105,7 +112,7 @@ async function main() {
               title: projectIssue.title,
               body: projectIssue.html_url,
               state: projectIssue.state,
-              labels: getDevpoolIssueLabels(projectIssue),
+              labels: getDevpoolIssueLabels(projectIssue, projectUrl),
             });
             console.log(`Updated: ${devpoolIssue.html_url} (${projectIssue.html_url})`);
           } else {
@@ -123,7 +130,7 @@ async function main() {
             repo: DEVPOOL_REPO_NAME,
             title: projectIssue.title,
             body: projectIssue.html_url,
-            labels: getDevpoolIssueLabels(projectIssue),
+            labels: getDevpoolIssueLabels(projectIssue, projectUrl),
           });
           console.log(`Created: ${createdIssue.data.html_url} (${projectIssue.html_url})`);
         }
@@ -223,7 +230,8 @@ async function getAllIssues(ownerName: string, repoName: string) {
  * @param issue issue object
  */
 function getDevpoolIssueLabels(
-  issue: Issue
+  issue: Issue,
+  projectUrl: string
 ) {
   // get owner and repo name from issue's URL because the repo name could be updated
   const [ownerName, repoName] = getRepoCredentials(issue.html_url);
@@ -245,6 +253,9 @@ function getDevpoolIssueLabels(
     // if project issue label does not exist in devpool issue then add it
     if (!devpoolIssueLabels.includes(projectIssueLabel.name)) devpoolIssueLabels.push(projectIssueLabel.name);
   }
+
+  // if project category for the project is defined, add its category label
+  if (projects.category && projectUrl in projects.category) devpoolIssueLabels.push(projects.category[projectUrl]);
 
   return devpoolIssueLabels;
 }
