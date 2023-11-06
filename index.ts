@@ -9,7 +9,7 @@ import * as projects from './projects.json';
 // init env variables
 dotenv.config();
 
-const DEVPOOL_OWNER_NAME = "ubiquity";
+const DEVPOOL_OWNER_NAME = "korrrba";
 const DEVPOOL_REPO_NAME = "devpool-directory";
 
 type Issue = {
