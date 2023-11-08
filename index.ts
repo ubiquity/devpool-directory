@@ -5,13 +5,20 @@
 import dotenv from 'dotenv';
 import { Octokit } from 'octokit';
 import _projects from './projects.json';
+import _opt from './opt.json';
 
 interface Projects{
   urls: string[];
   category?: Record<string, string>
 }
 
+interface Opt{
+  in: string[];
+  out: string[];
+}
+
 const projects = _projects as Projects;
+const opt = _opt as Opt;
 
 // init env variables
 dotenv.config();
@@ -56,11 +63,23 @@ async function main() {
       DEVPOOL_REPO_NAME
     );
 
+    // aggregate projects.urls and opt settings
+    let projectUrls = new Set<string>(projects.urls);
+
+    for (const orgOrRepo of opt.in) {
+      const urls: string[] = await getRepoUrls(orgOrRepo);
+      urls.forEach(url => projectUrls.add(url)) ;
+    }
+    for (const orgOrRepo of opt.out) {
+      const urls: string[] = await getRepoUrls(orgOrRepo);
+      urls.forEach(url => projectUrls.delete(url));
+    }
+
     // aggregate all project issues
     const allProjectIssues: Issue[] = [];
 
     // for each project URL
-    for (let projectUrl of projects.urls) {
+    for (let projectUrl of projectUrls) {
       // get owner and repository names from project URL
       const [ownerName, repoName] = getRepoCredentials(projectUrl);
       // get all project issues (opened and closed)
@@ -223,6 +242,45 @@ async function getAllIssues(ownerName: string, repoName: string) {
   issues = issues.filter((issue) => !issue.pull_request);
 
   return issues;
+}
+
+/**
+ * Returns all org repositories urls or owner/repo url
+ * @param orgOrRepo org or repository name
+ * @returns array of repository urls
+ */
+async function getRepoUrls(orgOrRepo: string) {
+  const params = orgOrRepo.split("/");
+  let repos: string[] = [];
+  switch (params.length) {
+    case 1:  // org
+      try {
+        const res = await octokit.paginate("GET /orgs/{org}/repos", {
+          org: orgOrRepo,
+        });
+        repos = res.map((repo) => repo.html_url);
+      } catch (e: unknown) {
+        console.warn(`Getting ${orgOrRepo} org repositories failed: ${e}`);
+      }
+      break;
+    case 2:  // owner/repo
+      try {
+        const res = await octokit.rest.repos.get({
+          owner: params[0],
+          repo: params[1]
+        });
+        if (res.status === 200) {
+          repos.push(res.data.html_url);
+        } else console.warn(`Getting owner/repo failed: ${res.status}`);
+      } catch (e: unknown) {
+        console.warn(`Getting owner/repo failed: ${e}`);
+      }
+      break;
+    default:
+      console.warn(`Neither org or nor repo GitHub provided: ${orgOrRepo}.`);
+  }
+
+  return repos;
 }
 
 /**
