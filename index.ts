@@ -58,7 +58,7 @@ async function main() {
 
     // aggregate all project issues
     const allProjectIssues: Issue[] = [];
-
+    /*
     // for each project URL
     for (let projectUrl of projects.urls) {
       // get owner and repository names from project URL
@@ -139,7 +139,7 @@ async function main() {
 
     // close missing issues
     await forceCloseMissingIssues(devpoolIssues, allProjectIssues);
-
+    */
   } catch (err) {
     console.log(err);
   }
