@@ -1,6 +1,8 @@
 {
-  "out": [
-  ],
-  "in": [
-  ]
+    "out": [
+        "ubiquity/devpool-directory",
+    ],
+    "in": [
+        "ubiquity"
+    ]
 }
