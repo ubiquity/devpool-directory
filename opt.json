@@ -1,6 +1,9 @@
 {
     "out": [
         "ubiquity/devpool-directory",
+        "ubiquity/card-issuance",
+        "ubiquity/research",
+        "ubiquity/business-development",
         "ubiquity/ubiquibar"
     ],
     "in": [
