@@ -7,6 +7,7 @@
         "ubiquity/card-issuance",
         "ubiquity/research",
         "ubiquity/business-development",
-        "ubiquity/ubiquibar"
+        "ubiquity/ubiquibar",
+        "ubiquity/ubiquibot"
     ]
 }
