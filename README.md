@@ -2,7 +2,7 @@
 
 ## User Interface
 
-- New (December 2023) use our custom UI at work.ubq.fi
+- New (December 2023) use our custom UI [here](https://work.ubq.fi). 
 
 ## For Bounty Hunters
 
