@@ -1,5 +1,9 @@
 # DevPool - Bounties Directory
 
+## User Interface
+
+- New (December 2023) use our custom UI at work.ubq.fi
+
 ## For Bounty Hunters
 
 - All available bounties are viewable in the [issues section](https://github.com/ubiquity/devpool/issues).
