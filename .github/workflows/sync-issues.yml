@@ -28,8 +28,8 @@ jobs:
         uses: tibdex/github-app-token@v1.7.0
         id: get_installation_token
         with:
-          app_id: ${{ secrets.UBIQUITY_BOUNTY_BOT_APP_ID }}
-          private_key: ${{ secrets.UBIQUITY_BOUNTY_BOT_PRIVATE_KEY }}
+          app_id: ${{ secrets.APP_ID }}
+          private_key: ${{ secrets.APP_PRIVATE_KEY }}
 
       - name: Sync Issues
         env:
