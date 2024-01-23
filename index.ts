@@ -1,9 +1,9 @@
-import dotenv from "dotenv";
-dotenv.config();
-import opt from "./opt.json";
-import _projects from "./projects.json";
 import { RestEndpointMethodTypes } from "@octokit/plugin-rest-endpoint-methods";
 import { Octokit } from "@octokit/rest";
+import dotenv from "dotenv";
+import opt from "./opt.json";
+import _projects from "./projects.json";
+dotenv.config();
 type GitHubIssue = RestEndpointMethodTypes["issues"]["get"]["response"]["data"];
 type GitHubLabel = {
   id: number;
@@ -25,6 +25,8 @@ enum LABELS {
   PRICE = "Price",
   UNAVAILABLE = "Unavailable",
 }
+
+import twitter from "./helpers/twitter";
 
 // init octokit
 const octokit = new Octokit({ auth: process.env.DEVPOOL_GITHUB_API_TOKEN });
@@ -132,6 +134,10 @@ async function main() {
             labels: getDevpoolIssueLabels(projectIssue, projectUrl),
           });
           console.log(`Created: ${createdIssue.data.html_url} (${projectIssue.html_url})`);
+
+          // post to Twitter
+          const tweetText = `New issue created: ${createdIssue.data.html_url}`;
+          await twitter.postTweet(tweetText);
         }
       }
     }
