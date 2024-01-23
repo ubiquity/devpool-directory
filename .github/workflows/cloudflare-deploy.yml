@@ -1,0 +1,24 @@
+name: Deploy to Cloudflare Pages
+
+on:
+  push:
+
+jobs:
+  deploy-to-cloudflare:
+    name: Deploy to Cloudflare Pages
+    runs-on: ubuntu-22.04
+    permissions:
+      contents: read
+
+    steps:
+      - name: Deploy to Cloudflare
+        uses: ubiquity/cloudflare-deploy-action@main
+        with:
+          cloudflare_api_token: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          repository: ${{ github.repository }}
+          production_branch: ${{ github.event.repository.default_branch }}
+          output_directory: "static"
+        # env:
+        # Add any environment variables you need to pass along here
+        #   SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+        #   SUPABASE_KEY: ${{ secrets.SUPABASE_KEY }}
