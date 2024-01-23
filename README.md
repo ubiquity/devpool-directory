@@ -13,6 +13,7 @@
 ## For Partners
 
 You can add your repository automatically by adding our [UbiquiBot](https://github.com/marketplace/ubiquibot) to your public repository.
+
 1. The bot will automatically open up a pull request, requesting to be added.
 2. When the pull request is merged your bounties will appear [here](https://github.com/ubiquity/devpool/issues).
 
