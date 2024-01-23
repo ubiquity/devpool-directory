@@ -161,7 +161,13 @@ async function main() {
   }
 }
 
-void main();
+void (async () => {
+  try {
+    await main();
+  } catch (error) {
+    console.error(error);
+  }
+})();
 
 //=============
 // Helpers
