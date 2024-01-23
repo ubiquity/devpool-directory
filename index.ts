@@ -1,14 +1,9 @@
-/**
- * Syncs issues with partner projects
- */
-
 import dotenv from "dotenv";
-import _opt from "./opt.json";
+dotenv.config();
+import opt from "./opt.json";
 import _projects from "./projects.json";
-
 import { RestEndpointMethodTypes } from "@octokit/plugin-rest-endpoint-methods";
 import { Octokit } from "@octokit/rest";
-
 type GitHubIssue = RestEndpointMethodTypes["issues"]["get"]["response"]["data"];
 type GitHubLabel = {
   id: number;
@@ -19,26 +14,13 @@ type GitHubLabel = {
   color: string | null;
   default: boolean;
 };
-
-interface Projects {
+const projects = _projects as {
   urls: string[];
   category?: Record<string, string>;
-}
-
-interface Opt {
-  in: string[];
-  out: string[];
-}
-
-const projects = _projects as Projects;
-const opt = _opt as Opt;
-
-// init env variables
-dotenv.config();
+};
 
 const DEVPOOL_OWNER_NAME = "ubiquity";
 const DEVPOOL_REPO_NAME = "devpool-directory";
-
 enum LABELS {
   PRICE = "Price",
   UNAVAILABLE = "Unavailable",
