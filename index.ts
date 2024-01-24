@@ -1,47 +1,26 @@
-/**
- * Syncs issues with partner projects
- */
-
 import dotenv from "dotenv";
-import { Octokit } from "octokit";
+dotenv.config();
+import opt from "./opt.json";
 import _projects from "./projects.json";
-import _opt from "./opt.json";
-
-interface Projects {
+import { RestEndpointMethodTypes } from "@octokit/plugin-rest-endpoint-methods";
+import { Octokit } from "@octokit/rest";
+type GitHubIssue = RestEndpointMethodTypes["issues"]["get"]["response"]["data"];
+type GitHubLabel = {
+  id: number;
+  node_id: string;
+  url: string;
+  name: string;
+  description: string | null;
+  color: string | null;
+  default: boolean;
+};
+const projects = _projects as {
   urls: string[];
   category?: Record<string, string>;
-}
-
-interface Opt {
-  in: string[];
-  out: string[];
-}
-
-const projects = _projects as Projects;
-const opt = _opt as Opt;
-
-// init env variables
-dotenv.config();
+};
 
 const DEVPOOL_OWNER_NAME = "ubiquity";
 const DEVPOOL_REPO_NAME = "devpool-directory";
-
-type Issue = {
-  html_url: string;
-  labels: {
-    name: string;
-  }[];
-  node_id: string;
-  number: number;
-  pull_request: null | {};
-  state: "open" | "closed";
-  title: string;
-  body?: string;
-  assignee: {
-    login: string;
-  };
-};
-
 enum LABELS {
   PRICE = "Price",
   UNAVAILABLE = "Unavailable",
@@ -58,7 +37,7 @@ const octokit = new Octokit({ auth: process.env.DEVPOOL_GITHUB_API_TOKEN });
 async function main() {
   try {
     // get devpool issues
-    const devpoolIssues: Issue[] = await getAllIssues(DEVPOOL_OWNER_NAME, DEVPOOL_REPO_NAME);
+    const devpoolIssues: GitHubIssue[] = await getAllIssues(DEVPOOL_OWNER_NAME, DEVPOOL_REPO_NAME);
 
     // aggregate projects.urls and opt settings
     const projectUrls = new Set<string>(projects.urls);
@@ -73,14 +52,14 @@ async function main() {
     }
 
     // aggregate all project issues
-    const allProjectIssues: Issue[] = [];
+    const allProjectIssues: GitHubIssue[] = [];
 
     // for each project URL
     for (const projectUrl of projectUrls) {
       // get owner and repository names from project URL
       const [ownerName, repoName] = getRepoCredentials(projectUrl);
       // get all project issues (opened and closed)
-      const projectIssues: Issue[] = await getAllIssues(ownerName, repoName);
+      const projectIssues: GitHubIssue[] = await getAllIssues(ownerName, repoName);
       // aggregate all project issues
       allProjectIssues.push(...projectIssues);
       // for all issues
@@ -90,7 +69,7 @@ async function main() {
         if (devpoolIssue) {
           // If project issue doesn't have the "Price" label (i.e. it has been removed) then close
           // the devpool issue if it is not already closed, no need to pollute devpool repo with draft issues
-          if (!projectIssue.labels.some((label) => label.name.includes(LABELS.PRICE))) {
+          if (!(projectIssue.labels as GitHubLabel[]).some((label) => label.name.includes(LABELS.PRICE))) {
             if (devpoolIssue.state === "open") {
               await octokit.rest.issues.update({
                 owner: DEVPOOL_OWNER_NAME,
@@ -105,8 +84,8 @@ async function main() {
             continue;
           }
           // prepare for issue updating
-          const isDevpoolUnavailableLabel = devpoolIssue.labels?.some((label) => label.name === LABELS.UNAVAILABLE);
-          const devpoolIssueLabelsStringified = devpoolIssue.labels
+          const isDevpoolUnavailableLabel = (devpoolIssue.labels as GitHubLabel[])?.some((label) => label.name === LABELS.UNAVAILABLE);
+          const devpoolIssueLabelsStringified = (devpoolIssue.labels as GitHubLabel[])
             .map((label) => label.name)
             .sort()
             .toString();
@@ -131,7 +110,7 @@ async function main() {
               issue_number: devpoolIssue.number,
               title: projectIssue.title,
               body: projectIssue.html_url,
-              state: projectIssue.state,
+              state: projectIssue.state as "open" | "closed",
               labels: getDevpoolIssueLabels(projectIssue, projectUrl),
             });
             console.log(`Updated: ${devpoolIssue.html_url} (${projectIssue.html_url})`);
@@ -143,7 +122,7 @@ async function main() {
           // if issue is "closed" then skip it, no need to copy/paste already "closed" issues
           if (projectIssue.state === "closed") continue;
           // if issue doesn't have the "Price" label then skip it, no need to pollute repo with draft issues
-          if (!projectIssue.labels.some((label) => label.name.includes(LABELS.PRICE))) continue;
+          if (!(projectIssue.labels as GitHubLabel[]).some((label) => label.name.includes(LABELS.PRICE))) continue;
           // create a new issue
           const createdIssue = await octokit.rest.issues.create({
             owner: DEVPOOL_OWNER_NAME,
@@ -164,33 +143,17 @@ async function main() {
   }
 }
 
-main();
+void (async () => {
+  try {
+    await main();
+  } catch (error) {
+    console.error(error);
+  }
+})();
 
 //=============
 // Helpers
 //=============
-
-/**
- * Deletes github issue
- * @param nodeId issue node id
- */
-async function deleteIssue(nodeId: string) {
-  await octokit.graphql(
-    `
-      mutation($input:DeleteIssueInput!) {
-        deleteIssue(input:$input) {
-          clientMutationId
-        }
-      }
-    `,
-    {
-      input: {
-        issueId: nodeId,
-        clientMutationId: "devpool",
-      },
-    }
-  );
-}
 
 /**
  * Closes issues that exist in the devpool but are missing in partner projects
@@ -203,7 +166,7 @@ async function deleteIssue(nodeId: string) {
  * @param devpoolIssues all devpool issues array
  * @param projectIssues all partner project issues array
  */
-async function forceCloseMissingIssues(devpoolIssues: Issue[], projectIssues: Issue[]) {
+async function forceCloseMissingIssues(devpoolIssues: GitHubIssue[], projectIssues: GitHubIssue[]) {
   // for all devpool issues
   for (const devpoolIssue of devpoolIssues) {
     // if devpool issue does not exist in partners' projects then close it
@@ -231,7 +194,7 @@ async function forceCloseMissingIssues(devpoolIssues: Issue[], projectIssues: Is
  */
 async function getAllIssues(ownerName: string, repoName: string) {
   // get all project issues (opened and closed)
-  let issues: Issue[] = await octokit.paginate({
+  let issues: GitHubIssue[] = await octokit.paginate({
     method: "GET",
     url: `/repos/${ownerName}/${repoName}/issues?state=all`,
   });
@@ -284,7 +247,7 @@ async function getRepoUrls(orgOrRepo: string) {
  * Returns array of labels for a devpool issue
  * @param issue issue object
  */
-function getDevpoolIssueLabels(issue: Issue, projectUrl: string) {
+function getDevpoolIssueLabels(issue: GitHubIssue, projectUrl: string) {
   // get owner and repo name from issue's URL because the repo name could be updated
   const [ownerName, repoName] = getRepoCredentials(issue.html_url);
 
@@ -298,8 +261,10 @@ function getDevpoolIssueLabels(issue: Issue, projectUrl: string) {
   // if project is already assigned then add the "Unavailable" label
   if (issue.assignee?.login) devpoolIssueLabels.push(LABELS.UNAVAILABLE);
 
+  const labels = issue.labels as GitHubLabel[];
+
   // add all missing labels that exist in a project's issue and don't exist in devpool issue
-  for (const projectIssueLabel of issue.labels) {
+  for (const projectIssueLabel of labels) {
     // skip the "Price" label in order to not accidentally generate a permit
     if (projectIssueLabel.name.includes("Price")) continue;
     // if project issue label does not exist in devpool issue then add it
@@ -317,9 +282,9 @@ function getDevpoolIssueLabels(issue: Issue, projectUrl: string) {
  * @param issues issues array
  * @param label label string
  */
-function getIssueByLabel(issues: Issue[], label: string) {
+function getIssueByLabel(issues: GitHubIssue[], label: string) {
   issues = issues.filter((issue) => {
-    const labels = issue.labels.filter((obj) => obj.name === label);
+    const labels = (issue.labels as GitHubLabel[]).filter((obj) => obj.name === label);
     return labels.length > 0;
   });
   return issues.length > 0 ? issues[0] : null;
@@ -332,9 +297,10 @@ function getIssueByLabel(issues: Issue[], label: string) {
  * @param issue issue
  * @param labelPrefix label prefix
  */
-function getIssueLabelValue(issue: Issue, labelPrefix: string) {
+function getIssueLabelValue(issue: GitHubIssue, labelPrefix: string) {
   let labelValue = null;
-  for (const labelObj of issue.labels) {
+  const labels = issue.labels as GitHubLabel[];
+  for (const labelObj of labels) {
     if (labelObj.name.includes(labelPrefix)) {
       labelValue = labelObj.name.split(":")[1].trim();
       break;
@@ -348,9 +314,10 @@ function getIssueLabelValue(issue: Issue, labelPrefix: string) {
  * @param issue issue object
  * @returns price label
  */
-function getIssuePriceLabel(issue: Issue) {
+function getIssuePriceLabel(issue: GitHubIssue) {
   const defaultPriceLabel = "Pricing: not set";
-  const priceLabels = issue.labels.filter((label) => label.name.includes("Price:") || label.name.includes("Pricing:"));
+  const labels = issue.labels as GitHubLabel[];
+  const priceLabels = labels.filter((label) => label.name.includes("Price:") || label.name.includes("Pricing:"));
   // NOTICE: we rename "Price" to "Pricing" because the bot removes all manually added price labels starting with "Price:"
   return priceLabels.length > 0 ? priceLabels[0].name.replace("Price", "Pricing") : defaultPriceLabel;
 }
