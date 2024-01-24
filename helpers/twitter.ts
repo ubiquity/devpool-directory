@@ -1,4 +1,6 @@
 import Twitter from "twitter";
+import dotenv from "dotenv";
+dotenv.config();
 // Check for each environment variable
 const consumerKey = process.env.TWITTER_CONSUMER_KEY;
 const consumerSecret = process.env.TWITTER_CONSUMER_SECRET;

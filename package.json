@@ -2,15 +2,13 @@
   "name": "ts-template",
   "version": "1.0.0",
   "description": "Template repository with TypeScript support.",
-  "main": "build/index.ts",
+  "main": "index.ts",
   "author": "Ubiquity DAO",
   "license": "MIT",
   "engines": {
     "node": ">=20.10.0"
   },
   "scripts": {
-    "start": "tsx build/esbuild-server.ts",
-    "build": "tsx build/esbuild-build.ts",
     "format": "run-s format:prettier format:lint",
     "format:lint": "eslint --fix .",
     "format:prettier": "prettier --write .",

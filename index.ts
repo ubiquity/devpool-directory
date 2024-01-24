@@ -3,7 +3,6 @@ import { Octokit } from "@octokit/rest";
 import dotenv from "dotenv";
 import opt from "./opt.json";
 import _projects from "./projects.json";
-dotenv.config();
 type GitHubIssue = RestEndpointMethodTypes["issues"]["get"]["response"]["data"];
 type GitHubLabel = {
   id: number;
@@ -29,6 +28,8 @@ enum LABELS {
 import twitter from "./helpers/twitter";
 
 // init octokit
+dotenv.config();
+
 const octokit = new Octokit({ auth: process.env.DEVPOOL_GITHUB_API_TOKEN });
 
 /**
@@ -136,7 +137,16 @@ async function main() {
           console.log(`Created: ${createdIssue.data.html_url} (${projectIssue.html_url})`);
 
           // post to Twitter
-          const tweetText = `New issue created: ${createdIssue.data.html_url}`;
+          const labels = createdIssue.data.labels as GitHubLabel[];
+          const priceLabel = labels.find((label) => label.name.includes("Price: "))?.name.replace("Price: ", "");
+          const timeLabel = labels.find((label) => label.name.includes("Time: "))?.name.replace("Time: ", "");
+          const tweetText = `${priceLabel} for ${timeLabel}\n\n${createdIssue.data.html_url}`;
+          console.trace({ tweetText });
+          /*
+          50 USD for <1 Hour
+
+          https://github.com/ubiquity/pay.ubq.fi/issues/65
+          */
           await twitter.postTweet(tweetText);
         }
       }
