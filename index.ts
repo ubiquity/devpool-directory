@@ -136,18 +136,22 @@ async function main() {
           });
           console.log(`Created: ${createdIssue.data.html_url} (${projectIssue.html_url})`);
 
-          // post to Twitter
-          const labels = createdIssue.data.labels as GitHubLabel[];
-          const priceLabel = labels.find((label) => label.name.includes("Price: "))?.name.replace("Price: ", "");
-          const timeLabel = labels.find((label) => label.name.includes("Time: "))?.name.replace("Time: ", "");
-          const tweetText = `${priceLabel} for ${timeLabel}\n\n${createdIssue.data.html_url}`;
-          console.trace({ tweetText });
-          /*
-          50 USD for <1 Hour
+          try {
+            // post to Twitter
+            const labels = createdIssue.data.labels as GitHubLabel[];
+            const priceLabel = labels.find((label) => label.name.includes("Price: "))?.name.replace("Price: ", "");
+            const timeLabel = labels.find((label) => label.name.includes("Time: "))?.name.replace("Time: ", "");
+            const tweetText = `${priceLabel} for ${timeLabel}\n\n${createdIssue.data.html_url}`;
+            console.trace({ tweetText });
+            /*
+            50 USD for <1 Hour
 
-          https://github.com/ubiquity/pay.ubq.fi/issues/65
-          */
-          await twitter.postTweet(tweetText);
+            https://github.com/ubiquity/pay.ubq.fi/issues/65
+            */
+            await twitter.postTweet(tweetText);
+          } catch (error) {
+            console.error(`twitter error: ${error}`);
+          }
         }
       }
     }
