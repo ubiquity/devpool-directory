@@ -136,22 +136,9 @@ async function main() {
           });
           console.log(`Created: ${createdIssue.data.html_url} (${projectIssue.html_url})`);
 
-          try {
-            // post to Twitter
-            const labels = createdIssue.data.labels as GitHubLabel[];
-            const priceLabel = labels.find((label) => label.name.includes("Price: "))?.name.replace("Price: ", "");
-            const timeLabel = labels.find((label) => label.name.includes("Time: "))?.name.replace("Time: ", "");
-            const tweetText = `${priceLabel} for ${timeLabel}\n\n${createdIssue.data.html_url}`;
-            console.trace({ tweetText });
-            /*
-            50 USD for <1 Hour
-
-            https://github.com/ubiquity/pay.ubq.fi/issues/65
-            */
-            await twitter.postTweet(tweetText);
-          } catch (error) {
-            console.error(`twitter error: ${error}`);
-          }
+          // post to social media
+          const socialMediaText = getSocialMediaText(createdIssue.data);
+          await twitter.postTweet(socialMediaText);
         }
       }
     }
@@ -353,4 +340,23 @@ function getRepoCredentials(projectUrl: string) {
   const ownerName = urlPath[1];
   const repoName = urlPath[2];
   return [ownerName, repoName];
+}
+
+/**
+ * Returns text for social media (twitter, telegram, etc...)
+ * @param issue Github issue data
+ * @returns Social media text
+ * Example:
+ * ```
+ * 50 USD for <1 Hour
+ * 
+ * https://github.com/ubiquity/pay.ubq.fi/issues/65
+ * ```
+ */
+function getSocialMediaText(issue: GitHubIssue): string {
+  const labels = issue.labels as GitHubLabel[];
+  const priceLabel = labels.find((label) => label.name.includes("Pricing: "))?.name.replace("Pricing: ", "");
+  const timeLabel = labels.find((label) => label.name.includes("Time: "))?.name.replace("Time: ", "");
+  const socialMediaText = `${priceLabel} for ${timeLabel}\n\n${issue.html_url}`;
+  return socialMediaText;
 }
