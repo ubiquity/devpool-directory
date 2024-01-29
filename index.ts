@@ -357,6 +357,8 @@ function getSocialMediaText(issue: GitHubIssue): string {
   const labels = issue.labels as GitHubLabel[];
   const priceLabel = labels.find((label) => label.name.includes("Pricing: "))?.name.replace("Pricing: ", "");
   const timeLabel = labels.find((label) => label.name.includes("Time: "))?.name.replace("Time: ", "");
-  const socialMediaText = `${priceLabel} for ${timeLabel}\n\n${issue.html_url}`;
+  // `issue.body` contains URL to the original issue in partner's project 
+  // while `issue.html_url` contains URL to the mirrored issue from the devpool directory
+  const socialMediaText = `${priceLabel} for ${timeLabel}\n\n${issue.body}`;
   return socialMediaText;
 }
