@@ -1,9 +1,8 @@
-import dotenv from "dotenv";
-dotenv.config();
-import opt from "./opt.json";
-import _projects from "./projects.json";
 import { RestEndpointMethodTypes } from "@octokit/plugin-rest-endpoint-methods";
 import { Octokit } from "@octokit/rest";
+import dotenv from "dotenv";
+import opt from "./opt.json";
+import _projects from "./projects.json";
 type GitHubIssue = RestEndpointMethodTypes["issues"]["get"]["response"]["data"];
 type GitHubLabel = {
   id: number;
@@ -26,7 +25,11 @@ enum LABELS {
   UNAVAILABLE = "Unavailable",
 }
 
+import twitter from "./helpers/twitter";
+
 // init octokit
+dotenv.config();
+
 const octokit = new Octokit({ auth: process.env.DEVPOOL_GITHUB_API_TOKEN });
 
 /**
@@ -132,6 +135,10 @@ async function main() {
             labels: getDevpoolIssueLabels(projectIssue, projectUrl),
           });
           console.log(`Created: ${createdIssue.data.html_url} (${projectIssue.html_url})`);
+
+          // post to social media
+          const socialMediaText = getSocialMediaText(createdIssue.data);
+          await twitter.postTweet(socialMediaText);
         }
       }
     }
@@ -333,4 +340,23 @@ function getRepoCredentials(projectUrl: string) {
   const ownerName = urlPath[1];
   const repoName = urlPath[2];
   return [ownerName, repoName];
+}
+
+/**
+ * Returns text for social media (twitter, telegram, etc...)
+ * @param issue Github issue data
+ * @returns Social media text
+ * Example:
+ * ```
+ * 50 USD for <1 Hour
+ * 
+ * https://github.com/ubiquity/pay.ubq.fi/issues/65
+ * ```
+ */
+function getSocialMediaText(issue: GitHubIssue): string {
+  const labels = issue.labels as GitHubLabel[];
+  const priceLabel = labels.find((label) => label.name.includes("Pricing: "))?.name.replace("Pricing: ", "");
+  const timeLabel = labels.find((label) => label.name.includes("Time: "))?.name.replace("Time: ", "");
+  const socialMediaText = `${priceLabel} for ${timeLabel}\n\n${issue.html_url}`;
+  return socialMediaText;
 }
