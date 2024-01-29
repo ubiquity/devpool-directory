@@ -6,6 +6,7 @@
     "ubiquity/research",
     "ubiquity/business-development",
     "ubiquity/ubiquibar",
-    "ubiquity/ubiquibot"
+    "ubiquity/ubiquibot",
+    "ubiquity/ubiquibot-telegram"
   ]
 }
