@@ -12,58 +12,14 @@ import {
   getSocialMediaText,
   GitHubIssue,
 } from "../helpers/github";
+import cfg from "../mocks/issue-template.json";
 
 beforeAll(() => server.listen());
 afterEach(() => server.resetHandlers());
 afterAll(() => server.close());
 
 describe("GitHub items", () => {
-  const githubIssueTemplate: GitHubIssue = {
-    assignee: {
-      login: "",
-      avatar_url: "",
-      email: undefined,
-      events_url: "",
-      followers_url: "",
-      following_url: "",
-      gists_url: "",
-      gravatar_id: null,
-      html_url: "",
-      id: 0,
-      name: undefined,
-      node_id: "",
-      organizations_url: "",
-      received_events_url: "",
-      repos_url: "",
-      site_admin: false,
-      starred_at: "",
-      starred_url: "",
-      subscriptions_url: "",
-      type: "",
-      url: "",
-    },
-    author_association: "NONE",
-    closed_at: null,
-    comments: 0,
-    comments_url: "",
-    created_at: "",
-    events_url: "",
-    html_url: "",
-    id: 0,
-    labels_url: "",
-    locked: false,
-    milestone: null,
-    node_id: "",
-    number: 0,
-    repository_url: "",
-    state: "",
-    title: "",
-    updated_at: "",
-    url: "",
-    user: null,
-    labels: [{ name: "Pricing: 200 USD" }, { name: "Time: 1h" }],
-    body: "body",
-  };
+  const githubIssueTemplate = cfg as GitHubIssue;
 
   test("Get owner and repo values", () => {
     const [ownerName, repoName] = getRepoCredentials("https://github.com/owner/repo");
@@ -127,17 +83,7 @@ describe("GitHub items", () => {
 
   test("Get all issues", async () => {
     const issues = await getAllIssues("owner", "repo");
-    expect(issues).toMatchObject(["https://github.com/owner/repo"]);
-  });
-
-  test("Get all issues", async () => {
-    const issues = await getAllIssues("owner", "repo");
-    expect(issues).toMatchObject(["https://github.com/owner/repo"]);
-  });
-
-  test("Get all issues", async () => {
-    const issues = await getAllIssues("owner", "repo");
-    expect(issues).toMatchObject(["https://github.com/owner/repo"]);
+    expect(issues).toMatchObject(["https://github.com/owner/repo/issues/1"]);
   });
 
   test("Close missing issues", async () => {

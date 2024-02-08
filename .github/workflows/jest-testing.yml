@@ -1,0 +1,30 @@
+name: Run Jest testing suite
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - develop
+
+env:
+  NODE_ENV: 'test'
+
+jobs:
+  testing:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@master
+        with:
+          fetch-depth: 0
+      - name: Testing
+        run: |
+          yarn
+          yarn test | tee ./coverage.txt && exit ${PIPESTATUS[0]}
+      - name: Jest Coverage Comment
+        # Ensures this step is run even on previous step failure (e.g. test failed)
+        if: always()
+        uses: MishaKav/jest-coverage-comment@main
+        with:
+          coverage-summary-path: coverage/coverage-summary.json
+          junitxml-path: junit.xml
+          junitxml-title: JUnit
+          coverage-path: ./coverage.txt

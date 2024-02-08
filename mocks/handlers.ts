@@ -27,9 +27,12 @@ export const handlers = [
       html_url: `https://github.com/${owner}/${repo}`,
     });
   }),
-  http.get("https://api.github.com/repos/ubiquity/devpool-directory/issues?state=all", ({ params: { owner, repo } }) => {
-    return HttpResponse.json({
-      html_url: `https://github.com/${owner}/${repo}`,
-    });
+  // http.get("https://api.github.com/repos/ubiquity/devpool-directory/issues?state=all", ({ params: { owner, repo } }) => {
+  //   return HttpResponse.json({
+  //     html_url: `https://github.com/${owner}/${repo}`,
+  //   });
+  // }),
+  http.get("https://api.github.com/repos/:owner/:repo/issues", ({ params: { owner, repo } }) => {
+    return HttpResponse.json([`https://github.com/${owner}/${repo}/issues/1`]);
   }),
 ];
