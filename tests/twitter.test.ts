@@ -46,12 +46,14 @@ describe("Twitter", () => {
   });
 
   test("Post Tweet", async () => {
+    dotenv.config();
     const twitter = (await import("../helpers/twitter")).default;
     const res = await twitter.postTweet("status");
     expect(res).not.toBeUndefined();
   });
 
   test("Fail to post Tweet", async () => {
+    dotenv.config();
     server.use(
       http.post("https://api.twitter.com/2/tweets", () => {
         return HttpResponse.error();
