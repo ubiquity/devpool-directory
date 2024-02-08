@@ -1,5 +1,4 @@
 import dotenv from "dotenv";
-import opt from "./opt.json";
 import twitter from "./helpers/twitter";
 import {
   DEVPOOL_OWNER_NAME,
@@ -8,14 +7,13 @@ import {
   getAllIssues,
   getDevpoolIssueLabels,
   getIssueByLabel,
+  getProjectUrls,
   getRepoCredentials,
-  getRepoUrls,
   getSocialMediaText,
   GitHubIssue,
   GitHubLabel,
   LABELS,
   octokit,
-  projects,
 } from "./helpers/github";
 
 // init octokit
@@ -32,16 +30,7 @@ async function main() {
     const devpoolIssues: GitHubIssue[] = await getAllIssues(DEVPOOL_OWNER_NAME, DEVPOOL_REPO_NAME);
 
     // aggregate projects.urls and opt settings
-    const projectUrls = new Set<string>(projects.urls);
-
-    for (const orgOrRepo of opt.in) {
-      const urls: string[] = await getRepoUrls(orgOrRepo);
-      urls.forEach((url) => projectUrls.add(url));
-    }
-    for (const orgOrRepo of opt.out) {
-      const urls: string[] = await getRepoUrls(orgOrRepo);
-      urls.forEach((url) => projectUrls.delete(url));
-    }
+    const projectUrls = await getProjectUrls();
 
     // aggregate all project issues
     const allProjectIssues: GitHubIssue[] = [];
@@ -146,3 +135,8 @@ void (async () => {
     console.error(error);
   }
 })();
+
+// Expose the main only for testing purposes
+if (process.env.NODE_ENV === "test") {
+  exports.main = main;
+}

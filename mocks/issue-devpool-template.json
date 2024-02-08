@@ -28,14 +28,14 @@
   "comments_url": "",
   "created_at": "",
   "events_url": "",
-  "html_url": "https://github.com/ubiquity/test-repo/issues/1",
+  "html_url": "https://github.com/ubiquity/devpool-directory/issues/1",
   "id": 1,
   "labels_url": "",
   "locked": false,
   "milestone": null,
   "node_id": "1",
   "number": 1,
-  "repository_url": "",
+  "repository_url": "https://github.com/ubiquity/devpool-directory",
   "state": "open",
   "title": "issue",
   "updated_at": "",
@@ -43,10 +43,13 @@
   "user": null,
   "labels": [
     {
-      "name": "Price: 200 USD"
+      "name": "Pricing: 200 USD"
     },
     {
       "name": "Time: 1h"
+    },
+    {
+      "name": "id: 1"
     }
   ],
   "body": "body"

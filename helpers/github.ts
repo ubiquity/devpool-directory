@@ -1,6 +1,7 @@
 import { RestEndpointMethodTypes } from "@octokit/plugin-rest-endpoint-methods";
 import { Octokit } from "@octokit/rest";
 import _projects from "../projects.json";
+import opt from "../opt.json";
 
 export type GitHubIssue = RestEndpointMethodTypes["issues"]["get"]["response"]["data"];
 export type GitHubLabel = {
@@ -232,4 +233,19 @@ export function getSocialMediaText(issue: GitHubIssue): string {
   // `issue.body` contains URL to the original issue in partner's project
   // while `issue.html_url` contains URL to the mirrored issue from the devpool directory
   return `${priceLabel} for ${timeLabel}\n\n${issue.body}`;
+}
+
+export async function getProjectUrls() {
+  const projectUrls = new Set<string>(projects.urls);
+
+  for (const orgOrRepo of opt.in) {
+    const urls: string[] = await getRepoUrls(orgOrRepo);
+    urls.forEach((url) => projectUrls.add(url));
+  }
+  for (const orgOrRepo of opt.out) {
+    const urls: string[] = await getRepoUrls(orgOrRepo);
+    urls.forEach((url) => projectUrls.delete(url));
+  }
+
+  return projectUrls;
 }
