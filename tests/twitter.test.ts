@@ -46,14 +46,26 @@ describe("Twitter", () => {
   });
 
   test("Post Tweet", async () => {
-    dotenv.config();
+    dotenv.config({
+      override: true,
+    });
+    process.env.TWITTER_API_KEY = "foobar";
+    process.env.TWITTER_API_KEY_SECRET = "foobar";
+    process.env.TWITTER_ACCESS_TOKEN = "foobar";
+    process.env.TWITTER_ACCESS_TOKEN_SECRET = "foobar";
     const twitter = (await import("../helpers/twitter")).default;
     const res = await twitter.postTweet("status");
     expect(res).not.toBeUndefined();
   });
 
   test("Fail to post Tweet", async () => {
-    dotenv.config();
+    dotenv.config({
+      override: true,
+    });
+    process.env.TWITTER_API_KEY = "foobar";
+    process.env.TWITTER_API_KEY_SECRET = "foobar";
+    process.env.TWITTER_ACCESS_TOKEN = "foobar";
+    process.env.TWITTER_ACCESS_TOKEN_SECRET = "foobar";
     server.use(
       http.post("https://api.twitter.com/2/tweets", () => {
         return HttpResponse.error();
