@@ -3,7 +3,10 @@ import { DEVPOOL_OWNER_NAME, DEVPOOL_REPO_NAME, GitHubIssue } from "../helpers/g
 import issueDevpoolTemplate from "./issue-devpool-template.json";
 import issueTemplate from "./issue-template.json";
 
-const issueDb: { [s in string]: { [p in string]: Array<GitHubIssue> } } = {
+/**
+ * Represents a fake temporary database. Exported so it can be modified to fit the test.
+ */
+export const issueDb: { [s in string]: { [p in string]: Array<GitHubIssue> } } = {
   [DEVPOOL_OWNER_NAME]: {
     "test-repo": [issueTemplate as GitHubIssue],
     [DEVPOOL_REPO_NAME]: [issueDevpoolTemplate as GitHubIssue],
@@ -41,8 +44,15 @@ export const handlers = [
     issueDb[owner as string][repo as string].push(newItem);
     return HttpResponse.json(newItem);
   }),
-  http.patch("https://api.github.com/repos/:owner/:repo/issues/:issue", ({ params: { owner, repo } }) => {
-    return HttpResponse.json(issueDb[owner as string][repo as string]);
+  http.patch("https://api.github.com/repos/:owner/:repo/issues/:issue", async ({ request, params: { owner, issue, repo } }) => {
+    const issueIdx = issueDb[owner as string][repo as string].findIndex((o) => o.id === Number(issue));
+    const { labels, ...rest } = (await request.json()) as GitHubIssue;
+    issueDb[owner as string][repo as string][issueIdx] = {
+      ...issueDb[owner as string][repo as string][issueIdx],
+      ...rest,
+      labels: labels.map((label) => ({ name: `${label}` })),
+    };
+    return HttpResponse.json(issueDb[owner as string][repo as string][issueIdx]);
   }),
   http.get("https://api.github.com/orgs/:org/repos", ({ params: { org } }) => {
     return HttpResponse.json(
