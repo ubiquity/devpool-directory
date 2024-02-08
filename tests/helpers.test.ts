@@ -1,6 +1,8 @@
 import { describe, test } from "@jest/globals";
 import { server } from "../mocks/node";
 import {
+  DEVPOOL_OWNER_NAME,
+  DEVPOOL_REPO_NAME,
   forceCloseMissingIssues,
   getAllIssues,
   getDevpoolIssueLabels,
@@ -77,13 +79,13 @@ describe("GitHub items", () => {
   test("Get repo urls", async () => {
     let res = await getRepoUrls("owner/repo");
     expect(res).toMatchObject(["https://github.com/owner/repo"]);
-    res = await getRepoUrls("org");
-    expect(res).toMatchObject(["https://github.com/org/repo1", "https://github.com/org/repo2"]);
+    res = await getRepoUrls(DEVPOOL_OWNER_NAME);
+    expect(res).toMatchObject(["https://github.com/ubiquity/test-repo", "https://github.com/ubiquity/devpool-directory"]);
   });
 
   test("Get all issues", async () => {
-    const issues = await getAllIssues("owner", "repo");
-    expect(issues).toMatchObject(["https://github.com/owner/repo/issues/1"]);
+    const issues = await getAllIssues(DEVPOOL_OWNER_NAME, DEVPOOL_REPO_NAME);
+    expect(issues).toMatchObject([githubIssueTemplate]);
   });
 
   test("Close missing issues", async () => {
