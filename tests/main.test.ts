@@ -1,8 +1,9 @@
 import { server } from "../mocks/node";
-import { DEVPOOL_OWNER_NAME, DEVPOOL_REPO_NAME, getAllIssues, GitHubIssue } from "../helpers/github";
+import { DEVPOOL_OWNER_NAME, DEVPOOL_REPO_NAME, getAllIssues } from "../helpers/github";
 import issueDevpoolTemplate from "../mocks/issue-devpool-template.json";
-import { issueDb } from "../mocks/handlers";
 import issueTemplate from "../mocks/issue-template.json";
+import { db } from "../mocks/db";
+import { drop } from "@mswjs/data";
 
 beforeAll(() => server.listen());
 afterEach(() => server.resetHandlers());
@@ -16,7 +17,35 @@ describe("Devpool Updates", () => {
     main = await (await import("../index")).main;
   });
 
+  beforeEach(() => {
+    drop(db);
+    db.repo.create({
+      id: 1,
+      owner: DEVPOOL_OWNER_NAME,
+      name: DEVPOOL_REPO_NAME,
+      html_url: `https://github.com/${DEVPOOL_OWNER_NAME}/${DEVPOOL_REPO_NAME}`,
+    });
+    db.repo.create({
+      id: 2,
+      owner: DEVPOOL_OWNER_NAME,
+      name: "test-repo",
+      html_url: `https://github.com/${DEVPOOL_OWNER_NAME}/test-repo`,
+    });
+  });
+
   test("Update DevPool issues", async () => {
+    db.issue.create({
+      ...issueDevpoolTemplate,
+      id: 1,
+      owner: DEVPOOL_OWNER_NAME,
+      repo: DEVPOOL_REPO_NAME,
+    });
+    db.issue.create({
+      ...issueTemplate,
+      id: 2,
+      owner: DEVPOOL_OWNER_NAME,
+      repo: "test-repo",
+    });
     await main();
     const devpoolIssues = await getAllIssues(DEVPOOL_OWNER_NAME, DEVPOOL_REPO_NAME);
     expect(devpoolIssues).toMatchObject([
@@ -29,16 +58,28 @@ describe("Devpool Updates", () => {
     ]);
   });
 
-  test("Close DevPool issues", async () => {
-    issueDb[DEVPOOL_OWNER_NAME]["repo2"] = [{ ...(issueTemplate as GitHubIssue), id: 1, html_url: `https://github.com/${DEVPOOL_OWNER_NAME}/repo2/issues/1` }];
+  test("Close DevPool issues with no price", async () => {
+    db.issue.create({
+      ...issueDevpoolTemplate,
+      id: 1,
+      owner: DEVPOOL_OWNER_NAME,
+      repo: DEVPOOL_REPO_NAME,
+    });
+    db.issue.create({
+      ...issueTemplate,
+      id: 2,
+      owner: DEVPOOL_OWNER_NAME,
+      repo: "test-repo",
+      labels: [],
+    });
     await main();
     const devpoolIssues = await getAllIssues(DEVPOOL_OWNER_NAME, DEVPOOL_REPO_NAME);
     expect(devpoolIssues).toMatchObject([
       {
         ...issueDevpoolTemplate,
         id: 1,
-        body: "https://github.com/ubiquity/repo2/issues/1",
-        labels: [{ name: "Pricing: 200 USD" }, { name: "Partner: ubiquity/repo2" }, { name: "id: 1" }, { name: "Time: 1h" }],
+        labels: [{ name: "Pricing: 200 USD" }, { name: "Time: 1h" }, { name: "id: 1" }],
+        state: "closed",
       },
     ]);
   });

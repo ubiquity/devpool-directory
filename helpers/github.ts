@@ -107,9 +107,9 @@ export async function getRepoUrls(orgOrRepo: string) {
         });
         if (res.status === 200) {
           repos.push(res.data.html_url);
-        } else console.warn(`Getting owner/repo failed: ${res.status}`);
+        } else console.warn(`Getting repo ${params[0]}/${params[1]} failed: ${res.status}`);
       } catch (e: unknown) {
-        console.warn(`Getting owner/repo failed: ${e}`);
+        console.warn(`Getting repo ${params[0]}/${params[1]} failed: ${e}`);
       }
       break;
     default:

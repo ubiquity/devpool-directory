@@ -124,7 +124,7 @@ async function main() {
     // close missing issues
     await forceCloseMissingIssues(devpoolIssues, allProjectIssues);
   } catch (err) {
-    console.log(err);
+    console.error(err);
   }
 }
 
