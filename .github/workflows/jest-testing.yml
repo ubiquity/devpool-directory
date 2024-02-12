@@ -3,7 +3,7 @@ on:
   workflow_dispatch:
   push:
     branches:
-      - develop
+      - development
 
 env:
   NODE_ENV: 'test'
