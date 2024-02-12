@@ -23,7 +23,7 @@ afterEach(() => server.resetHandlers());
 afterAll(() => server.close());
 
 describe("GitHub items", () => {
-  const githubIssueTemplate = cfg as GitHubIssue;
+  const githubDevpoolIssueTemplate = cfg as GitHubIssue;
 
   beforeEach(() => {
     drop(db);
@@ -40,40 +40,40 @@ describe("GitHub items", () => {
   });
 
   test("Get social media text", () => {
-    const res = getSocialMediaText(githubIssueTemplate);
+    const res = getSocialMediaText(githubDevpoolIssueTemplate);
     expect(res).toEqual("200 USD for 1h\n\nbody");
   });
 
   test("Get issue price label", () => {
-    let res = getIssuePriceLabel(githubIssueTemplate);
+    let res = getIssuePriceLabel(githubDevpoolIssueTemplate);
     expect(res).toEqual("Pricing: 200 USD");
     res = getIssuePriceLabel({
-      ...githubIssueTemplate,
+      ...githubDevpoolIssueTemplate,
       labels: [],
     });
     expect(res).toEqual("Pricing: not set");
-    res = getIssuePriceLabel(githubIssueTemplate);
+    res = getIssuePriceLabel(githubDevpoolIssueTemplate);
     expect(res).toEqual("Pricing: 200 USD");
   });
 
   test("Get issue label value", () => {
-    let res = getIssueLabelValue(githubIssueTemplate, "Pricing");
+    let res = getIssueLabelValue(githubDevpoolIssueTemplate, "Pricing");
     expect(res).toEqual("200 USD");
-    res = getIssueLabelValue(githubIssueTemplate, "Notfound");
+    res = getIssueLabelValue(githubDevpoolIssueTemplate, "Notfound");
     expect(res).toBeNull();
   });
 
   test("Get issue by label", () => {
-    let res = getIssueByLabel([githubIssueTemplate], "Pricing: 200 USD");
-    expect(res).toMatchObject(githubIssueTemplate);
-    res = getIssueByLabel([githubIssueTemplate], "Notfound");
+    let res = getIssueByLabel([githubDevpoolIssueTemplate], "Pricing: 200 USD");
+    expect(res).toMatchObject(githubDevpoolIssueTemplate);
+    res = getIssueByLabel([githubDevpoolIssueTemplate], "Notfound");
     expect(res).toBeNull();
   });
 
   test("Get DevPool labels", () => {
     const res = getDevpoolIssueLabels(
       {
-        ...githubIssueTemplate,
+        ...githubDevpoolIssueTemplate,
         html_url: "https://github.com/owner/repo",
         node_id: "1",
       },
@@ -108,12 +108,18 @@ describe("GitHub items", () => {
   });
 
   test("Get all issues", async () => {
-    db.issue.create({ ...githubIssueTemplate, repo: DEVPOOL_REPO_NAME, owner: DEVPOOL_OWNER_NAME });
+    db.issue.create({ ...githubDevpoolIssueTemplate, repo: DEVPOOL_REPO_NAME, owner: DEVPOOL_OWNER_NAME });
     const issues = await getAllIssues(DEVPOOL_OWNER_NAME, DEVPOOL_REPO_NAME);
-    expect(issues).toMatchObject([githubIssueTemplate]);
+    expect(issues).toMatchObject([githubDevpoolIssueTemplate]);
   });
 
   test("Close missing issues", async () => {
-    await forceCloseMissingIssues([githubIssueTemplate], [githubIssueTemplate]);
+    const newOpenIssue = { ...githubDevpoolIssueTemplate, repo: DEVPOOL_REPO_NAME, owner: DEVPOOL_OWNER_NAME, state: "open" };
+    const newClosedIssue = { ...githubDevpoolIssueTemplate, id: 2, repo: DEVPOOL_REPO_NAME, owner: DEVPOOL_OWNER_NAME, state: "closed" };
+    db.issue.create(newOpenIssue);
+    db.issue.create(newClosedIssue);
+    await forceCloseMissingIssues([newOpenIssue, newClosedIssue], []);
+    const issues = await getAllIssues(DEVPOOL_OWNER_NAME, DEVPOOL_REPO_NAME);
+    expect(issues).toMatchObject([{ ...newOpenIssue, state: "closed" }, newClosedIssue]);
   });
 });
