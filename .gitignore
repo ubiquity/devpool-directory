@@ -7,3 +7,6 @@ node_modules
 .yarn
 .pnp.loader.mjs
 .DS_Store
+
+coverage
+coverage.txt
