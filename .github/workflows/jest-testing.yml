@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - development
+  pull_request:
 
 env:
   NODE_ENV: 'test'
