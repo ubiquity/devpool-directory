@@ -1,5 +1,5 @@
 {
-  "in": ["ubiquity"],
+  "in": ["ubiquity", "ubiquibot/comment-incentives"],
   "out": [
     "ubiquity/devpool-directory",
     "ubiquity/card-issuance",
