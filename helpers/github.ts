@@ -77,6 +77,11 @@ export async function getAllIssues(ownerName: string, repoName: string) {
   // remove PRs from the project issues
   issues = issues.filter((issue) => !issue.pull_request);
 
+  issues = issues.map((issue) => {
+    issue.html_url = issue.html_url.replace("https://github.com", "https://www.github.com");
+    return issue;
+  });
+
   return issues;
 }
 
