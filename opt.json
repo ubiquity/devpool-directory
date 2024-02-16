@@ -14,7 +14,6 @@
     "ubiquity/ubiquibot-telegram",
     
     "ubiquibot/configuration",
-    "ubiquibot/comment-incentives",
     "ubiquibot/production",
     "ubiquibot/sandbox",
     "ubiquibot/e2e-tests",
