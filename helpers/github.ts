@@ -63,6 +63,22 @@ export async function forceCloseMissingIssues(devpoolIssues: GitHubIssue[], proj
 }
 
 /**
+ * Stops forks from spamming real Ubiquity issues with links to their forks
+ * @returns true if the authenticated user is Ubiquity
+ */
+export async function isUbq() {
+  try {
+    const {
+      data: { login },
+    } = await octokit.users.getAuthenticated();
+    return login && login === "ubiquity" ? true : false;
+  } catch (e: unknown) {
+    console.warn(`Getting authenticated user failed: ${e}`);
+    return false;
+  }
+}
+
+/**
  * Returns all issues in a repo
  * @param ownerName owner name
  * @param repoName repo name
