@@ -12,7 +12,7 @@ import {
   getSocialMediaText,
   GitHubIssue,
   GitHubLabel,
-  isUbq,
+  checkIfForked,
   LABELS,
   octokit,
 } from "./helpers/github";
@@ -36,7 +36,7 @@ async function main() {
     // aggregate all project issues
     const allProjectIssues: GitHubIssue[] = [];
 
-    const isUbiquity = await isUbq();
+    const isFork = await checkIfForked();
 
     // for each project URL
     for (const projectUrl of projectUrls) {
@@ -50,7 +50,7 @@ async function main() {
       for (const projectIssue of projectIssues) {
         // if issue exists in devpool
         const devpoolIssue = getIssueByLabel(devpoolIssues, `id: ${projectIssue.node_id}`);
-        const body = isUbiquity ? projectIssue.html_url : projectIssue.html_url.replace("https://github.com", "https://www.github.com");
+        const body = isFork ? projectIssue.html_url : projectIssue.html_url.replace("https://github.com", "https://www.github.com");
 
         if (devpoolIssue) {
           // If project issue doesn't have the "Price" label (i.e. it has been removed) then close
