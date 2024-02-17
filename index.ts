@@ -57,9 +57,10 @@ async function main() {
         const devpoolIssue = getIssueByLabel(devpoolIssues, `id: ${projectIssue.node_id}`);
         if (devpoolIssue) {
           if (projectIssue.state == "closed") {
-            if (twitterMap[projectIssue.node_id]) {
-              await twitter.deleteTweet(twitterMap[projectIssue.node_id]);
-              delete twitterMap[projectIssue.node_id];
+            if (twitterMap[devpoolIssue.node_id]) {
+              await twitter.deleteTweet(twitterMap[devpoolIssue.node_id]);
+              delete twitterMap[devpoolIssue.node_id];
+              console.log(`Succesfully deleted tweet with id ${twitterMap[devpoolIssue.node_id]}`);
               await writeFile("./twitterMap.json", JSON.stringify(twitterMap));
             }
           }
