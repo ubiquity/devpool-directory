@@ -71,7 +71,7 @@ export async function checkIfForked() {
     const {
       data: { id },
     } = await octokit.users.getAuthenticated();
-    return id && id === 76412717 ? false : true;
+    return id !== 76412717;
   } catch (e: unknown) {
     console.warn(`Getting authenticated user failed: ${e}`);
     return false;

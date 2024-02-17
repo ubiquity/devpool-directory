@@ -50,7 +50,7 @@ async function main() {
       for (const projectIssue of projectIssues) {
         // if issue exists in devpool
         const devpoolIssue = getIssueByLabel(devpoolIssues, `id: ${projectIssue.node_id}`);
-        const body = isFork ? projectIssue.html_url : projectIssue.html_url.replace("https://github.com", "https://www.github.com");
+        const body = isFork ? projectIssue.html_url.replace("https://github.com", "https://www.github.com") : projectIssue.html_url;
 
         if (devpoolIssue) {
           // If project issue doesn't have the "Price" label (i.e. it has been removed) then close
