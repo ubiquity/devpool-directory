@@ -1057,7 +1057,7 @@
   resolved "https://registry.yarnpkg.com/@mswjs/cookies/-/cookies-1.1.0.tgz#1528eb43630caf83a1d75d5332b30e75e9bb1b5b"
   integrity sha512-0ZcCVQxifZmhwNBoQIrystCb+2sWBY2Zw8lpfJBPCHGCA/HWqehITeCRVIv4VMy8MPlaHo2w2pTHFV2pFfqKPw==
 
-"@mswjs/data@^0.16.1":
+"@mswjs/data@0.16.1":
   version "0.16.1"
   resolved "https://registry.yarnpkg.com/@mswjs/data/-/data-0.16.1.tgz#ee41b95b8f2e954a07b0eb54154592a2459064d1"
   integrity sha512-VhJvL/VmgAuU9/tDOcKcxHfNd+8nxYntZnrkaQEQPvZZnFwQQR9bzI1FTRROGxCHVoyfv9v84AEkl/7CIw4FAg==

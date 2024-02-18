@@ -12,6 +12,7 @@ import {
   getSocialMediaText,
   GitHubIssue,
   GitHubLabel,
+  checkIfForked,
   LABELS,
   octokit,
 } from "./helpers/github";
@@ -35,6 +36,8 @@ async function main() {
     // aggregate all project issues
     const allProjectIssues: GitHubIssue[] = [];
 
+    const isFork = await checkIfForked();
+
     // for each project URL
     for (const projectUrl of projectUrls) {
       // get owner and repository names from project URL
@@ -47,6 +50,8 @@ async function main() {
       for (const projectIssue of projectIssues) {
         // if issue exists in devpool
         const devpoolIssue = getIssueByLabel(devpoolIssues, `id: ${projectIssue.node_id}`);
+        const body = isFork ? projectIssue.html_url.replace("https://github.com", "https://www.github.com") : projectIssue.html_url;
+
         if (devpoolIssue) {
           // If project issue doesn't have the "Price" label (i.e. it has been removed) then close
           // the devpool issue if it is not already closed, no need to pollute devpool repo with draft issues
@@ -90,7 +95,7 @@ async function main() {
               repo: DEVPOOL_REPO_NAME,
               issue_number: devpoolIssue.number,
               title: projectIssue.title,
-              body: projectIssue.html_url,
+              body,
               state: projectIssue.state as "open" | "closed",
               labels: getDevpoolIssueLabels(projectIssue, projectUrl),
             });
@@ -104,12 +109,13 @@ async function main() {
           if (projectIssue.state === "closed") continue;
           // if issue doesn't have the "Price" label then skip it, no need to pollute repo with draft issues
           if (!(projectIssue.labels as GitHubLabel[]).some((label) => label.name.includes(LABELS.PRICE))) continue;
+
           // create a new issue
           const createdIssue = await octokit.rest.issues.create({
             owner: DEVPOOL_OWNER_NAME,
             repo: DEVPOOL_REPO_NAME,
             title: projectIssue.title,
-            body: projectIssue.html_url,
+            body,
             labels: getDevpoolIssueLabels(projectIssue, projectUrl),
           });
           console.log(`Created: ${createdIssue.data.html_url} (${projectIssue.html_url})`);

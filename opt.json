@@ -12,7 +12,6 @@
     "ubiquity/ubiquibar",
     "ubiquity/ubiquibot",
     "ubiquity/ubiquibot-telegram",
-    
     "ubiquibot/configuration",
     "ubiquibot/production",
     "ubiquibot/sandbox",
