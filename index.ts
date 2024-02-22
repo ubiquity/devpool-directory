@@ -117,7 +117,7 @@ async function main() {
         } else {
           // issue does not exist in devpool
           // if issue is "closed" then skip it, no need to copy/paste already "closed" issues
-          if (projectIssue.state === "closed") continue;
+          if (projectIssue.state === "closed" || projectIssue.assignee?.login) continue;
           // if issue doesn't have the "Price" label then skip it, no need to pollute repo with draft issues
           if (!(projectIssue.labels as GitHubLabel[]).some((label) => label.name.includes(LABELS.PRICE))) continue;
           // create a new issue
