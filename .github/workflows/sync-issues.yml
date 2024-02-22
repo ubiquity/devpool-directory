@@ -24,7 +24,7 @@ jobs:
       - name: Download Artifact
         env:
           GH_TOKEN: ${{ github.token }}
-        run: gh run download -n twitterMap
+        run: gh run download -n twitterMap || true
 
       - name: Yarn Install
         run: yarn install --mode=skip-build
