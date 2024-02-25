@@ -269,7 +269,7 @@ export async function calculateTotalRewards(issues: GitHubIssue[]) {
 
 export async function writeTotalRewardsToGithub(totalRewards: number) {
   try {
-    const owner = DEVPOOL_OWNER_NAME;
+    const owner = "devpanther";
     const repo = DEVPOOL_REPO_NAME;
     const filePath = "total-rewards.txt";
     const content = totalRewards.toString();
