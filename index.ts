@@ -30,9 +30,8 @@ const calculateTotalRewards = async (issues: GitHubIssue[]) => {
       color?: string | null | undefined;
       default?: boolean | undefined;
     }[];
-    console.log(labels);
     if (issue.state === "open" && labels.some((label) => label.name as string)) {
-      const priceLabel = labels.find((label) => (label.name as string).includes(LABELS.PRICE));
+      const priceLabel = labels.find((label) => (label.name as string).includes("Pricing"));
       if (priceLabel) {
         const price = parseInt((priceLabel.name as string).split(":")[1].trim(), 10);
         totalRewards += price;
