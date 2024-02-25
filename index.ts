@@ -36,7 +36,7 @@ async function main() {
     // aggregate all project issues
     const allProjectIssues: GitHubIssue[] = [];
 
-    const isFork = await checkIfForked();
+    const isFork = await checkIfForked(DEVPOOL_OWNER_NAME);
 
     // for each project URL
     for (const projectUrl of projectUrls) {
