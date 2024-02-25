@@ -4,15 +4,8 @@ import _projects from "../projects.json";
 import opt from "../opt.json";
 
 export type GitHubIssue = RestEndpointMethodTypes["issues"]["get"]["response"]["data"];
-export type GitHubLabel = {
-  id: number;
-  node_id: string;
-  url: string;
-  name: string;
-  description: string | null;
-  color: string | null;
-  default: boolean;
-};
+export type GitHubLabel = RestEndpointMethodTypes["issues"]["listLabelsOnIssue"]["response"]["data"][0];
+
 export const projects = _projects as {
   urls: string[];
   category?: Record<string, string>;
