@@ -278,7 +278,7 @@ export async function writeTotalRewardsToGithub(totalRewards: number) {
   try {
     const owner = DEVPOOL_OWNER_NAME;
     const repo = DEVPOOL_REPO_NAME;
-    const filePath = "totalRewards.txt";
+    const filePath = "total-rewards.txt";
     const content = totalRewards.toString();
 
     // Get the SHA of the existing file, if it exists
