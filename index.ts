@@ -15,75 +15,9 @@ import {
   checkIfForked,
   LABELS,
   octokit,
+  calculateTotalRewards,
+  writeTotalRewardsToGithub,
 } from "./helpers/github";
-
-// Function to calculate total rewards from open issues
-const calculateTotalRewards = async (issues: GitHubIssue[]) => {
-  let totalRewards = 0;
-  await issues.forEach((issue) => {
-    const labels = issue.labels as {
-      id?: number | undefined;
-      node_id?: string | undefined;
-      url?: string | undefined;
-      name?: string | undefined;
-      description?: string | null | undefined;
-      color?: string | null | undefined;
-      default?: boolean | undefined;
-    }[];
-    if (issue.state === "open" && labels.some((label) => label.name as string)) {
-      const priceLabel = labels.find((label) => (label.name as string).includes("Pricing"));
-      if (priceLabel) {
-        const price = parseInt((priceLabel.name as string).split(":")[1].trim(), 10);
-        totalRewards += price;
-      }
-    }
-  });
-  return totalRewards;
-};
-
-async function writeTotalRewardsToGithub(totalRewards: number) {
-  try {
-    const owner = DEVPOOL_OWNER_NAME;
-    const repo = DEVPOOL_REPO_NAME;
-    const filePath = "total_rewards.txt";
-    const content = totalRewards.toString();
-
-    // Get the SHA of the existing file, if it exists
-    let sha: string = "";
-    try {
-      const { data } = await octokit.rest.repos.getContent({
-        owner,
-        repo,
-        path: filePath,
-      });
-
-      if (Array.isArray(data)) {
-        // File is a directory or not found
-        sha = "";
-      } else {
-        // File exists
-        sha = data.sha;
-      }
-    } catch (error) {
-      // File doesn't exist yet
-      sha = "";
-    }
-
-    // Update or create the file
-    await octokit.rest.repos.createOrUpdateFileContents({
-      owner,
-      repo,
-      path: filePath,
-      message: "Update total rewards",
-      content: Buffer.from(content).toString("base64"),
-      sha, // Pass the SHA if the file exists, to update it
-    });
-
-    console.log(`Total rewards written to ${filePath}`);
-  } catch (error) {
-    console.error(`Error writing total rewards to github file: ${error}`);
-  }
-}
 
 // init octokit
 dotenv.config();
