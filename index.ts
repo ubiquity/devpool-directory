@@ -43,7 +43,7 @@ const calculateTotalRewards = async (issues: GitHubIssue[]) => {
 
 async function writeTotalRewardsToGithub(totalRewards: number) {
   try {
-    const owner = DEVPOOL_OWNER_NAME;
+    const owner = "devpanther";
     const repo = DEVPOOL_REPO_NAME;
     const filePath = "total_rewards.txt";
     const content = totalRewards.toString();
