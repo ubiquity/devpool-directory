@@ -57,7 +57,7 @@ async function main() {
     // Calculate total rewards from open issues
     const totalRewards = calculateTotalRewards(devpoolIssues);
 
-    console.log(totalRewards);
+    console.log(totalRewards, devpoolIssues);
 
     // aggregate projects.urls and opt settings
     const projectUrls = await getProjectUrls();
