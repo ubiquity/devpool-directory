@@ -17,6 +17,30 @@ import {
   octokit,
 } from "./helpers/github";
 
+// Function to calculate total rewards from open issues
+function calculateTotalRewards(issues: GitHubIssue[]) {
+  let totalRewards = 0;
+  issues.forEach((issue) => {
+    const labels = issue.labels as {
+      id?: number | undefined;
+      node_id?: string | undefined;
+      url?: string | undefined;
+      name?: string | undefined;
+      description?: string | null | undefined;
+      color?: string | null | undefined;
+      default?: boolean | undefined;
+    }[];
+    if (issue.state === "open" && labels.some((label) => label.name as string)) {
+      const priceLabel = labels.find((label) => (label.name as string).includes(LABELS.PRICE));
+      if (priceLabel) {
+        const price = parseInt((priceLabel.name as string).split(":")[1].trim(), 10);
+        totalRewards += price;
+      }
+    }
+  });
+  return totalRewards;
+}
+
 // init octokit
 dotenv.config();
 
@@ -29,6 +53,11 @@ async function main() {
   try {
     // get devpool issues
     const devpoolIssues: GitHubIssue[] = await getAllIssues(DEVPOOL_OWNER_NAME, DEVPOOL_REPO_NAME);
+
+    // Calculate total rewards from open issues
+    const totalRewards = calculateTotalRewards(devpoolIssues);
+
+    console.log(totalRewards);
 
     // aggregate projects.urls and opt settings
     const projectUrls = await getProjectUrls();
