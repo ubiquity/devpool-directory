@@ -55,7 +55,7 @@ async function main() {
     const devpoolIssues: GitHubIssue[] = await getAllIssues(DEVPOOL_OWNER_NAME, DEVPOOL_REPO_NAME);
 
     // Calculate total rewards from open issues
-    const totalRewards = calculateTotalRewards(devpoolIssues);
+    const totalRewards = await calculateTotalRewards(devpoolIssues);
 
     console.log(totalRewards);
 
