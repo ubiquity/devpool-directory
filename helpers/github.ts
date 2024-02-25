@@ -274,8 +274,9 @@ export async function writeTotalRewardsToGithub(totalRewards: number) {
     const filePath = "total-rewards.txt";
     const content = totalRewards.toString();
 
+    let sha: string | undefined = undefined; // Initialize sha to undefined
+
     // Get the SHA of the existing file, if it exists
-    let sha: string = "";
     try {
       const { data } = await octokit.rest.repos.getContent({
         owner,
@@ -283,16 +284,13 @@ export async function writeTotalRewardsToGithub(totalRewards: number) {
         path: filePath,
       });
 
-      if (Array.isArray(data)) {
-        // File is a directory or not found
-        sha = "";
-      } else {
+      if (!Array.isArray(data)) {
         // File exists
         sha = data.sha;
       }
     } catch (error) {
       // File doesn't exist yet
-      sha = "";
+      console.log(`File ${filePath} doesn't exist yet.`);
     }
 
     // Update or create the file
