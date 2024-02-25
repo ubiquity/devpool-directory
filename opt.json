@@ -1,8 +1,5 @@
 {
-  "in": [
-    "ubiquity",
-    "ubiquibot"
-  ],
+  "in": ["ubiquity", "ubiquibot"],
   "out": [
     "ubiquity/devpool-directory",
     "ubiquity/card-issuance",

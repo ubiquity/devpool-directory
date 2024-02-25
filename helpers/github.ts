@@ -263,13 +263,7 @@ export const calculateTotalRewards = async (issues: GitHubIssue[]) => {
   let totalRewards = 0;
   await issues.forEach((issue) => {
     const labels = issue.labels as {
-      id?: number | undefined;
-      node_id?: string | undefined;
-      url?: string | undefined;
-      name?: string | undefined;
-      description?: string | null | undefined;
-      color?: string | null | undefined;
-      default?: boolean | undefined;
+      name: string;
     }[];
     if (issue.state === "open" && labels.some((label) => label.name as string)) {
       const priceLabel = labels.find((label) => (label.name as string).includes("Pricing"));
@@ -286,7 +280,7 @@ export async function writeTotalRewardsToGithub(totalRewards: number) {
   try {
     const owner = DEVPOOL_OWNER_NAME;
     const repo = DEVPOOL_REPO_NAME;
-    const filePath = "total_rewards.txt";
+    const filePath = "totalRewards.txt";
     const content = totalRewards.toString();
 
     // Get the SHA of the existing file, if it exists
