@@ -259,12 +259,10 @@ export async function getProjectUrls() {
 }
 
 // Function to calculate total rewards from open issues
-export const calculateTotalRewards = async (issues: GitHubIssue[]) => {
+export async function calculateTotalRewards(issues: GitHubIssue[]) {
   let totalRewards = 0;
   await issues.forEach((issue) => {
-    const labels = issue.labels as {
-      name: string;
-    }[];
+    const labels = issue.labels as GitHubLabel[];
     if (issue.state === "open" && labels.some((label) => label.name as string)) {
       const priceLabel = labels.find((label) => (label.name as string).includes("Pricing"));
       if (priceLabel) {
@@ -274,7 +272,7 @@ export const calculateTotalRewards = async (issues: GitHubIssue[]) => {
     }
   });
   return totalRewards;
-};
+}
 
 export async function writeTotalRewardsToGithub(totalRewards: number) {
   try {
