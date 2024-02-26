@@ -4,6 +4,8 @@ on:
   push:
     branches:
       - development
+    paths-ignore:
+      - "**/total-rewards.txt"
   pull_request:
 
 env:
