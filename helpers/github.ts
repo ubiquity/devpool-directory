@@ -274,7 +274,7 @@ export async function writeTotalRewardsToGithub(totalRewards: number) {
     const filePath = "total-rewards.txt";
     const content = totalRewards.toString();
 
-    let sha: null | string = null;
+    let sha: string | undefined = undefined; // Initialize sha to undefined
 
     // Get the SHA of the existing file, if it exists
     try {
