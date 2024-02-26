@@ -4,6 +4,8 @@ on:
   pull_request:
   push:
     branches: [development]
+    paths-ignore:
+      - "**/total-rewards.txt"
 
 jobs:
   conventional-commits:
