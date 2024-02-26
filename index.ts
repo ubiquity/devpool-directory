@@ -15,6 +15,8 @@ import {
   checkIfForked,
   LABELS,
   octokit,
+  calculateTotalRewards,
+  writeTotalRewardsToGithub,
 } from "./helpers/github";
 
 // init octokit
@@ -29,6 +31,11 @@ async function main() {
   try {
     // get devpool issues
     const devpoolIssues: GitHubIssue[] = await getAllIssues(DEVPOOL_OWNER_NAME, DEVPOOL_REPO_NAME);
+
+    // Calculate total rewards from open issues
+    const totalRewards = await calculateTotalRewards(devpoolIssues);
+
+    await writeTotalRewardsToGithub(totalRewards);
 
     // aggregate projects.urls and opt settings
     const projectUrls = await getProjectUrls();

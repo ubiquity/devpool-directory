@@ -4,15 +4,8 @@ import _projects from "../projects.json";
 import opt from "../opt.json";
 
 export type GitHubIssue = RestEndpointMethodTypes["issues"]["get"]["response"]["data"];
-export type GitHubLabel = {
-  id: number;
-  node_id: string;
-  url: string;
-  name: string;
-  description: string | null;
-  color: string | null;
-  default: boolean;
-};
+export type GitHubLabel = RestEndpointMethodTypes["issues"]["listLabelsOnIssue"]["response"]["data"][0];
+
 export const projects = _projects as {
   urls: string[];
   category?: Record<string, string>;
@@ -256,4 +249,62 @@ export async function getProjectUrls() {
   }
 
   return projectUrls;
+}
+
+// Function to calculate total rewards from open issues
+export async function calculateTotalRewards(issues: GitHubIssue[]) {
+  let totalRewards = 0;
+  await issues.forEach((issue) => {
+    const labels = issue.labels as GitHubLabel[];
+    if (issue.state === "open" && labels.some((label) => label.name as string)) {
+      const priceLabel = labels.find((label) => (label.name as string).includes("Pricing"));
+      if (priceLabel) {
+        const price = parseInt((priceLabel.name as string).split(":")[1].trim(), 10);
+        totalRewards += price;
+      }
+    }
+  });
+  return totalRewards;
+}
+
+export async function writeTotalRewardsToGithub(totalRewards: number) {
+  try {
+    const owner = DEVPOOL_OWNER_NAME;
+    const repo = DEVPOOL_REPO_NAME;
+    const filePath = "total-rewards.txt";
+    const content = totalRewards.toString();
+
+    let sha: string | undefined; // Initialize sha to undefined
+
+    // Get the SHA of the existing file, if it exists
+    try {
+      const { data } = await octokit.rest.repos.getContent({
+        owner,
+        repo,
+        path: filePath,
+      });
+
+      if (!Array.isArray(data)) {
+        // File exists
+        sha = data.sha;
+      }
+    } catch (error) {
+      // File doesn't exist yet
+      console.log(`File ${filePath} doesn't exist yet.`);
+    }
+
+    // Update or create the file
+    await octokit.rest.repos.createOrUpdateFileContents({
+      owner,
+      repo,
+      path: filePath,
+      message: "Update total rewards",
+      content: Buffer.from(content).toString("base64"),
+      sha, // Pass the SHA if the file exists, to update it
+    });
+
+    console.log(`Total rewards written to ${filePath}`);
+  } catch (error) {
+    console.error(`Error writing total rewards to github file: ${error}`);
+  }
 }
