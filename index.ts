@@ -18,7 +18,7 @@ import {
   calculateTotalRewards,
   writeTotalRewardsToGithub,
 } from "./helpers/github";
-
+import { readFile, writeFile } from "fs/promises";
 // init octokit
 dotenv.config();
 
@@ -28,6 +28,14 @@ dotenv.config();
  * TODO: handle project deletion
  */
 async function main() {
+  let twitterMap: { [key: string]: string } = {};
+  try {
+    twitterMap = JSON.parse(await readFile("./twitterMap.json", "utf8"));
+  } catch (error) {
+    console.log("Couldnt find twitter map artifact, creating a new one");
+    await writeFile("./twitterMap.json", JSON.stringify({}));
+  }
+
   try {
     // get devpool issues
     const devpoolIssues: GitHubIssue[] = await getAllIssues(DEVPOOL_OWNER_NAME, DEVPOOL_REPO_NAME);
@@ -60,6 +68,14 @@ async function main() {
         const body = isFork ? projectIssue.html_url.replace("https://github.com", "https://www.github.com") : projectIssue.html_url;
 
         if (devpoolIssue) {
+          if (projectIssue.state == "closed") {
+            if (twitterMap[devpoolIssue.node_id]) {
+              await twitter.deleteTweet(twitterMap[devpoolIssue.node_id]);
+              delete twitterMap[devpoolIssue.node_id];
+              await writeFile("./twitterMap.json", JSON.stringify(twitterMap));
+            }
+          }
+
           // If project issue doesn't have the "Price" label (i.e. it has been removed) then close
           // the devpool issue if it is not already closed, no need to pollute devpool repo with draft issues
           if (!(projectIssue.labels as GitHubLabel[]).some((label) => label.name.includes(LABELS.PRICE))) {
@@ -129,7 +145,10 @@ async function main() {
 
           // post to social media
           const socialMediaText = getSocialMediaText(createdIssue.data);
-          await twitter.postTweet(socialMediaText);
+          const tweetId = await twitter.postTweet(socialMediaText);
+
+          twitterMap[createdIssue.data.node_id] = tweetId?.id ?? "";
+          await writeFile("./twitterMap.json", JSON.stringify(twitterMap));
         }
       }
     }
