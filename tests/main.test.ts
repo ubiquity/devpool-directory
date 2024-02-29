@@ -16,6 +16,8 @@ describe("Devpool Updates", () => {
   beforeAll(async () => {
     // @ts-expect-error main() is only exported for testing
     main = await (await import("../index")).main;
+    // silence stderr since we expect errors to be logged
+    jest.spyOn(console, "warn").mockImplementation(jest.fn());
   });
 
   beforeEach(() => {

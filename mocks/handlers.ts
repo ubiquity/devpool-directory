@@ -2,6 +2,7 @@ import { http, HttpResponse } from "msw";
 import { DEVPOOL_OWNER_NAME, DEVPOOL_REPO_NAME, GitHubIssue } from "../helpers/github";
 import issueDevpoolTemplate from "./issue-devpool-template.json";
 import issueTemplate from "./issue-template.json";
+import totalRewards from "./issue-template.json";
 import { db } from "./db";
 
 /**
@@ -17,6 +18,12 @@ export const handlers = [
     return HttpResponse.json({
       data: obj,
     });
+  }),
+  http.get("https://api.github.com/repos/:owner/:repo/contents/:file", () => {
+    return HttpResponse.json(totalRewards);
+  }),
+  http.put("https://api.github.com/repos/:owner/:repo/contents/:file", () => {
+    return HttpResponse.json(totalRewards);
   }),
   http.get("https://api.github.com/repos/:owner/:repo", ({ params: { owner, repo } }) => {
     const item = db.repo.findFirst({ where: { name: { equals: repo as string }, owner: { equals: owner as string } } });

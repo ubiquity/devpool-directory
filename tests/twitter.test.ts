@@ -8,7 +8,7 @@ afterEach(() => server.resetHandlers());
 afterAll(() => server.close());
 
 describe("Twitter", () => {
-  test("Throw on missing env", async () => {
+  test("Throw on missing env variable", async () => {
     // Save the env first to test throws with missing env values
     const savedEnv = process.env;
     await expect(async () => {
@@ -45,7 +45,7 @@ describe("Twitter", () => {
     process.env = savedEnv;
   });
 
-  test("Post Tweet", async () => {
+  test("Post Tweet successfully", async () => {
     dotenv.config({
       override: true,
     });
@@ -58,7 +58,9 @@ describe("Twitter", () => {
     expect(res).not.toBeUndefined();
   });
 
-  test("Fail to post Tweet", async () => {
+  test("Expect Tweet post failure on network error", async () => {
+    // silence stderr since we expect errors to be logged
+    jest.spyOn(console, "error").mockImplementation(jest.fn());
     dotenv.config({
       override: true,
     });

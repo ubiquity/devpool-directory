@@ -1,0 +1,18 @@
+{
+  "name": "total-rewards.txt",
+  "path": "total-rewards.txt",
+  "sha": "d534632baeca74d8e82a8cd226f5338bfc17dc2a",
+  "size": 5,
+  "url": "https://api.github.com/repos/ubiquity/devpool-directory/contents/total-rewards.txt?ref=development",
+  "html_url": "https://github.com/ubiquity/devpool-directory/blob/development/total-rewards.txt",
+  "git_url": "https://api.github.com/repos/ubiquity/devpool-directory/git/blobs/d534632baeca74d8e82a8cd226f5338bfc17dc2a",
+  "download_url": "https://raw.githubusercontent.com/ubiquity/devpool-directory/development/total-rewards.txt",
+  "type": "file",
+  "content": "MTAwMTA=\n",
+  "encoding": "base64",
+  "_links": {
+    "self": "https://api.github.com/repos/ubiquity/devpool-directory/contents/total-rewards.txt?ref=development",
+    "git": "https://api.github.com/repos/ubiquity/devpool-directory/git/blobs/d534632baeca74d8e82a8cd226f5338bfc17dc2a",
+    "html": "https://github.com/ubiquity/devpool-directory/blob/development/total-rewards.txt"
+  }
+}
