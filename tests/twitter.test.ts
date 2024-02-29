@@ -59,6 +59,8 @@ describe("Twitter", () => {
   });
 
   test("Expect Tweet post failure on network error", async () => {
+    // silence stderr since we expect errors to be logged
+    jest.spyOn(console, "error").mockImplementation(jest.fn());
     dotenv.config({
       override: true,
     });
