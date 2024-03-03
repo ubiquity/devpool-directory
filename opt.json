@@ -1,18 +1,22 @@
 {
-  "in": ["ubiquity", "ubiquibot"],
-  "out": [
-    "ubiquity/devpool-directory",
-    "ubiquity/card-issuance",
-    "ubiquity/research",
-    "ubiquity/recruiting",
-    "ubiquity/business-development",
-    "ubiquity/ubiquibar",
-    "ubiquity/ubiquibot",
-    "ubiquity/ubiquibot-telegram",
-    "ubiquibot/configuration",
-    "ubiquibot/production",
-    "ubiquibot/sandbox",
-    "ubiquibot/e2e-tests",
-    "ubiquibot/staging"
-  ]
+	"in": [
+    "ubiquity", 
+    "ubiquibot", 
+    "pavlovcik/uad.ubq.fi"
+  ],
+	"out": [
+		"ubiquity/devpool-directory",
+		"ubiquity/card-issuance",
+		"ubiquity/research",
+		"ubiquity/recruiting",
+		"ubiquity/business-development",
+		"ubiquity/ubiquibar",
+		"ubiquity/ubiquibot",
+		"ubiquity/ubiquibot-telegram",
+		"ubiquibot/configuration",
+		"ubiquibot/production",
+		"ubiquibot/sandbox",
+		"ubiquibot/e2e-tests",
+		"ubiquibot/staging"
+	]
 }
