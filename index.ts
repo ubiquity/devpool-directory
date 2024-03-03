@@ -99,6 +99,31 @@ async function main() {
             .sort()
             .toString();
           const projectIssueLabelsStringified = getDevpoolIssueLabels(projectIssue, projectUrl).sort().toString();
+
+          // if bounty is unavailable and exists in the list with the state open then close such bounty
+          if (isDevpoolUnavailableLabel && devpoolIssue.state === "open") {
+            await octokit.rest.issues.update({
+              owner: DEVPOOL_OWNER_NAME,
+              repo: DEVPOOL_REPO_NAME,
+              issue_number: devpoolIssue.number,
+              state: "closed",
+            });
+            console.log(`Closed (bounty is unavailable): ${devpoolIssue.html_url} (${projectIssue.html_url})`);
+            continue;
+          }
+
+          // if bounty is available exists in the list with the state closed then reopen such bounty
+          if (!isDevpoolUnavailableLabel && devpoolIssue.state === "closed") {
+            await octokit.rest.issues.update({
+              owner: DEVPOOL_OWNER_NAME,
+              repo: DEVPOOL_REPO_NAME,
+              issue_number: devpoolIssue.number,
+              state: "open",
+            });
+            console.log(`Reopened (bounty is available): ${devpoolIssue.html_url} (${projectIssue.html_url})`);
+            continue;
+          }
+
           // Update devpool issue if any of the following has been updated:
           // - issue title
           // - issue state (open/closed)
@@ -132,7 +157,8 @@ async function main() {
           if (projectIssue.state === "closed") continue;
           // if issue doesn't have the "Price" label then skip it, no need to pollute repo with draft issues
           if (!(projectIssue.labels as GitHubLabel[]).some((label) => label.name.includes(LABELS.PRICE))) continue;
-
+          // if issue has the "Unavailable" label then skip it, no need to pollute repo with new issues that are already taken
+          if (!(projectIssue.labels as GitHubLabel[]).some((label) => label.name.includes(LABELS.UNAVAILABLE))) continue;
           // create a new issue
           const createdIssue = await octokit.rest.issues.create({
             owner: DEVPOOL_OWNER_NAME,
