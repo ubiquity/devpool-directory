@@ -10,3 +10,4 @@ node_modules
 static/dist
 coverage
 junit.xml
+cypress/screenshots
