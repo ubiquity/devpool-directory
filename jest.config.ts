@@ -1,4 +1,5 @@
-/** @type {import('ts-jest').JestConfigWithTsJest} */
+import { JestConfigWithTsJest } from "ts-jest";
+
 module.exports = {
   preset: "ts-jest",
   testEnvironment: "node",
@@ -8,4 +9,4 @@ module.exports = {
   coverageReporters: ["json", "lcov", "text", "clover", "json-summary"],
   reporters: ["default", "jest-junit"],
   coverageDirectory: "coverage",
-};
+} as JestConfigWithTsJest;
