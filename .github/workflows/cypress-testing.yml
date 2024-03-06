@@ -1,10 +1,8 @@
 name: Run Cypress testing suite
 on:
   workflow_dispatch:
-  push:
-    branches:
-      - development
   pull_request:
+    types: [ opened, synchronize ]
 
 jobs:
   cypress-run:
