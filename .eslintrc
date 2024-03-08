@@ -17,6 +17,8 @@
     "@typescript-eslint/no-invalid-this": ["error"],
     "no-restricted-syntax": ["error", "ForInStatement"],
     "use-isnan": "error",
+    "no-unneeded-ternary": "error",
+    "no-nested-ternary": "error",
     "@typescript-eslint/no-unused-vars": [
       "error",
       {
