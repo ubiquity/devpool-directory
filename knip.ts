@@ -5,7 +5,8 @@ const config: KnipConfig = {
   project: ["src/**/*.ts"],
   ignore: ["src/types/config.ts"],
   ignoreExportsUsedInFile: true,
-  ignoreDependencies: [],
+  // We ignore ts-node because it is used by Jest to read the TypeScript configuration
+  ignoreDependencies: ["ts-node"],
 };
 
 export default config;

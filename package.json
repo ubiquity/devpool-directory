@@ -38,6 +38,7 @@
     "@cspell/dict-node": "^4.0.3",
     "@cspell/dict-software-terms": "^3.3.18",
     "@cspell/dict-typescript": "^3.1.2",
+    "@jest/globals": "29.7.0",
     "@mswjs/data": "0.16.1",
     "@types/jest": "29.5.12",
     "@types/node": "^20.11.19",
