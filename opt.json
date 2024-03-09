@@ -5,6 +5,7 @@
     "pavlovcik/uad.ubq.fi"
   ],
 	"out": [
+		"ubiquity/series-a",
 		"ubiquity/devpool-directory",
 		"ubiquity/card-issuance",
 		"ubiquity/research",
