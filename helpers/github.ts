@@ -290,7 +290,7 @@ export async function calculateStatistics(issues: GitHubIssue[]) {
         // Increment rewards statistics, if it is assigned but not completed
         if (isAssigned && !isCompleted) {
           rewards.assigned += price;
-        } else {
+        } else if (!isAssigned && !isCompleted) {
           rewards.notAssigned += price;
         }
 
