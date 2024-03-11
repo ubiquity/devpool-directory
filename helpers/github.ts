@@ -271,6 +271,7 @@ export async function calculateStatistics(issues: GitHubIssue[]) {
   await issues.forEach((issue) => {
     const labels = issue.labels as GitHubLabel[];
     const isAssigned = issue.assignee !== null;
+    const isCompleted = issue.state === "closed";
 
     // Increment tasks statistics
     tasks.total++;
@@ -280,21 +281,28 @@ export async function calculateStatistics(issues: GitHubIssue[]) {
       tasks.notAssigned++;
     }
 
-    if (issue.state === "open" && labels.some((label) => label.name as string)) {
+    if (labels.some((label) => label.name === "Pricing")) {
       const priceLabel = labels.find((label) => (label.name as string).includes("Pricing"));
       if (priceLabel) {
         const price = parseInt((priceLabel.name as string).split(":")[1].trim(), 10);
         rewards.total += price;
 
-        // Increment rewards statistics
-        if (isAssigned) {
+        // Increment rewards statistics, if it is assigned but not completed
+        if (isAssigned && !isCompleted) {
           rewards.assigned += price;
         } else {
           rewards.notAssigned += price;
         }
+
+        //Increment completed rewards statistics, if it is assigned and completed
+        if (isCompleted && isAssigned) {
+          rewards.completed += price;
+        }
       }
-    } else if (issue.state === "closed") {
-      // Increment completed tasks statistics
+    }
+
+    // Increment completed tasks statistics
+    if (isCompleted) {
       tasks.completed++;
     }
   });
