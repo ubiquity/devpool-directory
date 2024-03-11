@@ -15,10 +15,11 @@ import {
   checkIfForked,
   LABELS,
   octokit,
-  calculateTotalRewards,
+  calculateStatistics,
   writeTotalRewardsToGithub,
 } from "./helpers/github";
 import { readFile, writeFile } from "fs/promises";
+import { Statistics } from "./types/statistics";
 // init octokit
 dotenv.config();
 
@@ -41,9 +42,10 @@ async function main() {
     const devpoolIssues: GitHubIssue[] = await getAllIssues(DEVPOOL_OWNER_NAME, DEVPOOL_REPO_NAME);
 
     // Calculate total rewards from open issues
-    const totalRewards = await calculateTotalRewards(devpoolIssues);
+    const { rewards, tasks } = await calculateStatistics(devpoolIssues);
+    const statistics: Statistics = { rewards, tasks };
 
-    await writeTotalRewardsToGithub(totalRewards);
+    await writeTotalRewardsToGithub(statistics);
 
     // aggregate projects.urls and opt settings
     const projectUrls = await getProjectUrls();

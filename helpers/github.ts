@@ -2,6 +2,7 @@ import { RestEndpointMethodTypes } from "@octokit/plugin-rest-endpoint-methods";
 import { Octokit } from "@octokit/rest";
 import _projects from "../projects.json";
 import opt from "../opt.json";
+import { Statistics } from "../types/statistics";
 
 export type GitHubIssue = RestEndpointMethodTypes["issues"]["get"]["response"]["data"];
 export type GitHubLabel = RestEndpointMethodTypes["issues"]["listLabelsOnIssue"]["response"]["data"][0];
@@ -251,28 +252,62 @@ export async function getProjectUrls() {
   return projectUrls;
 }
 
-// Function to calculate total rewards from open issues
-export async function calculateTotalRewards(issues: GitHubIssue[]) {
-  let totalRewards = 0;
+// Function to calculate total rewards and tasks statistics
+export async function calculateStatistics(issues: GitHubIssue[]) {
+  const rewards = {
+    notAssigned: 0,
+    assigned: 0,
+    completed: 0,
+    total: 0,
+  };
+
+  const tasks = {
+    notAssigned: 0,
+    assigned: 0,
+    completed: 0,
+    total: 0,
+  };
+
   await issues.forEach((issue) => {
     const labels = issue.labels as GitHubLabel[];
+    const isAssigned = issue.assignee !== null;
+
+    // Increment tasks statistics
+    tasks.total++;
+    if (isAssigned) {
+      tasks.assigned++;
+    } else {
+      tasks.notAssigned++;
+    }
+
     if (issue.state === "open" && labels.some((label) => label.name as string)) {
       const priceLabel = labels.find((label) => (label.name as string).includes("Pricing"));
       if (priceLabel) {
         const price = parseInt((priceLabel.name as string).split(":")[1].trim(), 10);
-        totalRewards += price;
+        rewards.total += price;
+
+        // Increment rewards statistics
+        if (isAssigned) {
+          rewards.assigned += price;
+        } else {
+          rewards.notAssigned += price;
+        }
       }
+    } else if (issue.state === "closed") {
+      // Increment completed tasks statistics
+      tasks.completed++;
     }
   });
-  return totalRewards;
+
+  return { rewards, tasks };
 }
 
-export async function writeTotalRewardsToGithub(totalRewards: number) {
+export async function writeTotalRewardsToGithub(statistics: Statistics) {
   try {
     const owner = DEVPOOL_OWNER_NAME;
     const repo = DEVPOOL_REPO_NAME;
-    const filePath = "total-rewards.txt";
-    const content = totalRewards.toString();
+    const filePath = "total-rewards.json";
+    const content = JSON.stringify(statistics, null, 2);
 
     let sha: string | undefined; // Initialize sha to undefined
 
