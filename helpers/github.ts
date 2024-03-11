@@ -281,7 +281,7 @@ export async function calculateStatistics(issues: GitHubIssue[]) {
       tasks.notAssigned++;
     }
 
-    if (labels.some((label) => label.name === "Pricing")) {
+    if (labels.some((label) => label.name as string)) {
       const priceLabel = labels.find((label) => (label.name as string).includes("Pricing"));
       if (priceLabel) {
         const price = parseInt((priceLabel.name as string).split(":")[1].trim(), 10);
