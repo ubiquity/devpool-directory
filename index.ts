@@ -16,7 +16,6 @@ import {
   LABELS,
   octokit,
   calculateStatistics,
-  writeTotalRewardsToGithub,
 } from "./helpers/github";
 import { readFile, writeFile } from "fs/promises";
 import { Statistics } from "./types/statistics";
@@ -45,7 +44,9 @@ async function main() {
     const { rewards, tasks } = await calculateStatistics(devpoolIssues);
     const statistics: Statistics = { rewards, tasks };
 
-    await writeTotalRewardsToGithub(statistics);
+    console.log(statistics);
+
+    //await writeTotalRewardsToGithub(statistics);
 
     // aggregate projects.urls and opt settings
     const projectUrls = await getProjectUrls();
