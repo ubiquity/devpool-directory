@@ -296,7 +296,7 @@ export async function calculateStatistics(issues: GitHubIssue[]) {
           rewards.notAssigned += price;
         }
 
-        //Increment completed rewards statistics
+        // Increment completed rewards statistics
         if (isCompleted) {
           rewards.completed += price;
         }
