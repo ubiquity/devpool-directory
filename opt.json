@@ -6,6 +6,7 @@
   ],
 	"out": [
 		"ubiquity/series-a",
+		"ubiquity/hackbar",
 		"ubiquity/devpool-directory",
 		"ubiquity/card-issuance",
 		"ubiquity/research",
