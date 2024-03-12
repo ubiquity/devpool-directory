@@ -316,7 +316,7 @@ export async function calculateStatistics(issues: GitHubIssue[]) {
 
 export async function writeTotalRewardsToGithub(statistics: Statistics) {
   try {
-    const owner = DEVPOOL_OWNER_NAME;
+    const owner = "devpanther";
     const repo = DEVPOOL_REPO_NAME;
     const filePath = "total-rewards.json";
     const content = JSON.stringify(statistics, null, 2);
