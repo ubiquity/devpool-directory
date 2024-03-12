@@ -45,7 +45,6 @@ async function main() {
     const { rewards, tasks } = await calculateStatistics(devpoolIssues);
     const statistics: Statistics = { rewards, tasks };
 
-    console.log(statistics);
     await writeTotalRewardsToGithub(statistics);
 
     // aggregate projects.urls and opt settings
