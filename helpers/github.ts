@@ -284,6 +284,9 @@ export async function calculateStatistics(issues: GitHubIssue[]) {
     if (labels.some((label) => label.name as string)) {
       const priceLabel = labels.find((label) => (label.name as string).includes("Pricing"));
       if (priceLabel) {
+        // ignore pricing not set
+        if (priceLabel.name === "Pricing: not set") return;
+
         const price = parseInt((priceLabel.name as string).split(":")[1].trim(), 10);
 
         // Increment rewards statistics, if it is assigned but not completed
@@ -298,7 +301,6 @@ export async function calculateStatistics(issues: GitHubIssue[]) {
           rewards.completed += price;
         }
 
-        console.log(priceLabel.name);
         rewards.total += price;
       }
     }
