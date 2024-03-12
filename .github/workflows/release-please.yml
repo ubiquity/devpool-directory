@@ -1,0 +1,26 @@
+name: release-please
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - $default-branch
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  release-please:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: google-github-actions/release-please-action@v3
+        with:
+          release-type: node
+      - uses: actions/checkout@v3
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20.10.0'
+          registry-url: https://registry.npmjs.org/
+      - run: |
+          yarn install --immutable --immutable-cache --check-cache
