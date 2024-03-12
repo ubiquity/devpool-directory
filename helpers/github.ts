@@ -270,7 +270,7 @@ export async function calculateStatistics(issues: GitHubIssue[]) {
 
   await issues.forEach((issue) => {
     const labels = issue.labels as GitHubLabel[];
-    const isAssigned = labels.find((label) => (label.name as string).includes("Unavailable"));
+    const isAssigned = labels.find((label) => (label.name as string).includes(LABELS.UNAVAILABLE));
     const isCompleted = issue.state === "closed";
 
     // Increment tasks statistics
