@@ -24,5 +24,3 @@ jobs:
           registry-url: https://registry.npmjs.org/
       - run: |
           yarn install --immutable --immutable-cache --check-cache
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
