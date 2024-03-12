@@ -285,7 +285,6 @@ export async function calculateStatistics(issues: GitHubIssue[]) {
       const priceLabel = labels.find((label) => (label.name as string).includes("Pricing"));
       if (priceLabel) {
         const price = parseInt((priceLabel.name as string).split(":")[1].trim(), 10);
-        rewards.total += price;
 
         // Increment rewards statistics, if it is assigned but not completed
         if (isAssigned && !isCompleted) {
@@ -294,10 +293,13 @@ export async function calculateStatistics(issues: GitHubIssue[]) {
           rewards.notAssigned += price;
         }
 
-        //Increment completed rewards statistics, if it is assigned and completed
-        if (isCompleted && isAssigned) {
+        //Increment completed rewards statistics
+        if (isCompleted) {
           rewards.completed += price;
         }
+
+        console.log(price);
+        rewards.total += price;
       }
     }
 
