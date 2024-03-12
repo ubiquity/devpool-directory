@@ -298,7 +298,7 @@ export async function calculateStatistics(issues: GitHubIssue[]) {
           rewards.completed += price;
         }
 
-        console.log(price);
+        console.log(priceLabel.name);
         rewards.total += price;
       }
     }
