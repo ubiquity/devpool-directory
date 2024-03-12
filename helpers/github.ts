@@ -289,19 +289,23 @@ export async function calculateStatistics(issues: GitHubIssue[]) {
 
         const price = parseInt((priceLabel.name as string).split(":")[1].trim(), 10);
 
-        // Increment rewards statistics, if it is assigned but not completed
-        if (isAssigned && !isCompleted) {
-          rewards.assigned += price;
-        } else if (!isAssigned && !isCompleted) {
-          rewards.notAssigned += price;
-        }
+        if (!isNaN(price)) {
+          // Increment rewards statistics, if it is assigned but not completed
+          if (isAssigned && !isCompleted) {
+            rewards.assigned += price;
+          } else if (!isAssigned && !isCompleted) {
+            rewards.notAssigned += price;
+          }
 
-        // Increment completed rewards statistics
-        if (isCompleted) {
-          rewards.completed += price;
-        }
+          // Increment completed rewards statistics
+          if (isCompleted) {
+            rewards.completed += price;
+          }
 
-        rewards.total += price;
+          rewards.total += price;
+        } else {
+          console.error(`Price '${priceLabel.name}' is not a valid number in issue: ${issue.number}`);
+        }
       }
     }
 
@@ -316,7 +320,7 @@ export async function calculateStatistics(issues: GitHubIssue[]) {
 
 export async function writeTotalRewardsToGithub(statistics: Statistics) {
   try {
-    const owner = "devpanther";
+    const owner = DEVPOOL_OWNER_NAME;
     const repo = DEVPOOL_REPO_NAME;
     const filePath = "total-rewards.json";
     const content = JSON.stringify(statistics, null, 2);
