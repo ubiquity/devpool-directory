@@ -94,6 +94,31 @@ async function main() {
             }
             continue;
           }
+
+          // if the project issue is assigned to someone and it's open in the devpool, then close it
+          if (projectIssue.assignee?.login && devpoolIssue.state === "open") {
+            await octokit.rest.issues.update({
+              owner: DEVPOOL_OWNER_NAME,
+              repo: DEVPOOL_REPO_NAME,
+              issue_number: devpoolIssue.number,
+              state: "closed",
+            });
+            console.log(`Closed (assigned): ${devpoolIssue.html_url} (${projectIssue.html_url})`);
+            continue;
+          }
+
+          // if the project issue is not assigned to someone and it's closed in the devpool, then reopen it
+          if (!projectIssue.assignee?.login && projectIssue.state === "open" && devpoolIssue.state === "closed") {
+            await octokit.rest.issues.update({
+              owner: DEVPOOL_OWNER_NAME,
+              repo: DEVPOOL_REPO_NAME,
+              issue_number: devpoolIssue.number,
+              state: "open",
+            });
+            console.log(`Reopened (unassigned): ${devpoolIssue.html_url} (${projectIssue.html_url})`);
+            continue;
+          }
+
           // prepare for issue updating
           const isDevpoolUnavailableLabel = (devpoolIssue.labels as GitHubLabel[])?.some((label) => label.name === LABELS.UNAVAILABLE);
           const devpoolIssueLabelsStringified = (devpoolIssue.labels as GitHubLabel[])
@@ -101,6 +126,7 @@ async function main() {
             .sort()
             .toString();
           const projectIssueLabelsStringified = getDevpoolIssueLabels(projectIssue, projectUrl).sort().toString();
+
           // Update devpool issue if any of the following has been updated:
           // - issue title
           // - issue state (open/closed)
@@ -134,6 +160,8 @@ async function main() {
           if (projectIssue.state === "closed") continue;
           // if issue doesn't have the "Price" label then skip it, no need to pollute repo with draft issues
           if (!(projectIssue.labels as GitHubLabel[]).some((label) => label.name.includes(LABELS.PRICE))) continue;
+          // if the project issue is assigned to someone, then skip it
+          if (projectIssue.assignee?.login) continue;
 
           // create a new issue
           const createdIssue = await octokit.rest.issues.create({
