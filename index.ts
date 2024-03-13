@@ -108,7 +108,7 @@ async function main() {
           }
 
           // if the project issue is not assigned to someone and it's closed in the devpool, then reopen it
-          if (!projectIssue.assignee?.login && devpoolIssue.state === "closed") {
+          if (!projectIssue.assignee?.login && projectIssue.state === "open" && devpoolIssue.state === "closed") {
             await octokit.rest.issues.update({
               owner: DEVPOOL_OWNER_NAME,
               repo: DEVPOOL_REPO_NAME,

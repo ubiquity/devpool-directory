@@ -11,7 +11,7 @@ afterEach(() => server.resetHandlers());
 afterAll(() => server.close());
 
 describe("Devpool Updates", () => {
-  let main = async () => {};
+  async function main() {}
 
   beforeAll(async () => {
     // @ts-expect-error main() is only exported for testing
