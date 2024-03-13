@@ -2,6 +2,7 @@ import { RestEndpointMethodTypes } from "@octokit/plugin-rest-endpoint-methods";
 import { Octokit } from "@octokit/rest";
 import _projects from "../projects.json";
 import opt from "../opt.json";
+import { Statistics } from "../types/statistics";
 
 export type GitHubIssue = RestEndpointMethodTypes["issues"]["get"]["response"]["data"];
 export type GitHubLabel = RestEndpointMethodTypes["issues"]["listLabelsOnIssue"]["response"]["data"][0];
@@ -251,28 +252,78 @@ export async function getProjectUrls() {
   return projectUrls;
 }
 
-// Function to calculate total rewards from open issues
-export async function calculateTotalRewards(issues: GitHubIssue[]) {
-  let totalRewards = 0;
+// Function to calculate total rewards and tasks statistics
+export async function calculateStatistics(issues: GitHubIssue[]) {
+  const rewards = {
+    notAssigned: 0,
+    assigned: 0,
+    completed: 0,
+    total: 0,
+  };
+
+  const tasks = {
+    notAssigned: 0,
+    assigned: 0,
+    completed: 0,
+    total: 0,
+  };
+
   await issues.forEach((issue) => {
     const labels = issue.labels as GitHubLabel[];
-    if (issue.state === "open" && labels.some((label) => label.name as string)) {
+    const isAssigned = labels.find((label) => (label.name as string).includes(LABELS.UNAVAILABLE));
+    const isCompleted = issue.state === "closed";
+
+    // Increment tasks statistics
+    tasks.total++;
+    if (isAssigned) {
+      tasks.assigned++;
+    } else {
+      tasks.notAssigned++;
+    }
+
+    if (labels.some((label) => label.name as string)) {
       const priceLabel = labels.find((label) => (label.name as string).includes("Pricing"));
       if (priceLabel) {
+        // ignore pricing not set
+        if (priceLabel.name === "Pricing: not set") return;
+
         const price = parseInt((priceLabel.name as string).split(":")[1].trim(), 10);
-        totalRewards += price;
+
+        if (!isNaN(price)) {
+          // Increment rewards statistics, if it is assigned but not completed
+          if (isAssigned && !isCompleted) {
+            rewards.assigned += price;
+          } else if (!isAssigned && !isCompleted) {
+            rewards.notAssigned += price;
+          }
+
+          // Increment completed rewards statistics
+          if (isCompleted) {
+            rewards.completed += price;
+          }
+
+          rewards.total += price;
+        } else {
+          console.error(`Price '${priceLabel.name}' is not a valid number in issue: ${issue.number}`);
+        }
       }
     }
+
+    // Increment completed tasks statistics
+    if (isCompleted) {
+      tasks.completed++;
+    }
   });
-  return totalRewards;
+
+  return { rewards, tasks };
 }
 
-export async function writeTotalRewardsToGithub(totalRewards: number) {
+export async function writeTotalRewardsToGithub(statistics: Statistics) {
   try {
     const owner = DEVPOOL_OWNER_NAME;
     const repo = DEVPOOL_REPO_NAME;
-    const filePath = "total-rewards.txt";
-    const content = totalRewards.toString();
+    const filePath = "total-rewards.json";
+    const content = JSON.stringify(statistics, null, 2);
 
     let sha: string | undefined; // Initialize sha to undefined
 
