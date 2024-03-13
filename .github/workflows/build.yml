@@ -40,4 +40,6 @@ jobs:
           output_directory: "static"
           current_branch: ${{ github.ref_name }}
           pull_request_number: ${{ github.event.pull_request.number }}
+          cloudflare_account_id: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          cloudflare_api_token: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           commit_sha: ${{ github.event.pull_request.head.sha }}
