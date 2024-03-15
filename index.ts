@@ -1,5 +1,5 @@
 import dotenv from "dotenv";
-// import twitter from "./helpers/twitter";
+import twitter from "./helpers/twitter";
 import {
   DEVPOOL_OWNER_NAME,
   DEVPOOL_REPO_NAME,
@@ -9,7 +9,7 @@ import {
   getIssueByLabel,
   getProjectUrls,
   getRepoCredentials,
-  // getSocialMediaText,
+  getSocialMediaText,
   GitHubIssue,
   GitHubLabel,
   checkIfForked,
@@ -18,8 +18,8 @@ import {
   calculateStatistics,
   writeTotalRewardsToGithub,
 } from "./helpers/github";
-// import { readFile, writeFile } from "fs/promises";
-// import { Statistics } from "./types/statistics";
+import { readFile, writeFile } from "fs/promises";
+import { Statistics } from "./types/statistics";
 // init octokit
 dotenv.config();
 
@@ -29,13 +29,13 @@ dotenv.config();
  * TODO: handle project deletion
  */
 async function main() {
-  // let twitterMap: { [key: string]: string } = {};
-  // try {
-  //   twitterMap = JSON.parse(await readFile("./twitterMap.json", "utf8"));
-  // } catch (error) {
-  //   console.log("Couldnt find twitter map artifact, creating a new one");
-  //   await writeFile("./twitterMap.json", JSON.stringify({}));
-  // }
+  let twitterMap: { [key: string]: string } = {};
+  try {
+    twitterMap = JSON.parse(await readFile("./twitterMap.json", "utf8"));
+  } catch (error) {
+    console.log("Couldnt find twitter map artifact, creating a new one");
+    await writeFile("./twitterMap.json", JSON.stringify({}));
+  }
 
   // get devpool issues
   const devpoolIssues: GitHubIssue[] = await getAllIssues(DEVPOOL_OWNER_NAME, DEVPOOL_REPO_NAME);
