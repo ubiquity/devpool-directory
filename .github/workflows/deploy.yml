@@ -1,0 +1,12 @@
+name: Deploy to Cloudflare Pages
+
+on:
+  workflow_run:
+    workflows: ["Build"]
+    types:
+      - completed
+
+jobs:
+  deploy-to-cloudflare:
+    uses: ubiquity/.github/.github/workflows/deploy.yml@main
+    secrets: inherit
