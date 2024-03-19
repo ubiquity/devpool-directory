@@ -99,6 +99,7 @@ export async function getRepoUrls(orgOrRepo: string) {
         repos = res.map((repo) => repo.html_url);
       } catch (e: unknown) {
         console.warn(`Getting ${orgOrRepo} org repositories failed: ${e}`);
+        throw e;
       }
       break;
     case 2: // owner/repo
@@ -112,6 +113,7 @@ export async function getRepoUrls(orgOrRepo: string) {
         } else console.warn(`Getting repo ${params[0]}/${params[1]} failed: ${res.status}`);
       } catch (e: unknown) {
         console.warn(`Getting repo ${params[0]}/${params[1]} failed: ${e}`);
+        throw e;
       }
       break;
     default:
@@ -357,5 +359,6 @@ export async function writeTotalRewardsToGithub(statistics: Statistics) {
     console.log(`Total rewards written to ${filePath}`);
   } catch (error) {
     console.error(`Error writing total rewards to github file: ${error}`);
+    throw error;
   }
 }
