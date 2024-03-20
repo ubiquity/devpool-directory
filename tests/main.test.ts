@@ -22,18 +22,20 @@ describe("Devpool Updates", () => {
     drop(db);
 
     // Add all the default repos of the organization
-    for (let i = 0; i < opt.out.length; ++i) {
-      const repoName = opt.out[i].split("/")[1];
-      db.repo.create({
-        id: i + 1,
-        owner: DEVPOOL_OWNER_NAME,
-        name: repoName,
-        html_url: `https://github.com/${DEVPOOL_OWNER_NAME}/${repoName}`,
-      });
+    const repos = opt.in.concat(opt.out);
+    for (let i = 0; i < repos.length; ++i) {
+      const repoFromOpt = repos[i].split("/");
+      if (repoFromOpt.length == 2) {
+        db.repo.create({
+          id: i + 1,
+          owner: repoFromOpt[0],
+          name: repoFromOpt[1],
+          html_url: `https://github.com/${repoFromOpt[0]}/${repoFromOpt[1]}`,
+        });
+      }
     }
-
     db.repo.create({
-      id: opt.out.length + 1,
+      id: repos.length + 1,
       owner: DEVPOOL_OWNER_NAME,
       name: "test-repo",
       html_url: `https://github.com/${DEVPOOL_OWNER_NAME}/test-repo`,
