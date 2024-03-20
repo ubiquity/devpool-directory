@@ -97,8 +97,9 @@ export async function getRepoUrls(orgOrRepo: string) {
           org: orgOrRepo,
         });
         repos = res.map((repo) => repo.html_url);
-      } catch (e: unknown) {
-        console.warn(`Getting ${orgOrRepo} org repositories failed: ${e}`);
+      } catch (error: unknown) {
+        console.warn(`Getting ${orgOrRepo} org repositories failed: ${error}`);
+        throw error;
       }
       break;
     case 2: // owner/repo
@@ -110,8 +111,9 @@ export async function getRepoUrls(orgOrRepo: string) {
         if (res.status === 200) {
           repos.push(res.data.html_url);
         } else console.warn(`Getting repo ${params[0]}/${params[1]} failed: ${res.status}`);
-      } catch (e: unknown) {
-        console.warn(`Getting repo ${params[0]}/${params[1]} failed: ${e}`);
+      } catch (error: unknown) {
+        console.warn(`Getting repo ${params[0]}/${params[1]} failed: ${error}`);
+        throw error;
       }
       break;
     default:
@@ -357,5 +359,6 @@ export async function writeTotalRewardsToGithub(statistics: Statistics) {
     console.log(`Total rewards written to ${filePath}`);
   } catch (error) {
     console.error(`Error writing total rewards to github file: ${error}`);
+    throw error;
   }
 }
