@@ -48,14 +48,12 @@ describe("Devpool Updates", () => {
       id: 1,
       owner: DEVPOOL_OWNER_NAME,
       repo: DEVPOOL_REPO_NAME,
-      body: "https://github.com/ubiquity/test-repo/issues/1",
     });
     db.issue.create({
       ...issueTemplate,
       id: 2,
       owner: DEVPOOL_OWNER_NAME,
       repo: "test-repo",
-      body: "https://github.com/ubiquity/test-repo/issues/1",
     });
     await main();
     const devpoolIssues = await getAllIssues(DEVPOOL_OWNER_NAME, DEVPOOL_REPO_NAME);
@@ -75,7 +73,6 @@ describe("Devpool Updates", () => {
       id: 1,
       owner: DEVPOOL_OWNER_NAME,
       repo: DEVPOOL_REPO_NAME,
-      body: "https://github.com/ubiquity/test-repo/issues/1",
     });
     db.issue.create({
       ...issueTemplate,
@@ -83,7 +80,6 @@ describe("Devpool Updates", () => {
       owner: DEVPOOL_OWNER_NAME,
       repo: "test-repo",
       labels: [],
-      node_id: "2",
     });
     db.issue.create({
       ...issueDevpoolTemplate,
@@ -92,27 +88,21 @@ describe("Devpool Updates", () => {
       owner: DEVPOOL_OWNER_NAME,
       repo: DEVPOOL_REPO_NAME,
       labels: [],
-      body: "https://github.com/ubiquity/test-repo/issues/1",
-      node_id: "3",
     });
     await main();
     const devpoolIssues = await getAllIssues(DEVPOOL_OWNER_NAME, DEVPOOL_REPO_NAME);
-
     expect(devpoolIssues).toMatchObject([
       {
-        ...issueDevpoolTemplate, // price labels are set by default
+        ...issueDevpoolTemplate,
         id: 1,
         labels: [{ name: "Pricing: 200 USD" }, { name: "Time: 1h" }, { name: "id: 1" }],
-        state: "open",
-        body: "https://github.com/ubiquity/test-repo/issues/1",
+        state: "closed",
       },
       {
         ...issueDevpoolTemplate,
         id: 3,
         labels: [],
         state: "closed",
-        body: "https://github.com/ubiquity/test-repo/issues/1",
-        node_id: "3",
       },
     ]);
   });
