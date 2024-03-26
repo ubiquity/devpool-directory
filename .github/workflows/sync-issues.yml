@@ -4,7 +4,8 @@ on:
   workflow_dispatch:
   push:
     branches:
-      - development
+      - test-b
+
     paths-ignore:
       - "**/total-rewards.json"
   schedule:

@@ -12,7 +12,7 @@ export const projects = _projects as {
   category?: Record<string, string>;
 };
 
-export const DEVPOOL_OWNER_NAME = "ubiquity";
+export const DEVPOOL_OWNER_NAME = "keyrxng";
 export const DEVPOOL_REPO_NAME = "devpool-directory";
 export enum LABELS {
   PRICE = "Price",
