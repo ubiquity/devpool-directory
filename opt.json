@@ -1,5 +1,9 @@
 {
-  "in": ["ubiquity", "ubiquibot", "pavlovcik/uad.ubq.fi"],
+  "in": [
+    "ubiquity",
+    "ubiquibot",
+    "pavlovcik/uad.ubq.fi"
+  ],
   "out": [
     "ubiquity/series-a",
     "ubiquity/hackbar",
