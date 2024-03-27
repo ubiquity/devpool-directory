@@ -98,14 +98,18 @@ async function main() {
         }
 
         // if the project issue is assigned to someone and it's open in the devpool, then close it
-        if (projectIssue.assignee?.login && devpoolIssue.state === "open") {
-          await octokit.rest.issues.update({
-            owner: DEVPOOL_OWNER_NAME,
-            repo: DEVPOOL_REPO_NAME,
-            issue_number: devpoolIssue.number,
-            state: "closed",
-          });
-          console.log(`Closed (assigned): ${devpoolIssue.html_url} (${projectIssue.html_url})`);
+        if (projectIssue.assignee?.login) {
+          if (devpoolIssue.state === "open") {
+            await octokit.rest.issues.update({
+              owner: DEVPOOL_OWNER_NAME,
+              repo: DEVPOOL_REPO_NAME,
+              issue_number: devpoolIssue.number,
+              state: "closed",
+            });
+            console.log(`Closed (assigned): ${devpoolIssue.html_url} (${projectIssue.html_url})`);
+          } else {
+            console.log(`Already closed (assigned): ${devpoolIssue.html_url} (${projectIssue.html_url})`);
+          }
           continue;
         }
 
