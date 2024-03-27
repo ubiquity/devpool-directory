@@ -36,37 +36,6 @@ export const octokit = new Octokit({ auth: process.env.DEVPOOL_GITHUB_API_TOKEN 
 //=============
 
 /**
- * Closes issues that exist in the devpool but are missing in partner projects
- *
- * Devpool and partner project issues can be
- * out of sync in the following cases:
- * - partner project issue was deleted or transferred to another repo
- * - partner project repo was deleted from https://github.com/ubiquity/devpool-directory/blob/development/projects.json
- * - partner project repo was made private
- * @param devpoolIssues all devpool issues array
- * @param projectIssues all partner project issues array
- */
-export async function forceCloseMissingIssues(devpoolIssues: GitHubIssue[], projectIssues: GitHubIssue[]) {
-  // for all devpool issues
-  for (const devpoolIssue of devpoolIssues) {
-    // if devpool issue does not exist in partners' projects then close it
-    if (!projectIssues.some((projectIssue) => projectIssue.node_id === getIssueLabelValue(devpoolIssue, "id:"))) {
-      if (devpoolIssue.state === "open") {
-        await octokit.rest.issues.update({
-          owner: DEVPOOL_OWNER_NAME,
-          repo: DEVPOOL_REPO_NAME,
-          issue_number: devpoolIssue.number,
-          state: "closed",
-        });
-        console.log(`Closed (missing in partners projects): ${devpoolIssue.html_url}`);
-      } else {
-        console.log(`Already closed (missing in partners projects): ${devpoolIssue.html_url}`);
-      }
-    }
-  }
-}
-
-/**
  * Stops forks from spamming real Ubiquity issues with links to their forks
  * @returns true if the authenticated user is Ubiquity
  */
@@ -100,34 +69,39 @@ export async function getAllIssues(ownerName: string, repoName: string) {
 export async function getRepoUrls(orgOrRepo: string) {
   const params = orgOrRepo.split("/");
   let repos: string[] = [];
-  switch (params.length) {
-    case 1: // org
-      try {
-        const res = await octokit.paginate("GET /orgs/{org}/repos", {
-          org: orgOrRepo,
-        });
-        repos = res.map((repo) => repo.html_url);
-      } catch (error: unknown) {
-        console.warn(`Getting ${orgOrRepo} org repositories failed: ${error}`);
-        throw error;
-      }
-      break;
-    case 2: // owner/repo
-      try {
-        const res = await octokit.rest.repos.get({
-          owner: params[0],
-          repo: params[1],
-        });
-        if (res.status === 200) {
-          repos.push(res.data.html_url);
-        } else console.warn(`Getting repo ${params[0]}/${params[1]} failed: ${res.status}`);
-      } catch (error: unknown) {
-        console.warn(`Getting repo ${params[0]}/${params[1]} failed: ${error}`);
-        throw error;
-      }
-      break;
-    default:
-      console.warn(`Neither org or nor repo GitHub provided: ${orgOrRepo}.`);
+  try {
+    switch (params.length) {
+      case 1: // org
+        try {
+          const res = await octokit.paginate("GET /orgs/{org}/repos", {
+            org: orgOrRepo,
+          });
+          repos = res.map((repo) => repo.html_url);
+        } catch (error: unknown) {
+          console.warn(`Getting ${orgOrRepo} org repositories failed: ${error}`);
+          throw error;
+        }
+        break;
+      case 2: // owner/repo
+        try {
+          const res = await octokit.rest.repos.get({
+            owner: params[0],
+            repo: params[1],
+          });
+
+          if (res.status == 200) {
+            repos.push(res.data.html_url);
+          } else console.warn(`Getting repo ${params[0]}/${params[1]} failed: ${res.status}`);
+        } catch (error: unknown) {
+          console.warn(`Getting repo ${params[0]}/${params[1]} failed: ${error}`, error);
+          throw error;
+        }
+        break;
+      default:
+        console.warn(`Neither org or nor repo GitHub provided: ${orgOrRepo}.`);
+    }
+  } catch (err) {
+    console.error(err);
   }
 
   return repos;
@@ -249,16 +223,32 @@ export function getSocialMediaText(issue: GitHubIssue): string {
   return `${priceLabel} for ${timeLabel}\n\n${issue.body}`;
 }
 
-export async function getProjectUrls() {
+export async function getProjectUrls(opts: typeof opt = opt) {
   const projectUrls = new Set<string>(projects.urls);
 
-  for (const orgOrRepo of opt.in) {
+  for (const orgOrRepo of opts.in) {
     const urls: string[] = await getRepoUrls(orgOrRepo);
     urls.forEach((url) => projectUrls.add(url));
   }
-  for (const orgOrRepo of opt.out) {
-    const urls: string[] = await getRepoUrls(orgOrRepo);
-    urls.forEach((url) => projectUrls.delete(url));
+
+  for (const orgOrRepo of opts.out) {
+    const len = orgOrRepo.split("/").length;
+
+    if (len === 1) {
+      //it's an org, delete all org repos in the list
+      projectUrls.forEach((url) => {
+        if (url.includes(orgOrRepo)) {
+          const [owner, repo] = getRepoCredentials(url);
+          if (opts.in.includes(`${owner}/${repo}`)) {
+            return;
+          }
+          projectUrls.delete(url);
+        }
+      });
+    } else {
+      // it's a repo, delete the repo from the list
+      projectUrls.forEach((url) => url.includes(orgOrRepo) && projectUrls.delete(url));
+    }
   }
 
   return projectUrls;
@@ -280,7 +270,7 @@ export async function calculateStatistics(issues: GitHubIssue[]) {
     total: 0,
   };
 
-  await issues.forEach((issue) => {
+  issues.forEach((issue) => {
     const labels = issue.labels as GitHubLabel[];
     const isAssigned = labels.find((label) => (label.name as string).includes(LABELS.UNAVAILABLE));
     const isCompleted = issue.state === "closed";
@@ -378,27 +368,42 @@ export async function createDevPoolIssue(projectIssue: GitHubIssue, projectUrl: 
   if (projectIssue.state == "closed") return;
 
   // if the project issue is assigned to someone, then skip it
-  if (projectIssue.assignee?.login) return;
+  if (projectIssue.assignee) return;
 
   // if issue doesn't have the "Price" label then skip it, no need to pollute repo with draft issues
   if (!(projectIssue.labels as GitHubLabel[]).some((label) => label.name.includes(LABELS.PRICE))) return;
 
+  let createdIssue: Awaited<ReturnType<typeof octokit.rest.issues.create>> | undefined;
+
   // create a new issue
-  const createdIssue = await octokit.rest.issues.create({
-    owner: DEVPOOL_OWNER_NAME,
-    repo: DEVPOOL_REPO_NAME,
-    title: projectIssue.title,
-    body,
-    labels: getDevpoolIssueLabels(projectIssue, projectUrl),
-  });
-  console.log(`Created: ${createdIssue.data.html_url} (${projectIssue.html_url})`);
+  try {
+    createdIssue = await octokit.rest.issues.create({
+      owner: DEVPOOL_OWNER_NAME,
+      repo: DEVPOOL_REPO_NAME,
+      title: projectIssue.title,
+      body,
+      labels: getDevpoolIssueLabels(projectIssue, projectUrl),
+    });
+    console.log(`Created: ${createdIssue.data.html_url} (${projectIssue.html_url})`);
+  } catch (err) {
+    console.error("Failed to create new issue: ", err);
+  }
+
+  if (!createdIssue) {
+    console.log("No new issue to tweet about");
+    return;
+  }
 
   // post to social media
-  const socialMediaText = getSocialMediaText(createdIssue.data);
-  const tweetId = await twitter.postTweet(socialMediaText);
+  try {
+    const socialMediaText = getSocialMediaText(createdIssue.data);
+    const tweetId = await twitter.postTweet(socialMediaText);
 
-  twitterMap[createdIssue.data.node_id] = tweetId?.id ?? "";
-  await writeFile("./twitterMap.json", JSON.stringify(twitterMap));
+    twitterMap[createdIssue.data.node_id] = tweetId?.id ?? "";
+    await writeFile("./twitterMap.json", JSON.stringify(twitterMap));
+  } catch (err) {
+    console.error("Failed to post tweet: ", err);
+  }
 }
 
 export async function handleDevPoolIssue(
@@ -408,6 +413,7 @@ export async function handleDevPoolIssue(
   devpoolIssue: GitHubIssue,
   isFork: boolean
 ) {
+  //
   const labelRemoved = getDevpoolIssueLabels(projectIssue, projectUrl).filter((label) => label != LABELS.UNAVAILABLE);
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const originals = devpoolIssue.labels.map((label) => (label as any).name);
@@ -423,14 +429,11 @@ export async function handleDevPoolIssue(
     labels: hasChanges,
   };
 
-  // process only the metadata changes
-  // forked body will always be different because of the www
   const shouldUpdate = metaChanges.title || metaChanges.body || metaChanges.labels;
 
   if (shouldUpdate) {
-    // update the issue
-
     try {
+      // process only the metadata changes
       await octokit.rest.issues.update({
         owner: DEVPOOL_OWNER_NAME,
         repo: DEVPOOL_REPO_NAME,
@@ -443,10 +446,7 @@ export async function handleDevPoolIssue(
       console.error(err);
     }
 
-    if (metaChanges.title || metaChanges.body || hasChanges) console.log(`Updated metadata: ${devpoolIssue.html_url} (${projectIssue.html_url})`);
-    if (metaChanges.title) console.log(`Title: ${devpoolIssue.title} -> ${projectIssue.title}`);
-    if (metaChanges.body) console.log(`Body: ${devpoolIssue.body} -> ${projectIssue.html_url}`);
-    if (hasChanges) console.log(`Labels: ${originals} -> ${labelRemoved}`);
+    if (metaChanges.title || metaChanges.body || metaChanges.labels) console.log(`Updated metadata: ${devpoolIssue.html_url} (${projectIssue.html_url})`);
   }
 
   const hasNoPriceLabels = !(projectIssue.labels as GitHubLabel[]).some((label) => label.name.includes(LABELS.PRICE));
@@ -457,38 +457,38 @@ export async function handleDevPoolIssue(
     forceMissing_Close: {
       cause: !projectIssues.some((projectIssue) => projectIssue.node_id == getIssueLabelValue(devpoolIssue, "id:")),
       effect: "closed",
-      comment: "Closed (missing in partners):",
+      comment: "Closed (missing in partners)",
     },
     // no price labels set and open in the devpool
     noPriceLabels_Close: {
       cause: hasNoPriceLabels && devpoolIssue.state == "open",
       effect: "closed",
-      comment: "Closed (no price labels):",
+      comment: "Closed (no price labels)",
     },
     // it's closed, been merged and still open in the devpool
     issueComplete_Close: {
       cause: projectIssue.state == "closed" && devpoolIssue.state == "open" && !!projectIssue.pull_request?.merged_at,
       effect: "closed",
-      comment: "Closed (merged):",
+      comment: "Closed (merged)",
     },
     // it's closed, assigned and still open in the devpool
     issueAssignedClosed_Close: {
       cause: projectIssue.state == "closed" && devpoolIssue.state == "open" && !!projectIssue.assignee?.login,
       effect: "closed",
-      comment: "Closed (assigned-closed):",
+      comment: "Closed (assigned-closed)",
     },
     // it's closed, not merged and still open in the devpool
     issueClosed_Close: {
       cause: projectIssue.state == "closed" && devpoolIssue.state == "open",
       effect: "closed",
-      comment: "Closed (not merged):",
+      comment: "Closed (not merged)",
     },
 
     // it's open, assigned and still open in the devpool
     issueAssignedOpen_Close: {
       cause: projectIssue.state == "open" && devpoolIssue.state == "open" && !!projectIssue.assignee?.login,
       effect: "closed",
-      comment: "Closed (assigned-open):",
+      comment: "Closed (assigned-open)",
     },
     // it's open, merged, unassigned and closed in the devpool
     issueReopenedMerged_Open: {
@@ -499,16 +499,15 @@ export async function handleDevPoolIssue(
         !hasNoPriceLabels &&
         !projectIssue.assignee?.login,
       effect: "open",
-      comment: "Reopened (merged):",
+      comment: "Reopened (merged)",
     },
     // it's open, unassigned and closed in the devpool
     issueUnassigned_Open: {
       cause: projectIssue.state == "open" && devpoolIssue.state == "closed" && !projectIssue.assignee?.login && !hasNoPriceLabels,
       effect: "open",
-      comment: "Reopened (unassigned):",
+      comment: "Reopened (unassigned)",
     },
   };
-  // project issue state is open, assigned, merged and devpool issue state is closed
 
   let newState: "open" | "closed" | undefined = undefined;
 
@@ -518,7 +517,6 @@ export async function handleDevPoolIssue(
     if (value.cause && devpoolIssue.state != value.effect) {
       // if the new state is already set, then skip it
       if (newState && newState == value.effect) {
-        console.log(`Already set to ${value.effect}`);
         continue;
       }
 
@@ -530,10 +528,7 @@ export async function handleDevPoolIssue(
           state: value.effect,
         });
 
-        console.log(`Updated state: ${devpoolIssue.html_url} (${projectIssue.html_url})`);
-        console.log(`${value.comment}: ${devpoolIssue.html_url} (${projectIssue.html_url})`);
-        console.log(`${value.comment}: ${projectIssue.node_id}-${projectIssue.number}`);
-
+        console.log(`Updated state: (${value.comment})\n${devpoolIssue.html_url} - (${projectIssue.html_url})`);
         newState = value.effect;
       } catch (err) {
         console.log(err);

@@ -69,7 +69,7 @@ async function main() {
       // for all issues
       if (devpoolIssue) {
         // if it exists in the devpool, then update it
-        await handleDevPoolIssue(projectIssues, projectIssue, projectUrl, devpoolIssue, body, twitterMap, isFork);
+        await handleDevPoolIssue(projectIssues, projectIssue, projectUrl, devpoolIssue, isFork);
       } else {
         // if it doesn't exist in the devpool, then create it
         await createDevPoolIssue(projectIssue, projectUrl, body, twitterMap);

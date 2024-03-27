@@ -3,7 +3,6 @@ import { server } from "../mocks/node";
 import {
   DEVPOOL_OWNER_NAME,
   DEVPOOL_REPO_NAME,
-  forceCloseMissingIssues,
   getAllIssues,
   getDevpoolIssueLabels,
   getIssueByLabel,
@@ -111,15 +110,5 @@ describe("GitHub items", () => {
     db.issue.create({ ...githubDevpoolIssueTemplate, repo: DEVPOOL_REPO_NAME, owner: DEVPOOL_OWNER_NAME });
     const issues = await getAllIssues(DEVPOOL_OWNER_NAME, DEVPOOL_REPO_NAME);
     expect(issues).toMatchObject([githubDevpoolIssueTemplate]);
-  });
-
-  test("Close missing issues", async () => {
-    const newOpenIssue = { ...githubDevpoolIssueTemplate, repo: DEVPOOL_REPO_NAME, owner: DEVPOOL_OWNER_NAME, state: "open" };
-    const newClosedIssue = { ...githubDevpoolIssueTemplate, id: 2, repo: DEVPOOL_REPO_NAME, owner: DEVPOOL_OWNER_NAME, state: "closed" };
-    db.issue.create(newOpenIssue);
-    db.issue.create(newClosedIssue);
-    await forceCloseMissingIssues([newOpenIssue, newClosedIssue], []);
-    const issues = await getAllIssues(DEVPOOL_OWNER_NAME, DEVPOOL_REPO_NAME);
-    expect(issues).toMatchObject([{ ...newOpenIssue, state: "closed" }, newClosedIssue]);
   });
 });
