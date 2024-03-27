@@ -41,7 +41,7 @@ describe("GitHub items", () => {
 
   test("Get social media text", () => {
     const res = getSocialMediaText(githubDevpoolIssueTemplate);
-    expect(res).toEqual("200 USD for 1h\n\nbody");
+    expect(res).toEqual("200 USD for 1h\n\nhttps://github.com/ubiquity/test-repo/issues/1");
   });
 
   test("Get issue price label", () => {
@@ -75,11 +75,11 @@ describe("GitHub items", () => {
       {
         ...githubDevpoolIssueTemplate,
         html_url: "https://github.com/owner/repo",
-        node_id: "1",
+        node_id: "2",
       },
       "https://github.com/owner/repo"
     );
-    expect(res).toMatchObject(["Pricing: 200 USD", "Partner: owner/repo", "id: 1", "Time: 1h"]);
+    expect(res).toMatchObject(["Pricing: 200 USD", "Partner: owner/repo", "id: 2", "Time: 1h"]);
   });
 
   test("Get repo urls", async () => {

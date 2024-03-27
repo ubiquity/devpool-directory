@@ -31,7 +31,6 @@ afterEach(() => {
       } else if (typeof label === "string") {
         return label.includes("Unavailable");
       } else {
-        console.info("Unexpected label type", label);
         return false;
       }
     });
@@ -277,7 +276,6 @@ describe("handleDevPoolIssue", () => {
       createIssues(devpoolIssue, partnerIssue);
 
       await handleDevPoolIssue([partnerIssue], partnerIssue, UBIQUITY_TEST_REPO, devpoolIssue, false);
-      console.info(logSpy.mock.calls);
 
       expect(logSpy).not.toHaveBeenCalledWith(expect.stringContaining("Updated"));
       expect(logSpy).not.toHaveBeenCalledWith(expect.stringContaining("Reopened"));
@@ -594,14 +592,415 @@ describe("handleDevPoolIssue", () => {
         },
       }) as GitHubIssue;
 
-      console.info(devpoolIssue);
-
-      console.info(updatedIssue);
-      console.info(logSpy.mock.calls);
       expect(updatedIssue).not.toBeNull();
 
       expect(logSpy).toHaveBeenCalledWith(`Updated state: ${updatedIssue.html_url} (${partnerIssue.html_url})`);
       expect(logSpy).toHaveBeenCalledWith(`Reopened (merged):: ${partnerIssue.node_id}-${partnerIssue.number}`);
+    });
+  });
+
+  const HTML_URL = "https://github.com/not-ubiquity/devpool-directory/issues/1";
+  const REPO_URL = "https://github.com/not-ubiquity/devpool-directory";
+  const PROJECT_URL = "https://github.com/ubiquity/test-repo";
+  const BODY = "https://www.github.com/ubiquity/test-repo/issues/1";
+  /**
+   * ========================
+   * DEVPOOL FORKED REPO
+   * ========================
+   */
+
+  describe("Forked Devpool", () => {
+    // need to mock DEVPOOL_OWNER_NAME
+    jest.mock("../helpers/github", () => ({
+      ...jest.requireActual("../helpers/github"),
+      DEVPOOL_OWNER_NAME: "not-ubiquity",
+    }));
+
+    beforeEach(() => {
+      db.repo.create({
+        id: 1,
+        owner: "not-ubiquity",
+        name: DEVPOOL_REPO_NAME,
+        html_url: REPO_URL,
+      });
+      db.repo.create({
+        id: 2,
+        owner: DEVPOOL_OWNER_NAME,
+        name: "test-repo",
+        html_url: `https://github.com/${DEVPOOL_OWNER_NAME}/test-repo`,
+      });
+      db.repo.create({
+        id: 3,
+        owner: DEVPOOL_OWNER_NAME,
+        name: DEVPOOL_REPO_NAME,
+        html_url: `https://github.com/${DEVPOOL_OWNER_NAME}/${DEVPOOL_REPO_NAME}`,
+      });
+    });
+
+    afterAll(() => {
+      jest.unmock("../helpers/github");
+    });
+
+    test("updates issue title in devpool when project issue title changes in forked repo", async () => {
+      const devpoolIssue = {
+        ...issueDevpoolTemplate,
+        id: 1,
+        title: "Original Title",
+        html_url: HTML_URL,
+        repository_url: REPO_URL,
+        body: BODY,
+      } as GitHubIssue;
+
+      const partnerIssue = {
+        ...issueTemplate,
+        id: 2,
+        title: "Updated Title",
+      } as GitHubIssue;
+
+      const issueInDb = createIssues(devpoolIssue, partnerIssue);
+
+      await handleDevPoolIssue([partnerIssue], partnerIssue, PROJECT_URL, issueInDb, true);
+
+      const updatedIssue = db.issue.findFirst({
+        where: {
+          id: {
+            equals: 1,
+          },
+        },
+      }) as GitHubIssue;
+
+      expect(updatedIssue).not.toBeNull();
+      expect(updatedIssue?.title).toEqual("Updated Title");
+
+      expect(logSpy).toHaveBeenCalledWith(`Updated metadata: ${updatedIssue.html_url} (${partnerIssue.html_url})`);
+      expect(logSpy).toHaveBeenCalledWith(`Title: ${devpoolIssue.title} -> ${partnerIssue.title}`);
+    });
+
+    test("updates issue labels in devpool when project issue labels change in forked repo", async () => {
+      const devpoolIssue = {
+        ...issueDevpoolTemplate,
+        id: 1,
+        html_url: HTML_URL,
+        repository_url: REPO_URL,
+        body: BODY,
+      } as GitHubIssue;
+
+      const partnerIssue = {
+        ...issueTemplate,
+        labels: issueTemplate.labels?.concat({ name: "enhancement" }),
+      } as GitHubIssue;
+
+      const issueInDb = createIssues(devpoolIssue, partnerIssue);
+
+      await handleDevPoolIssue([partnerIssue], partnerIssue, PROJECT_URL, issueInDb, true);
+
+      const updatedIssue = db.issue.findFirst({
+        where: {
+          id: {
+            equals: 1,
+          },
+        },
+      }) as GitHubIssue;
+
+      expect(updatedIssue).not.toBeNull();
+
+      expect(logSpy).toHaveBeenCalledWith(`Updated metadata: ${updatedIssue.html_url} (${partnerIssue.html_url})`);
+      expect(logSpy).toHaveBeenCalledWith(
+        `Labels: ${devpoolIssue.labels.map((label) => (label as any).name).join(",")} -> ${updatedIssue.labels.map((label) => (label as any).name).join(",")}`
+      );
+    });
+
+    test("closes devpool issue when project issue is missing in forked repo", async () => {
+      const devpoolIssue = {
+        ...issueDevpoolTemplate,
+        id: 1,
+        html_url: HTML_URL,
+        repository_url: REPO_URL,
+        body: BODY,
+      } as GitHubIssue;
+
+      const partnerIssue = {
+        ...issueTemplate,
+        id: 2,
+        node_id: "1234",
+      } as GitHubIssue;
+
+      const issueInDb = createIssues(devpoolIssue, partnerIssue);
+
+      await handleDevPoolIssue([partnerIssue], partnerIssue, PROJECT_URL, issueInDb, true);
+
+      const updatedIssue = db.issue.findFirst({
+        where: {
+          id: {
+            equals: 1,
+          },
+        },
+      }) as GitHubIssue;
+
+      expect(updatedIssue).not.toBeNull();
+      expect(updatedIssue?.state).toEqual("closed");
+
+      expect(logSpy).toHaveBeenCalledWith(`Updated state: ${updatedIssue.html_url} (${partnerIssue.html_url})`);
+      expect(logSpy).toHaveBeenCalledWith(`Closed (missing in partners):: ${partnerIssue.node_id}-${partnerIssue.number}`);
+    });
+
+    test("closes devpool issue when project issue has no price labels in forked repo", async () => {
+      const devpoolIssue = {
+        ...issueDevpoolTemplate,
+        id: 1,
+        html_url: HTML_URL,
+        repository_url: REPO_URL,
+        body: BODY,
+      } as GitHubIssue;
+
+      const partnerIssue = {
+        ...issueTemplate,
+        id: 2,
+        labels: [],
+      } as GitHubIssue;
+
+      const issueInDb = createIssues(devpoolIssue, partnerIssue);
+
+      await handleDevPoolIssue([partnerIssue], partnerIssue, PROJECT_URL, issueInDb, true);
+
+      const updatedIssue = db.issue.findFirst({
+        where: {
+          id: {
+            equals: 1,
+          },
+        },
+      }) as GitHubIssue;
+
+      expect(updatedIssue).not.toBeNull();
+      expect(updatedIssue?.state).toEqual("closed");
+
+      expect(logSpy).toHaveBeenCalledWith(`Updated state: ${updatedIssue.html_url} (${partnerIssue.html_url})`);
+      expect(logSpy).toHaveBeenCalledWith(`Closed (no price labels):: ${partnerIssue.node_id}-${partnerIssue.number}`);
+    });
+
+    test("closes devpool issue when project issue is merged in forked repo", async () => {
+      const devpoolIssue = {
+        ...issueDevpoolTemplate,
+        id: 1,
+        html_url: HTML_URL,
+        repository_url: REPO_URL,
+        body: BODY,
+      } as GitHubIssue;
+
+      const partnerIssue = {
+        ...issueTemplate,
+        id: 2,
+        state: "closed",
+        pull_request: {
+          merged_at: new Date().toISOString(),
+          diff_url: "https//github.com/ubiquity/test-repo/pull/1.diff",
+          html_url: "https//github.com/ubiquity/test-repo/pull/1",
+          patch_url: "https//github.com/ubiquity/test-repo/pull/1.patch",
+          url: "https//github.com/ubiquity/test-repo/pull/1",
+        },
+      } as GitHubIssue;
+
+      const issueInDb = createIssues(devpoolIssue, partnerIssue);
+
+      await handleDevPoolIssue([partnerIssue], partnerIssue, PROJECT_URL, issueInDb, true);
+
+      const updatedIssue = db.issue.findFirst({
+        where: {
+          id: {
+            equals: 1,
+          },
+        },
+      }) as GitHubIssue;
+
+      expect(updatedIssue).not.toBeNull();
+      expect(updatedIssue?.state).toEqual("closed");
+
+      expect(logSpy).toHaveBeenCalledWith(`Updated state: ${updatedIssue.html_url} (${partnerIssue.html_url})`);
+      expect(logSpy).toHaveBeenCalledWith(`Closed (merged):: ${partnerIssue.node_id}-${partnerIssue.number}`);
+    });
+
+    test("closes devpool issue when project issue is closed in forked repo", async () => {
+      const devpoolIssue = {
+        ...issueDevpoolTemplate,
+        id: 1,
+        html_url: HTML_URL,
+        repository_url: REPO_URL,
+        body: BODY,
+      } as GitHubIssue;
+
+      const partnerIssue = {
+        ...issueTemplate,
+        id: 2,
+        state: "closed",
+      } as GitHubIssue;
+
+      const issueInDb = createIssues(devpoolIssue, partnerIssue);
+
+      await handleDevPoolIssue([partnerIssue], partnerIssue, PROJECT_URL, issueInDb, true);
+
+      const updatedIssue = db.issue.findFirst({
+        where: {
+          id: {
+            equals: 1,
+          },
+        },
+      }) as GitHubIssue;
+
+      expect(updatedIssue).not.toBeNull();
+      expect(updatedIssue?.state).toEqual("closed");
+
+      expect(logSpy).toHaveBeenCalledWith(`Updated state: ${updatedIssue.html_url} (${partnerIssue.html_url})`);
+      expect(logSpy).toHaveBeenCalledWith(`Closed (not merged):: ${partnerIssue.node_id}-${partnerIssue.number}`);
+    });
+
+    test("closes devpool issue when project issue is closed and assigned in forked repo", async () => {
+      const devpoolIssue = {
+        ...issueDevpoolTemplate,
+        id: 1,
+        html_url: HTML_URL,
+        repository_url: REPO_URL,
+        body: BODY,
+      } as GitHubIssue;
+
+      const partnerIssue = {
+        ...issueTemplate,
+        id: 2,
+        state: "closed",
+        assignee: {
+          login: "hunter",
+        } as GitHubIssue["assignee"],
+      } as GitHubIssue;
+
+      const issueInDb = createIssues(devpoolIssue, partnerIssue);
+
+      await handleDevPoolIssue([partnerIssue], partnerIssue, PROJECT_URL, issueInDb, true);
+
+      const updatedIssue = db.issue.findFirst({
+        where: {
+          id: {
+            equals: 1,
+          },
+        },
+      }) as GitHubIssue;
+
+      expect(updatedIssue).not.toBeNull();
+      expect(updatedIssue?.state).toEqual("closed");
+
+      expect(logSpy).toHaveBeenCalledWith(`Updated state: ${updatedIssue.html_url} (${partnerIssue.html_url})`);
+      expect(logSpy).toHaveBeenCalledWith(`Closed (assigned-closed):: ${partnerIssue.node_id}-${partnerIssue.number}`);
+    });
+
+    test("closes devpool issue when project issue is open and assigned in forked repo", async () => {
+      const devpoolIssue = {
+        ...issueDevpoolTemplate,
+        id: 1,
+        html_url: HTML_URL,
+        repository_url: REPO_URL,
+        body: BODY,
+      } as GitHubIssue;
+
+      const partnerIssue = {
+        ...issueTemplate,
+        id: 2,
+        assignee: {
+          login: "hunter",
+        } as GitHubIssue["assignee"],
+      } as GitHubIssue;
+
+      const issueInDb = createIssues(devpoolIssue, partnerIssue);
+
+      await handleDevPoolIssue([partnerIssue], partnerIssue, PROJECT_URL, issueInDb, true);
+
+      const updatedIssue = db.issue.findFirst({
+        where: {
+          id: {
+            equals: 1,
+          },
+        },
+      }) as GitHubIssue;
+
+      expect(updatedIssue).not.toBeNull();
+      expect(updatedIssue?.state).toEqual("closed");
+
+      expect(logSpy).toHaveBeenCalledWith(`Updated state: ${updatedIssue.html_url} (${partnerIssue.html_url})`);
+      expect(logSpy).toHaveBeenCalledWith(`Closed (assigned-open):: ${partnerIssue.node_id}-${partnerIssue.number}`);
+    });
+
+    test("reopens devpool issue when project issue is reopened and unassigned in forked repo", async () => {
+      const devpoolIssue = {
+        ...issueDevpoolTemplate,
+        id: 1,
+        html_url: HTML_URL,
+        repository_url: REPO_URL,
+        body: BODY,
+        state: "closed",
+      } as GitHubIssue;
+
+      const partnerIssue = {
+        ...issueTemplate,
+        id: 2,
+        state: "open",
+      } as GitHubIssue;
+
+      const issueInDb = createIssues(devpoolIssue, partnerIssue);
+
+      await handleDevPoolIssue([partnerIssue], partnerIssue, PROJECT_URL, issueInDb, true);
+
+      const updatedIssue = db.issue.findFirst({
+        where: {
+          id: {
+            equals: 1,
+          },
+        },
+      }) as GitHubIssue;
+
+      expect(updatedIssue).not.toBeNull();
+      expect(updatedIssue?.state).toEqual("open");
+
+      expect(logSpy).toHaveBeenCalledWith(`Reopened (unassigned):: ${partnerIssue.node_id}-${partnerIssue.number}`);
+    });
+
+    test("should not reopen devpool issue when project issue is reopened, assigned and merged in forked repo", async () => {
+      const devpoolIssue = {
+        ...issueDevpoolTemplate,
+        html_url: HTML_URL,
+        repository_url: REPO_URL,
+        body: BODY,
+        state: "closed",
+      } as GitHubIssue;
+
+      const partnerIssue = {
+        ...issueTemplate,
+        id: 2,
+        state: "open",
+        assignee: {
+          login: "hunter",
+        } as GitHubIssue["assignee"],
+        pull_request: {
+          merged_at: new Date().toISOString(),
+          diff_url: "https//github.com/ubiquity/test-repo/pull/1.diff",
+          html_url: "https//github.com/ubiquity/test-repo/pull/1",
+          patch_url: "https//github.com/ubiquity/test-repo/pull/1.patch",
+          url: "https//github.com/ubiquity/test-repo/pull/1",
+        },
+      } as GitHubIssue;
+
+      const issueInDb = createIssues(devpoolIssue, partnerIssue);
+
+      await handleDevPoolIssue([partnerIssue], partnerIssue, PROJECT_URL, issueInDb, true);
+
+      const updatedIssue = db.issue.findFirst({
+        where: {
+          id: {
+            equals: 1,
+          },
+        },
+      }) as GitHubIssue;
+
+      expect(updatedIssue).not.toBeNull();
+      expect(updatedIssue?.state).toEqual("closed");
+
+      expect(logSpy).not.toHaveBeenCalledWith(expect.stringContaining(`Updated state`));
     });
   });
 });

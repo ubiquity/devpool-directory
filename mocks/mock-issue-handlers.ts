@@ -10,7 +10,6 @@ import {
   getSocialMediaText,
   getIssueLabelValue,
   StateChanges,
-  getRepoCredentials,
 } from "../helpers/github";
 import { writeFile } from "fs/promises";
 
@@ -50,19 +49,10 @@ export async function handleDevPoolIssue(
   isFork: boolean
 ) {
   const labelRemoved = getDevpoolIssueLabels(projectIssue, projectUrl).filter((label) => label != LABELS.UNAVAILABLE);
-  const [owner, repo] = getRepoCredentials(projectIssue.html_url);
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const originals = devpoolIssue.labels.map((label) => (label as any).name);
 
   const hasChanges = !areEqual(originals, labelRemoved);
-
-  console.info(originals.sort().join(",") + "======" + labelRemoved.sort().join(","));
-  console.info("projectIssue", projectIssue);
-  console.info("devpoolIssue", devpoolIssue);
-  console.info("labelRemoved", labelRemoved);
-  console.info("originals", originals);
-  console.info("hasChanges", hasChanges);
-  console.info("isFork", isFork);
 
   const metaChanges = {
     // the title of the issue has changed
@@ -80,9 +70,6 @@ export async function handleDevPoolIssue(
   if (shouldUpdate) {
     // update the issue
 
-    console.info("metaChanges", metaChanges);
-    console.info("CREDS:", { owner, repo, DEVPOOL_OWNER_NAME, DEVPOOL_REPO_NAME });
-
     try {
       await octokit.rest.issues.update({
         owner: DEVPOOL_OWNER_NAME,
@@ -95,13 +82,6 @@ export async function handleDevPoolIssue(
     } catch (err) {
       console.error(err);
     }
-
-    console.info("labels  removed", labelRemoved);
-    console.info("originals", originals);
-
-    if (metaChanges.title) console.info(`Title: ${devpoolIssue.title} -> ${projectIssue.title}`);
-    if (!isFork && metaChanges.body) console.info(`Body: ${!isFork && metaChanges.body ? projectIssue.html_url : devpoolIssue.body}`);
-    if (hasChanges) console.info(`Labels: ${originals} -> ${labelRemoved}`);
 
     if (metaChanges.title || metaChanges.body || hasChanges) console.log(`Updated metadata: ${devpoolIssue.html_url} (${projectIssue.html_url})`);
     if (metaChanges.title) console.log(`Title: ${devpoolIssue.title} -> ${projectIssue.title}`);
@@ -189,10 +169,6 @@ export async function handleDevPoolIssue(
           issue_number: devpoolIssue.number,
           state: value.effect,
         });
-
-        console.info(`Updated state: ${devpoolIssue.html_url} (${projectIssue.html_url})`);
-        console.info(`${value.comment}: ${devpoolIssue.html_url} (${projectIssue.html_url})`);
-        console.info(`${value.comment}: ${projectIssue.node_id}-${projectIssue.number}`);
 
         console.log(`Updated state: ${devpoolIssue.html_url} (${projectIssue.html_url})`);
         console.log(`${value.comment}: ${devpoolIssue.html_url} (${projectIssue.html_url})`);

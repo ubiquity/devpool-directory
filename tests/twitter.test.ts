@@ -8,41 +8,107 @@ afterEach(() => server.resetHandlers());
 afterAll(() => server.close());
 
 describe("Twitter", () => {
-  test("Throw on missing env variable", async () => {
-    // Save the env first to test throws with missing env values
-    const savedEnv = process.env;
+  test("Throw on missing all env variables", async () => {
+    // Save the current environment variables
+    const originalEnv = process.env;
+
+    process.env = {
+      ...originalEnv,
+      TWITTER_API_KEY: undefined,
+      TWITTER_API_KEY_SECRET: undefined,
+      TWITTER_ACCESS_TOKEN: undefined,
+      TWITTER_ACCESS_TOKEN_SECRET: undefined,
+    };
+
+    // Use jest.resetModules to ensure the module is reloaded with new env vars
+    jest.resetModules();
+
     await expect(async () => {
-      dotenv.config({
-        override: true,
-      });
-      process.env.TWITTER_API_KEY = "";
-      await import("../helpers/twitter");
-    }).rejects.toThrow();
+      const { default: twitterHelper } = await import("../helpers/twitter");
+      console.log(twitterHelper);
+    }).rejects.toThrow("Twitter environment variables are not set");
+
+    process.env = originalEnv;
+  });
+
+  test("Throw on missing TOKEN_SECRET", async () => {
+    // Save the current environment variables
+    const originalEnv = process.env;
+
+    process.env = {
+      ...originalEnv,
+      TWITTER_ACCESS_TOKEN_SECRET: undefined,
+    };
+
+    // Use jest.resetModules to ensure the module is reloaded with new env vars
+    jest.resetModules();
+
     await expect(async () => {
-      dotenv.config({
-        override: true,
-      });
-      process.env.TWITTER_API_KEY_SECRET = "";
-      await import("../helpers/twitter");
-    }).rejects.toThrow();
+      const { default: twitterHelper } = await import("../helpers/twitter");
+      console.log(twitterHelper);
+    }).rejects.toThrow("Twitter environment variables are not set");
+
+    process.env = originalEnv;
+  });
+
+  test("Throw on missing ACCESS_TOKEN", async () => {
+    // Save the current environment variables
+    const originalEnv = process.env;
+
+    process.env = {
+      ...originalEnv,
+      TWITTER_ACCESS_TOKEN: undefined,
+    };
+
+    // Use jest.resetModules to ensure the module is reloaded with new env vars
+    jest.resetModules();
+
     await expect(async () => {
-      dotenv.config({
-        override: true,
-      });
-      process.env.TWITTER_ACCESS_TOKEN = "";
-      await import("../helpers/twitter");
-    }).rejects.toThrow();
+      const { default: twitterHelper } = await import("../helpers/twitter");
+      console.log(twitterHelper);
+    }).rejects.toThrow("Twitter environment variables are not set");
+
+    process.env = originalEnv;
+  });
+
+  test("Throw on missing API_KEY_SECRET", async () => {
+    // Save the current environment variables
+    const originalEnv = process.env;
+
+    process.env = {
+      ...originalEnv,
+      TWITTER_API_KEY_SECRET: undefined,
+    };
+
+    // Use jest.resetModules to ensure the module is reloaded with new env vars
+    jest.resetModules();
+
     await expect(async () => {
-      dotenv.config({
-        override: true,
-      });
-      process.env.TWITTER_ACCESS_TOKEN_SECRET = "";
-      await import("../helpers/twitter");
-    }).rejects.toThrow();
-    dotenv.config({
-      override: true,
-    });
-    process.env = savedEnv;
+      const { default: twitterHelper } = await import("../helpers/twitter");
+      console.log(twitterHelper);
+    }).rejects.toThrow("Twitter environment variables are not set");
+
+    process.env = originalEnv;
+  });
+
+  test("Throw on missing API_KEY", async () => {
+    // Save the current environment variables
+    const originalEnv = process.env;
+
+    process.env = {
+      ...originalEnv,
+      TWITTER_API_KEY: undefined,
+    };
+
+    // Use jest.resetModules to ensure the module is reloaded with new env vars
+    jest.resetModules();
+
+    await expect(async () => {
+      const { default: twitterHelper } = await import("../helpers/twitter");
+      console.log(twitterHelper);
+    }).rejects.toThrow("Twitter environment variables are not set");
+
+    process.env = originalEnv;
   });
 
   test("Post Tweet successfully", async () => {
