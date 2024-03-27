@@ -28,6 +28,7 @@ export default {
 async function postTweet(status: string) {
   try {
     const { data } = await twitterClient.v2.tweet(status);
+    console.log(`Tweet posted successfully, id: ${data.id}, text: ${data.text}`);
     return data;
   } catch (error) {
     console.error("Error posting tweet", error);
@@ -37,7 +38,7 @@ async function postTweet(status: string) {
 async function deleteTweet(id: string) {
   try {
     const { data } = await twitterClient.v2.deleteTweet(id);
-    if (data.deleted) {
+    if (data?.deleted) {
       console.log(`Successfully deleted tweet, id: ${id}`);
     } else {
       console.log(`Couldnt delete tweet, id ${id}`);

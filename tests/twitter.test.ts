@@ -124,6 +124,24 @@ describe("Twitter", () => {
     expect(res).not.toBeUndefined();
   });
 
+  test("Delete Tweet successfully", async () => {
+    const logSpy = jest.spyOn(console, "log").mockImplementation(jest.fn());
+    dotenv.config({
+      override: true,
+    });
+    process.env.TWITTER_API_KEY = "foobar";
+    process.env.TWITTER_API_KEY_SECRET = "foobar";
+    process.env.TWITTER_ACCESS_TOKEN = "foobar";
+    process.env.TWITTER_ACCESS_TOKEN_SECRET = "foobar";
+    const twitter = (await import("../helpers/twitter")).default;
+    const tweet = await twitter.postTweet("status");
+    await twitter.deleteTweet(tweet?.id as string);
+
+    expect(logSpy).toHaveBeenCalledWith(`Tweet posted successfully, id: ${tweet?.id}, text: ${tweet?.text}`);
+    await twitter.deleteTweet(tweet?.id as string);
+    expect(logSpy).toHaveBeenCalledWith(`Couldnt delete tweet, id ${tweet?.id}`);
+  });
+
   test("Expect Tweet post failure on network error", async () => {
     // silence stderr since we expect errors to be logged
     jest.spyOn(console, "error").mockImplementation(jest.fn());

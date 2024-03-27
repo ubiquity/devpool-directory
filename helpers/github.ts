@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { RestEndpointMethodTypes } from "@octokit/plugin-rest-endpoint-methods";
 import { Octokit } from "@octokit/rest";
 import _projects from "../projects.json";
@@ -67,6 +68,16 @@ export async function getAllIssues(ownerName: string, repoName: string) {
  * @returns array of repository urls
  */
 export async function getRepoUrls(orgOrRepo: string) {
+  if (!orgOrRepo) {
+    console.warn("No org or repo provided: ", orgOrRepo);
+    return [];
+  }
+
+  if (orgOrRepo.startsWith("/") || orgOrRepo.endsWith("/")) {
+    console.warn("Invalid org or repo provided: ", orgOrRepo);
+    return [];
+  }
+
   const params = orgOrRepo.split("/");
   let repos: string[] = [];
   try {
@@ -77,6 +88,7 @@ export async function getRepoUrls(orgOrRepo: string) {
             org: orgOrRepo,
           });
           repos = res.map((repo) => repo.html_url);
+          console.info(`Getting ${orgOrRepo} org repositories: ${repos.length}`);
         } catch (error: unknown) {
           console.warn(`Getting ${orgOrRepo} org repositories failed: ${error}`);
           throw error;
@@ -91,9 +103,10 @@ export async function getRepoUrls(orgOrRepo: string) {
 
           if (res.status == 200) {
             repos.push(res.data.html_url);
+            console.info(`Getting repo ${params[0]}/${params[1]}: ${res.data.html_url}`);
           } else console.warn(`Getting repo ${params[0]}/${params[1]} failed: ${res.status}`);
         } catch (error: unknown) {
-          console.warn(`Getting repo ${params[0]}/${params[1]} failed: ${error}`, error);
+          console.warn(`Getting repo ${params[0]}/${params[1]} failed: ${error}`);
           throw error;
         }
         break;
@@ -271,16 +284,27 @@ export async function calculateStatistics(issues: GitHubIssue[]) {
   };
 
   issues.forEach((issue) => {
+    if (!issue.repository_url || !issue.html_url) return;
+    if (!issue.repository_url.includes(DEVPOOL_REPO_NAME) || !issue.html_url.includes(DEVPOOL_REPO_NAME)) return;
+    if ("repo" in issue && issue.repo != DEVPOOL_REPO_NAME) return;
+
     const labels = issue.labels as GitHubLabel[];
-    const isAssigned = labels.find((label) => (label.name as string).includes(LABELS.UNAVAILABLE));
-    const isCompleted = issue.state === "closed";
+    // devpool issue has unavailable label because it's assigned and so it's closed
+    const isAssigned = labels.find((label) => (label.name as string).includes(LABELS.UNAVAILABLE)) && issue.state === "closed";
+    // devpool issue doesn't have unavailable label because it's unassigned and closed so it's merged therefore completed
+    const isCompleted = !labels.some((label) => (label.name as string).includes(LABELS.UNAVAILABLE)) && issue.state === "closed";
+    const isOpen = issue.state === "open";
 
     // Increment tasks statistics
     tasks.total++;
-    if (isAssigned) {
-      tasks.assigned++;
-    } else {
+    if (isOpen) {
       tasks.notAssigned++;
+    } else if (isAssigned) {
+      tasks.assigned++;
+    } else if (isCompleted) {
+      tasks.completed++;
+    } else {
+      console.error(`Issue ${issue.number} is not assigned, not completed and not open`);
     }
 
     if (labels.some((label) => label.name as string)) {
@@ -293,27 +317,18 @@ export async function calculateStatistics(issues: GitHubIssue[]) {
 
         if (!isNaN(price)) {
           // Increment rewards statistics, if it is assigned but not completed
-          if (isAssigned && !isCompleted) {
+          if (isAssigned) {
             rewards.assigned += price;
-          } else if (!isAssigned && !isCompleted) {
+          } else if (isCompleted) {
+            rewards.completed += price;
+          } else {
             rewards.notAssigned += price;
           }
-
-          // Increment completed rewards statistics
-          if (isCompleted) {
-            rewards.completed += price;
-          }
-
           rewards.total += price;
         } else {
           console.error(`Price '${priceLabel.name}' is not a valid number in issue: ${issue.number}`);
         }
       }
-    }
-
-    // Increment completed tasks statistics
-    if (isCompleted) {
-      tasks.completed++;
     }
   });
 
@@ -347,14 +362,18 @@ export async function writeTotalRewardsToGithub(statistics: Statistics) {
     }
 
     // Update or create the file
-    await octokit.rest.repos.createOrUpdateFileContents({
-      owner,
-      repo,
-      path: filePath,
-      message: "Update total rewards",
-      content: Buffer.from(content).toString("base64"),
-      sha, // Pass the SHA if the file exists, to update it
-    });
+    await octokit.rest.repos
+      .createOrUpdateFileContents({
+        owner,
+        repo,
+        path: filePath,
+        message: "Update total rewards",
+        content: Buffer.from(content).toString("base64"),
+        sha, // Pass the SHA if the file exists, to update it
+      })
+      .catch((error) => {
+        console.error(`Error updating total rewards: ${error}`);
+      });
 
     console.log(`Total rewards written to ${filePath}`);
   } catch (error) {
@@ -415,7 +434,6 @@ export async function handleDevPoolIssue(
 ) {
   //
   const labelRemoved = getDevpoolIssueLabels(projectIssue, projectUrl).filter((label) => label != LABELS.UNAVAILABLE);
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const originals = devpoolIssue.labels.map((label) => (label as any).name);
 
   const hasChanges = !areEqual(originals, labelRemoved);
@@ -533,6 +551,41 @@ export async function handleDevPoolIssue(
       } catch (err) {
         console.log(err);
       }
+    }
+  }
+
+  if (
+    // only if the devpool issue is closed or the project issue is closed
+    (newState == "closed" || devpoolIssue.state == "closed") &&
+    // only if project issue is open
+    projectIssue.state == "open" &&
+    // only if the project issue is assigned to someone
+    projectIssue.assignee?.login &&
+    // only if the devpool issue doesn't have the "Unavailable" label
+    !devpoolIssue.labels.some((label) => (label as any).name == LABELS.UNAVAILABLE)
+  ) {
+    try {
+      await octokit.rest.issues.addLabels({
+        owner: DEVPOOL_OWNER_NAME,
+        repo: DEVPOOL_REPO_NAME,
+        issue_number: devpoolIssue.number,
+        labels: metaChanges.labels ? labelRemoved.concat(LABELS.UNAVAILABLE) : originals.concat(LABELS.UNAVAILABLE),
+      });
+    } catch (err) {
+      console.log(err);
+    }
+  } else if (projectIssue.state == "closed" && devpoolIssue.labels.some((label) => (label as any).name == LABELS.UNAVAILABLE)) {
+    try {
+      await octokit.rest.issues.removeLabel({
+        owner: DEVPOOL_OWNER_NAME,
+        repo: DEVPOOL_REPO_NAME,
+        issue_number: devpoolIssue.number,
+        name: LABELS.UNAVAILABLE,
+      });
+
+      console.log(`Removed label: ${LABELS.UNAVAILABLE}\n${devpoolIssue.html_url} - (${projectIssue.html_url})`);
+    } catch (err) {
+      console.log(err);
     }
   }
 }
