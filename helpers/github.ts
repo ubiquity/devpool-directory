@@ -406,43 +406,47 @@ export async function handleDevPoolIssue(
   projectIssue: GitHubIssue,
   projectUrl: string,
   devpoolIssue: GitHubIssue,
-  body: string,
   isFork: boolean
 ) {
+  const labelRemoved = getDevpoolIssueLabels(projectIssue, projectUrl).filter((label) => label != LABELS.UNAVAILABLE);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const originals = devpoolIssue.labels.map((label) => (label as any).name);
+
+  const hasChanges = !areEqual(originals, labelRemoved);
+
   const metaChanges = {
     // the title of the issue has changed
     title: devpoolIssue.title != projectIssue.title,
     // the issue url has updated
-    body: devpoolIssue.body != projectIssue.html_url,
+    body: !isFork && devpoolIssue.body != projectIssue.html_url,
     // the price/priority labels have changed
-    labels:
-      (devpoolIssue.labels as GitHubLabel[])
-        .map((label) => label.name)
-        .sort()
-        .toString() != getDevpoolIssueLabels(projectIssue, projectUrl).sort().toString(),
+    labels: hasChanges,
   };
 
   // process only the metadata changes
   // forked body will always be different because of the www
-  if (metaChanges.title || (!isFork && metaChanges.body) || metaChanges.labels) {
+  const shouldUpdate = metaChanges.title || metaChanges.body || metaChanges.labels;
+
+  if (shouldUpdate) {
+    // update the issue
+
     try {
       await octokit.rest.issues.update({
         owner: DEVPOOL_OWNER_NAME,
         repo: DEVPOOL_REPO_NAME,
         issue_number: devpoolIssue.number,
-        title: projectIssue.title,
-        body,
-        labels: getDevpoolIssueLabels(projectIssue, projectUrl),
+        title: metaChanges.title ? projectIssue.title : devpoolIssue.title,
+        body: metaChanges.body && !isFork ? projectIssue.html_url : projectIssue.html_url.replace("https://", "https://www."),
+        labels: metaChanges.labels ? labelRemoved : originals,
       });
     } catch (err) {
       console.error(err);
     }
 
-    console.log(
-      `Updated [${(metaChanges.title && '"title", ', metaChanges.labels && '"labels", ', metaChanges.body && '"body"]')}:\nDevpool Issue: ${
-        devpoolIssue.html_url
-      }\nProject Issue: ${projectIssue.html_url}`
-    );
+    if (metaChanges.title || metaChanges.body || hasChanges) console.log(`Updated metadata: ${devpoolIssue.html_url} (${projectIssue.html_url})`);
+    if (metaChanges.title) console.log(`Title: ${devpoolIssue.title} -> ${projectIssue.title}`);
+    if (metaChanges.body) console.log(`Body: ${devpoolIssue.body} -> ${projectIssue.html_url}`);
+    if (hasChanges) console.log(`Labels: ${originals} -> ${labelRemoved}`);
   }
 
   const hasNoPriceLabels = !(projectIssue.labels as GitHubLabel[]).some((label) => label.name.includes(LABELS.PRICE));
@@ -467,23 +471,35 @@ export async function handleDevPoolIssue(
       effect: "closed",
       comment: "Closed (merged):",
     },
-    // it's closed, not merged and still open in the devpool
-    issueClosed_Close: {
-      cause: projectIssue.state == "closed" && devpoolIssue.state == "open",
-      effect: "closed",
-      comment: "Closed (not merged):",
-    },
     // it's closed, assigned and still open in the devpool
     issueAssignedClosed_Close: {
       cause: projectIssue.state == "closed" && devpoolIssue.state == "open" && !!projectIssue.assignee?.login,
       effect: "closed",
       comment: "Closed (assigned-closed):",
     },
+    // it's closed, not merged and still open in the devpool
+    issueClosed_Close: {
+      cause: projectIssue.state == "closed" && devpoolIssue.state == "open",
+      effect: "closed",
+      comment: "Closed (not merged):",
+    },
+
     // it's open, assigned and still open in the devpool
     issueAssignedOpen_Close: {
       cause: projectIssue.state == "open" && devpoolIssue.state == "open" && !!projectIssue.assignee?.login,
       effect: "closed",
       comment: "Closed (assigned-open):",
+    },
+    // it's open, merged, unassigned and closed in the devpool
+    issueReopenedMerged_Open: {
+      cause:
+        projectIssue.state == "open" &&
+        devpoolIssue.state == "closed" &&
+        !!projectIssue.pull_request?.merged_at &&
+        !hasNoPriceLabels &&
+        !projectIssue.assignee?.login,
+      effect: "open",
+      comment: "Reopened (merged):",
     },
     // it's open, unassigned and closed in the devpool
     issueUnassigned_Open: {
@@ -491,13 +507,8 @@ export async function handleDevPoolIssue(
       effect: "open",
       comment: "Reopened (unassigned):",
     },
-    // it's open, merged and closed in the devpool
-    issueReopenedMerged_Open: {
-      cause: projectIssue.state == "open" && devpoolIssue.state == "closed" && !!projectIssue.pull_request?.merged_at && !hasNoPriceLabels,
-      effect: "open",
-      comment: "Reopened (merged):",
-    },
   };
+  // project issue state is open, assigned, merged and devpool issue state is closed
 
   let newState: "open" | "closed" | undefined = undefined;
 
@@ -506,7 +517,10 @@ export async function handleDevPoolIssue(
     // if the cause is true and the effect is different from the current state
     if (value.cause && devpoolIssue.state != value.effect) {
       // if the new state is already set, then skip it
-      if (newState && newState == value.effect) continue;
+      if (newState && newState == value.effect) {
+        console.log(`Already set to ${value.effect}`);
+        continue;
+      }
 
       try {
         await octokit.rest.issues.update({
@@ -516,12 +530,18 @@ export async function handleDevPoolIssue(
           state: value.effect,
         });
 
+        console.log(`Updated state: ${devpoolIssue.html_url} (${projectIssue.html_url})`);
+        console.log(`${value.comment}: ${devpoolIssue.html_url} (${projectIssue.html_url})`);
+        console.log(`${value.comment}: ${projectIssue.node_id}-${projectIssue.number}`);
+
         newState = value.effect;
       } catch (err) {
         console.log(err);
       }
-
-      console.log(`${value.comment}:\nDevpool Issue: ${devpoolIssue.html_url}\nProject Issue: ${projectIssue.html_url}`);
     }
   }
+}
+
+function areEqual(a: string[], b: string[]) {
+  return a.sort().join(",") === b.sort().join(",");
 }
