@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 import { RestEndpointMethodTypes } from "@octokit/plugin-rest-endpoint-methods";
 import { Octokit } from "@octokit/rest";
 import _projects from "../projects.json";
@@ -392,11 +391,9 @@ export async function createDevPoolIssue(projectIssue: GitHubIssue, projectUrl: 
   // if issue doesn't have the "Price" label then skip it, no need to pollute repo with draft issues
   if (!(projectIssue.labels as GitHubLabel[]).some((label) => label.name.includes(LABELS.PRICE))) return;
 
-  let createdIssue: Awaited<ReturnType<typeof octokit.rest.issues.create>> | undefined;
-
   // create a new issue
   try {
-    createdIssue = await octokit.rest.issues.create({
+    const createdIssue = await octokit.rest.issues.create({
       owner: DEVPOOL_OWNER_NAME,
       repo: DEVPOOL_REPO_NAME,
       title: projectIssue.title,
@@ -404,24 +401,25 @@ export async function createDevPoolIssue(projectIssue: GitHubIssue, projectUrl: 
       labels: getDevpoolIssueLabels(projectIssue, projectUrl),
     });
     console.log(`Created: ${createdIssue.data.html_url} (${projectIssue.html_url})`);
+
+    if (!createdIssue) {
+      console.log("No new issue to tweet about");
+      return;
+    }
+
+    // post to social media
+    // try {
+    //   const socialMediaText = getSocialMediaText(createdIssue.data);
+    //   const tweetId = await twitter.postTweet(socialMediaText);
+
+    //   twitterMap[createdIssue.data.node_id] = tweetId?.id ?? "";
+    //   await writeFile("./twitterMap.json", JSON.stringify(twitterMap));
+    // } catch (err) {
+    //   console.error("Failed to post tweet: ", err);
+    // }
   } catch (err) {
     console.error("Failed to create new issue: ", err);
-  }
-
-  if (!createdIssue) {
-    console.log("No new issue to tweet about");
     return;
-  }
-
-  // post to social media
-  try {
-    const socialMediaText = getSocialMediaText(createdIssue.data);
-    const tweetId = await twitter.postTweet(socialMediaText);
-
-    twitterMap[createdIssue.data.node_id] = tweetId?.id ?? "";
-    await writeFile("./twitterMap.json", JSON.stringify(twitterMap));
-  } catch (err) {
-    console.error("Failed to post tweet: ", err);
   }
 }
 
@@ -434,7 +432,7 @@ export async function handleDevPoolIssue(
 ) {
   //
   const labelRemoved = getDevpoolIssueLabels(projectIssue, projectUrl).filter((label) => label != LABELS.UNAVAILABLE);
-  const originals = devpoolIssue.labels.map((label) => (label as any).name);
+  const originals = devpoolIssue.labels.map((label) => (label as GitHubLabel).name);
 
   const hasChanges = !areEqual(originals, labelRemoved);
 
@@ -562,7 +560,7 @@ export async function handleDevPoolIssue(
     // only if the project issue is assigned to someone
     projectIssue.assignee?.login &&
     // only if the devpool issue doesn't have the "Unavailable" label
-    !devpoolIssue.labels.some((label) => (label as any).name == LABELS.UNAVAILABLE)
+    !devpoolIssue.labels.some((label) => (label as GitHubLabel).name == LABELS.UNAVAILABLE)
   ) {
     try {
       await octokit.rest.issues.addLabels({
@@ -574,7 +572,7 @@ export async function handleDevPoolIssue(
     } catch (err) {
       console.log(err);
     }
-  } else if (projectIssue.state == "closed" && devpoolIssue.labels.some((label) => (label as any).name == LABELS.UNAVAILABLE)) {
+  } else if (projectIssue.state == "closed" && devpoolIssue.labels.some((label) => (label as GitHubLabel).name == LABELS.UNAVAILABLE)) {
     try {
       await octokit.rest.issues.removeLabel({
         owner: DEVPOOL_OWNER_NAME,
