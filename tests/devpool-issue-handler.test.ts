@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { setupServer } from "msw/node";
-import { GitHubIssue, getProjectUrls } from "../helpers/github";
+import { GitHubIssue, calculateStatistics, checkIfForked, getProjectUrls, getRepoUrls, writeTotalRewardsToGithub } from "../helpers/github";
 import { db } from "../mocks/db";
 import { handlers } from "../mocks/handlers";
 import { drop } from "@mswjs/data";
@@ -565,7 +565,375 @@ describe("handleDevPoolIssue", () => {
 
       expect(logSpy).toHaveBeenCalledWith(`Updated state: (Reopened (merged))\n${updatedIssue.html_url} - (${partnerIssue.html_url})`);
     });
+
+    test("adds Unavailable label to devpool issue when project issue is assigned, open and devpool is closed", async () => {
+      const devpoolIssue = {
+        ...issueDevpoolTemplate,
+        state: "closed",
+      } as GitHubIssue;
+
+      const projectIssue = {
+        ...issueTemplate,
+        state: "open",
+        assignee: {
+          login: "hunter",
+        } as GitHubIssue["assignee"],
+      } as GitHubIssue;
+
+      createIssues(devpoolIssue, projectIssue);
+
+      await handleDevPoolIssue([projectIssue], projectIssue, UBIQUITY_TEST_REPO, devpoolIssue, false);
+
+      const updatedIssue = db.issue.findFirst({
+        where: {
+          id: {
+            equals: 1,
+          },
+        },
+      }) as GitHubIssue;
+
+      expect(updatedIssue).not.toBeNull();
+
+      expect(updatedIssue.state).toEqual("closed");
+
+      expect(updatedIssue.labels).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({
+            name: "Unavailable",
+          }),
+        ])
+      );
+    });
+
+    test("removes Unavailable label from devpool issue when project issue is assigned and closed", async () => {
+      const devpoolIssue = {
+        ...issueDevpoolTemplate,
+        state: "closed",
+        labels: issueDevpoolTemplate.labels.concat({ name: "Unavailable" }),
+      } as GitHubIssue;
+
+      const projectIssue = {
+        ...issueTemplate,
+        state: "closed",
+        assignee: {
+          login: "hunter",
+        } as GitHubIssue["assignee"],
+      } as GitHubIssue;
+
+      createIssues(devpoolIssue, projectIssue);
+
+      await handleDevPoolIssue([projectIssue], projectIssue, UBIQUITY_TEST_REPO, devpoolIssue, false);
+
+      const updatedIssue = db.issue.findFirst({
+        where: {
+          id: {
+            equals: 1,
+          },
+        },
+      }) as GitHubIssue;
+
+      expect(updatedIssue).not.toBeNull();
+
+      expect(updatedIssue.state).toEqual("closed");
+
+      expect(updatedIssue.labels).not.toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({
+            name: "Unavailable",
+          }),
+        ])
+      );
+    });
+
+    test("removes Unavailable label from devpool issue when project issue is unassigned, closed and merged", async () => {
+      const devpoolIssue = {
+        ...issueDevpoolTemplate,
+        state: "closed",
+        labels: issueDevpoolTemplate.labels.concat({ name: "Unavailable" }),
+        pull_request: {
+          diff_url: "...",
+          html_url: "...",
+          patch_url: "...",
+          url: "...",
+          merged_at: new Date().toISOString(),
+        },
+      } as GitHubIssue;
+
+      const projectIssue = {
+        ...issueTemplate,
+        state: "closed",
+      } as GitHubIssue;
+
+      createIssues(devpoolIssue, projectIssue);
+
+      await handleDevPoolIssue([projectIssue], projectIssue, UBIQUITY_TEST_REPO, devpoolIssue, false);
+
+      const updatedIssue = db.issue.findFirst({
+        where: {
+          id: {
+            equals: 1,
+          },
+        },
+      }) as GitHubIssue;
+
+      expect(updatedIssue).not.toBeNull();
+
+      expect(updatedIssue.state).toEqual("closed");
+
+      expect(updatedIssue.labels).not.toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({
+            name: "Unavailable",
+          }),
+        ])
+      );
+    });
+
+    test("removes Unavailable label from devpool issue when project issue is unassigned and reopened", async () => {
+      const devpoolIssue = {
+        ...issueDevpoolTemplate,
+        state: "closed",
+        labels: issueDevpoolTemplate.labels.concat({ name: "Unavailable" }),
+      } as GitHubIssue;
+
+      const projectIssue = {
+        ...issueTemplate,
+        state: "open",
+      } as GitHubIssue;
+
+      createIssues(devpoolIssue, projectIssue);
+
+      await handleDevPoolIssue([projectIssue], projectIssue, UBIQUITY_TEST_REPO, devpoolIssue, false);
+
+      const updatedIssue = db.issue.findFirst({
+        where: {
+          id: {
+            equals: 1,
+          },
+        },
+      }) as GitHubIssue;
+
+      expect(updatedIssue).not.toBeNull();
+
+      expect(updatedIssue.state).toEqual("open");
+
+      expect(updatedIssue.labels).not.toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({
+            name: "Unavailable",
+          }),
+        ])
+      );
+    });
+
+    test("removes Unavailable label from devpool issue when project issue is unassigned, merged and reopened", async () => {
+      const devpoolIssue = {
+        ...issueDevpoolTemplate,
+        state: "closed",
+        labels: issueDevpoolTemplate.labels.concat({ name: "Unavailable" }),
+      } as GitHubIssue;
+
+      const projectIssue = {
+        ...issueTemplate,
+        state: "open",
+        pull_request: {
+          diff_url: "...",
+          html_url: "...",
+          patch_url: "...",
+          url: "...",
+          merged_at: new Date().toISOString(),
+        },
+      } as GitHubIssue;
+
+      createIssues(devpoolIssue, projectIssue);
+
+      await handleDevPoolIssue([projectIssue], projectIssue, UBIQUITY_TEST_REPO, devpoolIssue, false);
+
+      const updatedIssue = db.issue.findFirst({
+        where: {
+          id: {
+            equals: 1,
+          },
+        },
+      }) as GitHubIssue;
+
+      expect(updatedIssue).not.toBeNull();
+
+      expect(updatedIssue.state).toEqual("open");
+
+      expect(updatedIssue.labels).not.toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({
+            name: "Unavailable",
+          }),
+        ])
+      );
+    });
+
+    test("does not add the Unavailable to an open devpool issue, _ever_", async () => {
+      const devpoolIssue = {
+        ...issueDevpoolTemplate,
+        state: "open",
+        id: 1,
+        number: 1,
+        node_id: "1",
+        repository_url: "https://github.com/ubiquity/devpool-directory",
+        html_url: "https://github.com/ubiquity/devpool-directory/issues/1",
+      } as GitHubIssue;
+
+      // project issue is open and unassigned
+      let projectIssue = {
+        ...issueTemplate,
+        state: "open",
+      } as GitHubIssue;
+
+      createIssues(devpoolIssue, projectIssue);
+
+      await validateOpen(projectIssue, devpoolIssue);
+
+      // project issue is open, unassigned and merged
+      projectIssue = {
+        ...issueTemplate,
+        state: "open",
+        pull_request: {
+          merged_at: new Date().toISOString(),
+          diff_url: "https//github.com/ubiquity/test-repo/pull/1.diff",
+          html_url: "https//github.com/ubiquity/test-repo/pull/1",
+          patch_url: "https//github.com/ubiquity/test-repo/pull/1.patch",
+          url: "https//github.com/ubiquity/test-repo/pull/1",
+        },
+      } as GitHubIssue;
+
+      await validateOpen(projectIssue, devpoolIssue);
+    });
+
+    test("does not remove the Unavailable label from an assigned devpool issue that's open, _ever_", async () => {
+      const devpoolIssue = {
+        ...issueDevpoolTemplate,
+        state: "closed",
+        id: 1,
+        number: 1,
+        node_id: "1",
+        repository_url: "https://github.com/ubiquity/devpool-directory",
+        html_url: "https://github.com/ubiquity/devpool-directory/issues/1",
+      } as GitHubIssue;
+
+      // project issue is open, assigned and unmerged
+      let projectIssue = {
+        ...issueTemplate,
+        state: "open",
+        assignee: {
+          login: "hunter",
+        } as GitHubIssue["assignee"],
+      } as GitHubIssue;
+
+      createIssues(devpoolIssue, projectIssue);
+
+      await validateClosed(projectIssue, devpoolIssue);
+
+      // project issue is open, assigned and merged
+      projectIssue = {
+        ...issueTemplate,
+        state: "open",
+        assignee: {
+          login: "hunter",
+        } as GitHubIssue["assignee"],
+        pull_request: {
+          merged_at: new Date().toISOString(),
+          diff_url: "https//github.com/ubiquity/test-repo/pull/1.diff",
+          html_url: "https//github.com/ubiquity/test-repo/pull/1",
+          patch_url: "https//github.com/ubiquity/test-repo/pull/1.patch",
+          url: "https//github.com/ubiquity/test-repo/pull/1",
+        },
+      } as GitHubIssue;
+
+      await validateClosed(projectIssue, devpoolIssue);
+    });
+
+    test("checkIfForkedRepo", async () => {
+      expect(await checkIfForked("test-repo")).toBe(true);
+    });
+
+    test("getRepoUrls", async () => {
+      let orgOrRepo = "test/org/bad-repo/still/bad";
+      const warnSpy = jest.spyOn(console, "warn").mockImplementation();
+      await getRepoUrls(orgOrRepo);
+
+      expect(warnSpy).toHaveBeenCalledWith(`Neither org or nor repo GitHub provided: test/org/bad-repo/still/bad.`);
+
+      orgOrRepo = "/test";
+
+      await getRepoUrls(orgOrRepo);
+
+      expect(warnSpy).toHaveBeenCalledWith(`Invalid org or repo provided: `, orgOrRepo);
+
+      (orgOrRepo as any) = undefined;
+
+      await getRepoUrls(orgOrRepo);
+
+      expect(warnSpy).toHaveBeenCalledWith(`No org or repo provided: `, orgOrRepo);
+
+      warnSpy.mockClear();
+
+      jest.resetModules();
+
+      (orgOrRepo as any) = ".";
+
+      await getRepoUrls(orgOrRepo);
+      expect(warnSpy).toHaveBeenCalledWith(`Getting ${orgOrRepo} org repositories failed: HttpError: Not Found`);
+
+      (orgOrRepo as any) = "-/test";
+
+      await getRepoUrls(orgOrRepo);
+      expect(warnSpy).toHaveBeenCalledWith(`Getting repo ${orgOrRepo} failed: HttpError`);
+    });
   });
+
+  function getDB() {
+    return db.issue.findFirst({
+      where: {
+        id: {
+          equals: 1,
+        },
+      },
+    }) as GitHubIssue;
+  }
+
+  async function validateClosed(projectIssue: GitHubIssue, devpoolIssue: GitHubIssue) {
+    await handleDevPoolIssue([projectIssue], projectIssue, UBIQUITY_TEST_REPO, devpoolIssue, false);
+
+    const updatedIssue = getDB();
+    if (updatedIssue === null) {
+      throw new Error("Updated issue is null");
+    }
+    expect(updatedIssue).not.toBeNull();
+    expect(updatedIssue.state).toEqual("closed");
+    expect(updatedIssue.labels).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          name: "Unavailable",
+        }),
+      ])
+    );
+  }
+
+  async function validateOpen(projectIssue: GitHubIssue, devpoolIssue: GitHubIssue) {
+    await handleDevPoolIssue([projectIssue], projectIssue, UBIQUITY_TEST_REPO, devpoolIssue, false);
+
+    const updatedIssue = getDB();
+    if (updatedIssue === null) {
+      throw new Error("Updated issue is null");
+    }
+    expect(updatedIssue).not.toBeNull();
+    expect(updatedIssue.state).toEqual("open");
+    expect(updatedIssue.labels).not.toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          name: "Unavailable",
+        }),
+      ])
+    );
+  }
 
   const HTML_URL = "https://github.com/not-ubiquity/devpool-directory/issues/1";
   const REPO_URL = "https://github.com/not-ubiquity/devpool-directory";
@@ -578,7 +946,6 @@ describe("handleDevPoolIssue", () => {
    */
 
   describe("Forked Devpool", () => {
-    // need to mock DEVPOOL_OWNER_NAME
     jest.mock("../helpers/github", () => ({
       ...jest.requireActual("../helpers/github"),
       DEVPOOL_OWNER_NAME: "not-ubiquity",
@@ -1216,5 +1583,267 @@ describe("getProjectUrls", () => {
         "https://github.com/private-test-org/public-repo",
       ])
     );
+  });
+});
+
+describe("calculateStatistics", () => {
+  test("calculates statistics correctly for empty issues array", async () => {
+    const issues = [] as GitHubIssue[];
+
+    const result = await calculateStatistics(issues);
+
+    expect(result.rewards).toEqual({
+      notAssigned: 0,
+      assigned: 0,
+      completed: 0,
+      total: 0,
+    });
+
+    expect(result.tasks).toEqual({
+      notAssigned: 0,
+      assigned: 0,
+      completed: 0,
+      total: 0,
+    });
+  });
+
+  test("calculates statistics correctly for issues with different labels and states", async () => {
+    const devpoolIssue = {
+      ...issueDevpoolTemplate,
+      state: "closed",
+      labels: [
+        {
+          name: "Pricing: 200 USD",
+        },
+        {
+          name: "Time: 1h",
+        },
+        {
+          name: "id: 2",
+        },
+      ],
+    } as GitHubIssue;
+
+    const devpoolIssue2 = {
+      ...issueDevpoolTemplate,
+      id: 4,
+      node_id: "4",
+      number: 4,
+      html_url: "https://github.com/ubiquity/devpool-directory/issues/4",
+      repository_url: "https://github.com/ubiquity/devpool-directory",
+      labels: [
+        {
+          name: "Pricing: 1000 USD",
+        },
+        {
+          name: "Time: 1h",
+        },
+        {
+          name: "id: 3",
+        },
+      ],
+    } as GitHubIssue;
+
+    const devpoolIssue3 = {
+      ...issueDevpoolTemplate,
+      id: 5,
+      node_id: "5",
+      number: 5,
+      state: "closed",
+      html_url: "https:/github.com/ubiquity/devpool-directory/issues/5",
+      repository_url: "https://github.com/ubiquity/devpool-directory",
+      labels: [
+        {
+          name: "Pricing: 500 USD",
+        },
+        {
+          name: "Time: 1h",
+        },
+        {
+          name: "id: 6",
+        },
+        {
+          name: "Unavailable",
+        },
+      ],
+    } as GitHubIssue;
+
+    const projectIssue1 = {
+      ...issueTemplate,
+      state: "closed",
+      pull_request: {
+        merged_at: new Date().toISOString(),
+      } as GitHubIssue["pull_request"],
+      assignee: {
+        login: "hunter",
+      } as GitHubIssue["assignee"],
+      closed_at: new Date().toISOString(),
+    } as GitHubIssue;
+
+    const projectIssue2 = {
+      ...issueTemplate,
+      state: "open",
+      id: 3,
+      node_id: "3",
+      number: 3,
+      html_url: "https://github.com/ubiquity/test-repo/issues/3",
+      repository_url: "https://github.com/ubiquity/test-repo",
+      labels: [
+        {
+          name: "Price: 1000 USD",
+        },
+        {
+          name: "Time: 1h",
+        },
+      ],
+    } as GitHubIssue;
+
+    const projectIssue3 = {
+      ...issueTemplate,
+      state: "open",
+      id: 6,
+      node_id: "6",
+      number: 6,
+      html_url: "https://github.com/ubiquity/test-repo/issues/6",
+      repository_url: "https://github.com/ubiquity/test-repo",
+      labels: [
+        {
+          name: "Price: 500 USD",
+        },
+        {
+          name: "Time: 1h",
+        },
+      ],
+      assignee: {
+        login: "hunter",
+      } as GitHubIssue["assignee"],
+    } as GitHubIssue;
+
+    createIssues(devpoolIssue, projectIssue1);
+    await handleDevPoolIssue([projectIssue1], projectIssue1, UBIQUITY_TEST_REPO, devpoolIssue, false);
+    createIssues(devpoolIssue2, projectIssue2);
+    await handleDevPoolIssue([projectIssue1, projectIssue2], projectIssue2, UBIQUITY_TEST_REPO, devpoolIssue2, false);
+    createIssues(devpoolIssue3, projectIssue3);
+    await handleDevPoolIssue([projectIssue1, projectIssue2, projectIssue3], projectIssue3, UBIQUITY_TEST_REPO, devpoolIssue3, false);
+
+    const issues = [devpoolIssue, devpoolIssue2, projectIssue1, projectIssue2, devpoolIssue3, projectIssue3];
+
+    const result = await calculateStatistics(issues as GitHubIssue[]);
+
+    expect(result.rewards).toEqual({
+      notAssigned: 1000, // issue 2
+      completed: 200, // issue 1
+      assigned: 500, // issue 3
+      total: 1700, // 1000 + 500 + 200
+    });
+
+    expect(result.tasks).toEqual({
+      notAssigned: 1,
+      assigned: 1,
+      completed: 1,
+      total: 3,
+    });
+  });
+
+  test("ignores invalid pricing labels and logs an error", async () => {
+    const consoleErrorSpy = jest.spyOn(console, "error").mockImplementation();
+
+    const devpoolIssue = {
+      ...issueDevpoolTemplate,
+      state: "closed",
+      labels: [
+        {
+          name: "Pricing: NaN",
+        },
+        {
+          name: "Time: 1h",
+        },
+        {
+          name: "id: 2",
+        },
+      ],
+    } as GitHubIssue;
+
+    const projectIssue1 = {
+      ...issueTemplate,
+      state: "open",
+      labels: [
+        {
+          name: "Price: NaN",
+        },
+        {
+          name: "Time: 1h",
+        },
+      ],
+      pull_request: {
+        merged_at: new Date().toISOString(),
+      } as GitHubIssue["pull_request"],
+      assignee: {
+        login: "hunter",
+      } as GitHubIssue["assignee"],
+      closed_at: new Date().toISOString(),
+    } as GitHubIssue;
+
+    createIssues(devpoolIssue, projectIssue1);
+    await handleDevPoolIssue([projectIssue1], projectIssue1, UBIQUITY_TEST_REPO, devpoolIssue, false);
+
+    const issues = [devpoolIssue, projectIssue1];
+
+    const result = await calculateStatistics(issues as GitHubIssue[]);
+
+    expect(result.rewards).toEqual({
+      notAssigned: 0,
+      assigned: 0,
+      completed: 0,
+      total: 0,
+    });
+
+    expect(result.tasks).toEqual({
+      notAssigned: 0,
+      assigned: 0,
+      completed: 1,
+      total: 1,
+    });
+    expect(consoleErrorSpy).toHaveBeenCalledWith("Price 'Pricing: NaN' is not a valid number in issue: 1");
+
+    consoleErrorSpy.mockRestore();
+  });
+});
+
+describe("writeTotalRewardsToGithub", () => {
+  const mockStatistics = {
+    rewards: {
+      notAssigned: 1000,
+      assigned: 500,
+      completed: 200,
+      total: 1700,
+    },
+    tasks: {
+      notAssigned: 1,
+      assigned: 1,
+      completed: 1,
+      total: 3,
+    },
+  };
+
+  const errorSpy = jest.spyOn(console, "error").mockImplementation();
+  const logSpy = jest.spyOn(console, "log").mockImplementation();
+
+  beforeEach(() => {
+    jest.clearAllMocks();
+  });
+
+  afterAll(() => {
+    jest.restoreAllMocks();
+  });
+
+  test("should update existing file if it exists", async () => {
+    await writeTotalRewardsToGithub(mockStatistics);
+
+    expect(logSpy).toHaveBeenCalledWith("Total rewards written to total-rewards.json");
+    expect(logSpy).not.toHaveBeenCalledWith(`File total-rewards.json doesn't exist yet.`);
+    expect(errorSpy).not.toHaveBeenCalled();
+
+    jest.clearAllMocks();
   });
 });
