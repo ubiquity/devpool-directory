@@ -106,4 +106,30 @@ describe("Devpool Updates", () => {
       },
     ]);
   });
+
+  test("Close devpool issues when the issue has been assigned in other projects", async () => {
+    db.issue.create({
+      ...issueDevpoolTemplate,
+      id: 1,
+      owner: DEVPOOL_OWNER_NAME,
+      repo: DEVPOOL_REPO_NAME,
+    });
+    db.issue.create({
+      ...issueTemplate,
+      id: 2,
+      assignee: { ...issueTemplate.assignee, login: "john doe" },
+      owner: DEVPOOL_OWNER_NAME,
+      repo: "test-repo",
+    });
+    await main();
+    const devpoolIssue = await getAllIssues(DEVPOOL_OWNER_NAME, DEVPOOL_REPO_NAME);
+
+    expect(devpoolIssue).toMatchObject([
+      {
+        ...issueDevpoolTemplate,
+        id: 1,
+        state: "closed",
+      },
+    ]);
+  });
 });

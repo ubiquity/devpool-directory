@@ -149,7 +149,7 @@ async function main() {
             issue_number: devpoolIssue.number,
             title: projectIssue.title,
             body,
-            state: projectIssue.state as "open" | "closed",
+            state: !isDevpoolUnavailableLabel ? (projectIssue.state as "open" | "closed") : "closed",
             labels: getDevpoolIssueLabels(projectIssue, projectUrl),
           });
           console.log(`Updated: ${devpoolIssue.html_url} (${projectIssue.html_url})`);
