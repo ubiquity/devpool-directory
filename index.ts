@@ -25,21 +25,21 @@ dotenv.config();
  */
 async function main() {
   let twitterMap: { [key: string]: string } = {};
-  // try {
-  //   twitterMap = JSON.parse(await readFile("./twitterMap.json", "utf8"));
-  // } catch (error) {
-  //   console.log("Couldnt find twitter map artifact, creating a new one");
-  //   await writeFile("./twitterMap.json", JSON.stringify({}));
-  // }
+  try {
+    twitterMap = JSON.parse(await readFile("./twitterMap.json", "utf8"));
+  } catch (error) {
+    console.log("Couldnt find twitter map artifact, creating a new one");
+    await writeFile("./twitterMap.json", JSON.stringify({}));
+  }
 
   // get devpool issues
   const devpoolIssues: GitHubIssue[] = await getAllIssues(DEVPOOL_OWNER_NAME, DEVPOOL_REPO_NAME);
 
-  // Calculate total rewards from open issues
-  // const { rewards, tasks } = await calculateStatistics(devpoolIssues);
-  // const statistics: Statistics = { rewards, tasks };
+  // // Calculate total rewards from open issues
+  const { rewards, tasks } = await calculateStatistics(devpoolIssues);
+  const statistics: Statistics = { rewards, tasks };
 
-  // await writeTotalRewardsToGithub(statistics);
+  await writeTotalRewardsToGithub(statistics);
 
   // aggregate projects.urls and opt settings
   const projectUrls = await getProjectUrls();

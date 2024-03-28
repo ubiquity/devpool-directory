@@ -880,7 +880,7 @@ describe("handleDevPoolIssue", () => {
       (orgOrRepo as any) = ".";
 
       await getRepoUrls(orgOrRepo);
-      expect(warnSpy).toHaveBeenCalledWith(`Getting ${orgOrRepo} org repositories failed: HttpError: Not Found`);
+      expect(warnSpy).toHaveBeenCalledWith(`Getting ${orgOrRepo} org repositories failed: HttpError: Bad credentials`);
 
       (orgOrRepo as any) = "-/test";
 

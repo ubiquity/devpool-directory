@@ -22,7 +22,7 @@ export const projects = _projects as {
   category?: Record<string, string>;
 };
 
-export const DEVPOOL_OWNER_NAME = "ubq-testing";
+export const DEVPOOL_OWNER_NAME = "ubiquity";
 export const DEVPOOL_REPO_NAME = "devpool-directory";
 export enum LABELS {
   PRICE = "Price",
@@ -408,15 +408,15 @@ export async function createDevPoolIssue(projectIssue: GitHubIssue, projectUrl: 
     }
 
     // post to social media
-    // try {
-    //   const socialMediaText = getSocialMediaText(createdIssue.data);
-    //   const tweetId = await twitter.postTweet(socialMediaText);
+    try {
+      const socialMediaText = getSocialMediaText(createdIssue.data);
+      const tweetId = await twitter.postTweet(socialMediaText);
 
-    //   twitterMap[createdIssue.data.node_id] = tweetId?.id ?? "";
-    //   await writeFile("./twitterMap.json", JSON.stringify(twitterMap));
-    // } catch (err) {
-    //   console.error("Failed to post tweet: ", err);
-    // }
+      twitterMap[createdIssue.data.node_id] = tweetId?.id ?? "";
+      await writeFile("./twitterMap.json", JSON.stringify(twitterMap));
+    } catch (err) {
+      console.error("Failed to post tweet: ", err);
+    }
   } catch (err) {
     console.error("Failed to create new issue: ", err);
     return;
