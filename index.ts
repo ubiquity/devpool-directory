@@ -18,13 +18,15 @@ import { Statistics } from "./types/statistics";
 // init octokit
 dotenv.config();
 
+export type TwitterMap = Record<string, string>;
+
 /**
  * Main function
  * TODO: retry on rate limit error
  * TODO: handle project deletion
  */
 async function main() {
-  let twitterMap: { [key: string]: string } = {};
+  let twitterMap: TwitterMap = {};
   try {
     twitterMap = JSON.parse(await readFile("./twitterMap.json", "utf8"));
   } catch (error) {
@@ -35,7 +37,7 @@ async function main() {
   // get devpool issues
   const devpoolIssues: GitHubIssue[] = await getAllIssues(DEVPOOL_OWNER_NAME, DEVPOOL_REPO_NAME);
 
-  // // Calculate total rewards from open issues
+  // Calculate total rewards from open issues
   const { rewards, tasks } = await calculateStatistics(devpoolIssues);
   const statistics: Statistics = { rewards, tasks };
 

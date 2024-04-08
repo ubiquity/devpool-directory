@@ -1,10 +1,11 @@
 import { RestEndpointMethodTypes } from "@octokit/plugin-rest-endpoint-methods";
 import { Octokit } from "@octokit/rest";
 import _projects from "../projects.json";
-import opt from "../opt.json";
+import optInOptOut from "../opt.json";
 import { Statistics } from "../types/statistics";
 import { writeFile } from "fs/promises";
 import twitter from "./twitter";
+import { TwitterMap } from "..";
 
 export type GitHubIssue = RestEndpointMethodTypes["issues"]["get"]["response"]["data"];
 export type GitHubLabel = RestEndpointMethodTypes["issues"]["listLabelsOnIssue"]["response"]["data"][0];
@@ -235,15 +236,15 @@ export function getSocialMediaText(issue: GitHubIssue): string {
   return `${priceLabel} for ${timeLabel}\n\n${issue.body}`;
 }
 
-export async function getProjectUrls(opts: typeof opt = opt) {
+export async function getProjectUrls(opt: typeof optInOptOut = optInOptOut) {
   const projectUrls = new Set<string>(projects.urls);
 
-  for (const orgOrRepo of opts.in) {
+  for (const orgOrRepo of opt.in) {
     const urls: string[] = await getRepoUrls(orgOrRepo);
     urls.forEach((url) => projectUrls.add(url));
   }
 
-  for (const orgOrRepo of opts.out) {
+  for (const orgOrRepo of opt.out) {
     const len = orgOrRepo.split("/").length;
 
     if (len === 1) {
@@ -251,7 +252,7 @@ export async function getProjectUrls(opts: typeof opt = opt) {
       projectUrls.forEach((url) => {
         if (url.includes(orgOrRepo)) {
           const [owner, repo] = getRepoCredentials(url);
-          if (opts.in.includes(`${owner}/${repo}`)) {
+          if (opt.in.includes(`${owner}/${repo}`)) {
             return;
           }
           projectUrls.delete(url);
@@ -381,7 +382,7 @@ export async function writeTotalRewardsToGithub(statistics: Statistics) {
   }
 }
 
-export async function createDevPoolIssue(projectIssue: GitHubIssue, projectUrl: string, body: string, twitterMap: { [key: string]: string }) {
+export async function createDevPoolIssue(projectIssue: GitHubIssue, projectUrl: string, body: string, twitterMap: TwitterMap) {
   // if issue is "closed" then skip it, no need to copy/paste already "closed" issues
   if (projectIssue.state == "closed") return;
 
@@ -430,7 +431,6 @@ export async function handleDevPoolIssue(
   devpoolIssue: GitHubIssue,
   isFork: boolean
 ) {
-  //
   const labelRemoved = getDevpoolIssueLabels(projectIssue, projectUrl).filter((label) => label != LABELS.UNAVAILABLE);
   const originals = devpoolIssue.labels.map((label) => (label as GitHubLabel).name);
 

@@ -25,7 +25,7 @@ describe("Twitter", () => {
 
     await expect(async () => {
       const { default: twitterHelper } = await import("../helpers/twitter");
-      console.log(twitterHelper);
+      () => twitterHelper;
     }).rejects.toThrow("Twitter environment variables are not set");
 
     process.env = originalEnv;
