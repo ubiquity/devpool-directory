@@ -49,7 +49,15 @@
       { "selector": "variable", "modifiers": ["destructured"], "format": null },
       { "selector": "variable", "types": ["boolean"], "format": ["PascalCase"], "prefix": ["is", "should", "has", "can", "did", "will", "does"] },
       { "selector": "variableLike", "format": ["camelCase"] },
-      { "selector": ["function", "variable"], "format": ["camelCase"] }
+      { "selector": ["function", "variable"], "format": ["camelCase"] },
+      {
+        "selector": "variable",
+        "format": ["PascalCase"],
+        "filter": {
+          "regex": "^(Erc20Permit|Erc721Permit)$",
+          "match": true
+        }
+      }
     ]
   }
 }
