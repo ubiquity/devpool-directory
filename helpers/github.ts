@@ -549,7 +549,7 @@ async function applyStateChanges(projectIssues: GitHubIssue[], projectIssue: Git
 
   let newState: "open" | "closed" | undefined = undefined;
 
-  for (const [, value] of Object.entries(stateChanges)) {
+  for (const value of Object.values(stateChanges)) {
     // if the cause is true and the effect is different from the current state
     if (value.cause && devpoolIssue.state != value.effect) {
       // if the new state is already set, then skip it
