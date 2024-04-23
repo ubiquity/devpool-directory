@@ -434,8 +434,8 @@ export async function handleDevPoolIssue(
   // remove the unavailable label as getDevpoolIssueLabels() adds it and statitics rely on it
   const labelRemoved = getDevpoolIssueLabels(projectIssue, projectUrl).filter((label) => label != LABELS.UNAVAILABLE);
   const originals = devpoolIssue.labels.map((label) => (label as GitHubLabel).name);
-
   const hasChanges = !areEqual(originals, labelRemoved);
+  const hasNoPriceLabels = !(projectIssue.labels as GitHubLabel[]).some((label) => label.name.includes(LABELS.PRICE));
 
   const metaChanges = {
     // the title of the issue has changed
@@ -446,11 +446,32 @@ export async function handleDevPoolIssue(
     labels: hasChanges,
   };
 
+  await applyMetaChanges(metaChanges, devpoolIssue, projectIssue, isFork, labelRemoved, originals);
+
+  const newState = await applyStateChanges(projectIssues, projectIssue, devpoolIssue, hasNoPriceLabels);
+
+  await applyUnavailableLabelToDevpoolIssue(
+    projectIssue,
+    devpoolIssue,
+    metaChanges,
+    labelRemoved,
+    originals,
+    newState ?? (devpoolIssue.state as "open" | "closed")
+  );
+}
+
+async function applyMetaChanges(
+  metaChanges: { title: boolean; body: boolean; labels: boolean },
+  devpoolIssue: GitHubIssue,
+  projectIssue: GitHubIssue,
+  isFork: boolean,
+  labelRemoved: string[],
+  originals: string[]
+) {
   const shouldUpdate = metaChanges.title || metaChanges.body || metaChanges.labels;
 
   if (shouldUpdate) {
     try {
-      // process only the metadata changes
       await octokit.rest.issues.update({
         owner: DEVPOOL_OWNER_NAME,
         repo: DEVPOOL_REPO_NAME,
@@ -467,11 +488,9 @@ export async function handleDevPoolIssue(
       console.log(`Updated metadata: ${devpoolIssue.html_url} (${projectIssue.html_url})`);
     }
   }
+}
 
-  // check if the issue has no price labels
-  const hasNoPriceLabels = !(projectIssue.labels as GitHubLabel[]).some((label) => label.name.includes(LABELS.PRICE));
-
-  // these changes will open/close issues
+async function applyStateChanges(projectIssues: GitHubIssue[], projectIssue: GitHubIssue, devpoolIssue: GitHubIssue, hasNoPriceLabels: boolean) {
   const stateChanges: StateChanges = {
     // missing in the partners
     forceMissing_Close: {
@@ -530,7 +549,6 @@ export async function handleDevPoolIssue(
 
   let newState: "open" | "closed" | undefined = undefined;
 
-  // then process the state changes
   for (const [, value] of Object.entries(stateChanges)) {
     // if the cause is true and the effect is different from the current state
     if (value.cause && devpoolIssue.state != value.effect) {
@@ -554,6 +572,17 @@ export async function handleDevPoolIssue(
     }
   }
 
+  return newState;
+}
+
+async function applyUnavailableLabelToDevpoolIssue(
+  projectIssue: GitHubIssue,
+  devpoolIssue: GitHubIssue,
+  metaChanges: { labels: boolean },
+  labelRemoved: string[],
+  originals: string[],
+  newState: "open" | "closed"
+) {
   // Apply the "Unavailable" label to the devpool issue if the project issue is assigned to someone
   if (
     // only if the devpool issue is closed
