@@ -101,7 +101,7 @@ export async function getRepoUrls(orgOrRepo: string) {
             repo: params[1],
           });
 
-          if (res.status == 200) {
+          if (res.status === 200) {
             repos.push(res.data.html_url);
             console.info(`Getting repo ${params[0]}/${params[1]}: ${res.data.html_url}`);
           } else console.warn(`Getting repo ${params[0]}/${params[1]} failed: ${res.status}`);
@@ -384,7 +384,7 @@ export async function writeTotalRewardsToGithub(statistics: Statistics) {
 
 export async function createDevPoolIssue(projectIssue: GitHubIssue, projectUrl: string, body: string, twitterMap: TwitterMap) {
   // if issue is "closed" then skip it, no need to copy/paste already "closed" issues
-  if (projectIssue.state == "closed") return;
+  if (projectIssue.state === "closed") return;
 
   // if the project issue is assigned to someone, then skip it
   if (projectIssue.assignee) return;
@@ -431,6 +431,7 @@ export async function handleDevPoolIssue(
   devpoolIssue: GitHubIssue,
   isFork: boolean
 ) {
+  // remove the unavailable label as getDevpoolIssueLabels() adds it and statitics rely on it
   const labelRemoved = getDevpoolIssueLabels(projectIssue, projectUrl).filter((label) => label != LABELS.UNAVAILABLE);
   const originals = devpoolIssue.labels.map((label) => (label as GitHubLabel).name);
 
@@ -462,64 +463,66 @@ export async function handleDevPoolIssue(
       console.error(err);
     }
 
-    if (metaChanges.title || metaChanges.body || metaChanges.labels) console.log(`Updated metadata: ${devpoolIssue.html_url} (${projectIssue.html_url})`);
+    if (metaChanges.title || metaChanges.body || metaChanges.labels) {
+      console.log(`Updated metadata: ${devpoolIssue.html_url} (${projectIssue.html_url})`);
+    }
   }
 
+  // check if the issue has no price labels
   const hasNoPriceLabels = !(projectIssue.labels as GitHubLabel[]).some((label) => label.name.includes(LABELS.PRICE));
 
   // these changes will open/close issues
   const stateChanges: StateChanges = {
     // missing in the partners
     forceMissing_Close: {
-      cause: !projectIssues.some((projectIssue) => projectIssue.node_id == getIssueLabelValue(devpoolIssue, "id:")),
+      cause: !projectIssues.some((projectIssue) => projectIssue.node_id === getIssueLabelValue(devpoolIssue, "id:")),
       effect: "closed",
       comment: "Closed (missing in partners)",
     },
     // no price labels set and open in the devpool
     noPriceLabels_Close: {
-      cause: hasNoPriceLabels && devpoolIssue.state == "open",
+      cause: hasNoPriceLabels && devpoolIssue.state === "open",
       effect: "closed",
       comment: "Closed (no price labels)",
     },
     // it's closed, been merged and still open in the devpool
     issueComplete_Close: {
-      cause: projectIssue.state == "closed" && devpoolIssue.state == "open" && !!projectIssue.pull_request?.merged_at,
+      cause: projectIssue.state === "closed" && devpoolIssue.state === "open" && !!projectIssue.pull_request?.merged_at,
       effect: "closed",
       comment: "Closed (merged)",
     },
     // it's closed, assigned and still open in the devpool
     issueAssignedClosed_Close: {
-      cause: projectIssue.state == "closed" && devpoolIssue.state == "open" && !!projectIssue.assignee?.login,
+      cause: projectIssue.state === "closed" && devpoolIssue.state === "open" && !!projectIssue.assignee?.login,
       effect: "closed",
       comment: "Closed (assigned-closed)",
     },
     // it's closed, not merged and still open in the devpool
     issueClosed_Close: {
-      cause: projectIssue.state == "closed" && devpoolIssue.state == "open",
+      cause: projectIssue.state === "closed" && devpoolIssue.state === "open",
       effect: "closed",
       comment: "Closed (not merged)",
     },
-
     // it's open, assigned and still open in the devpool
     issueAssignedOpen_Close: {
-      cause: projectIssue.state == "open" && devpoolIssue.state == "open" && !!projectIssue.assignee?.login,
+      cause: projectIssue.state === "open" && devpoolIssue.state === "open" && !!projectIssue.assignee?.login,
       effect: "closed",
       comment: "Closed (assigned-open)",
     },
-    // it's open, merged, unassigned and closed in the devpool
+    // it's open, merged, unassigned, has price labels and is closed in the devpool
     issueReopenedMerged_Open: {
       cause:
-        projectIssue.state == "open" &&
-        devpoolIssue.state == "closed" &&
+        projectIssue.state === "open" &&
+        devpoolIssue.state === "closed" &&
         !!projectIssue.pull_request?.merged_at &&
         !hasNoPriceLabels &&
         !projectIssue.assignee?.login,
       effect: "open",
       comment: "Reopened (merged)",
     },
-    // it's open, unassigned and closed in the devpool
+    // it's open, unassigned, has price labels and is closed in the devpool
     issueUnassigned_Open: {
-      cause: projectIssue.state == "open" && devpoolIssue.state == "closed" && !projectIssue.assignee?.login && !hasNoPriceLabels,
+      cause: projectIssue.state === "open" && devpoolIssue.state === "closed" && !projectIssue.assignee?.login && !hasNoPriceLabels,
       effect: "open",
       comment: "Reopened (unassigned)",
     },
@@ -532,7 +535,7 @@ export async function handleDevPoolIssue(
     // if the cause is true and the effect is different from the current state
     if (value.cause && devpoolIssue.state != value.effect) {
       // if the new state is already set, then skip it
-      if (newState && newState == value.effect) {
+      if (newState && newState === value.effect) {
         continue;
       }
 
@@ -543,7 +546,6 @@ export async function handleDevPoolIssue(
           issue_number: devpoolIssue.number,
           state: value.effect,
         });
-
         console.log(`Updated state: (${value.comment})\n${devpoolIssue.html_url} - (${projectIssue.html_url})`);
         newState = value.effect;
       } catch (err) {
@@ -552,15 +554,16 @@ export async function handleDevPoolIssue(
     }
   }
 
+  // Apply the "Unavailable" label to the devpool issue if the project issue is assigned to someone
   if (
-    // only if the devpool issue is closed or the project issue is closed
-    (newState == "closed" || devpoolIssue.state == "closed") &&
+    // only if the devpool issue is closed
+    (newState === "closed" || devpoolIssue.state === "closed") &&
     // only if project issue is open
-    projectIssue.state == "open" &&
+    projectIssue.state === "open" &&
     // only if the project issue is assigned to someone
     projectIssue.assignee?.login &&
     // only if the devpool issue doesn't have the "Unavailable" label
-    !devpoolIssue.labels.some((label) => (label as GitHubLabel).name == LABELS.UNAVAILABLE)
+    !devpoolIssue.labels.some((label) => (label as GitHubLabel).name === LABELS.UNAVAILABLE)
   ) {
     try {
       await octokit.rest.issues.addLabels({
@@ -572,7 +575,7 @@ export async function handleDevPoolIssue(
     } catch (err) {
       console.log(err);
     }
-  } else if (projectIssue.state == "closed" && devpoolIssue.labels.some((label) => (label as GitHubLabel).name == LABELS.UNAVAILABLE)) {
+  } else if (projectIssue.state === "closed" && devpoolIssue.labels.some((label) => (label as GitHubLabel).name === LABELS.UNAVAILABLE)) {
     try {
       await octokit.rest.issues.removeLabel({
         owner: DEVPOOL_OWNER_NAME,
