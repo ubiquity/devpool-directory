@@ -1,6 +1,5 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 import { http, HttpResponse } from "msw";
-import { DEVPOOL_OWNER_NAME, DEVPOOL_REPO_NAME, GitHubIssue } from "../helpers/github";
+import { DEVPOOL_OWNER_NAME, DEVPOOL_REPO_NAME, GitHubIssue, GitHubLabel } from "../helpers/github";
 import issueDevpoolTemplate from "./issue-devpool-template.json";
 import issueTemplate from "./issue-template.json";
 import totalRewards from "./issue-template.json";
@@ -91,7 +90,7 @@ export const handlers = [
       where: { id: { equals: Number(issue) } },
       data: {
         ...item,
-        labels: item.labels.filter((l: any) => l.name !== label),
+        labels: item.labels.filter((l) => (l as GitHubLabel).name !== label),
       },
     });
     return HttpResponse.json(updatedItem);
