@@ -40,24 +40,16 @@
     "sonarjs/no-identical-expressions": "error",
     "@typescript-eslint/naming-convention": [
       "error",
-      { "selector": "interface", "format": ["PascalCase"], "custom": { "regex": "^I[A-Z]", "match": false } },
-      { "selector": "memberLike", "modifiers": ["private"], "format": ["camelCase"], "leadingUnderscore": "require" },
-      { "selector": "typeLike", "format": ["PascalCase"] },
-      { "selector": "typeParameter", "format": ["PascalCase"], "prefix": ["T"] },
-      { "selector": "variable", "format": ["camelCase", "UPPER_CASE"], "leadingUnderscore": "allow", "trailingUnderscore": "allow" },
-      { "selector": "variable", "format": ["camelCase"], "leadingUnderscore": "allow", "trailingUnderscore": "allow" },
+      { "selector": "interface", "format": ["StrictPascalCase"], "custom": { "regex": "^I[A-Z]", "match": false } },
+      { "selector": "memberLike", "modifiers": ["private"], "format": ["StrictPascalCase"], "leadingUnderscore": "require" },
+      { "selector": "typeLike", "format": ["StrictPascalCase"] },
+      { "selector": "typeParameter", "format": ["StrictPascalCase"], "prefix": ["T"] },
+      { "selector": "variable", "format": ["StrictPascalCase"], "leadingUnderscore": "allow", "trailingUnderscore": "allow" },
+      { "selector": "variable", "format": ["StrictPascalCase"], "leadingUnderscore": "allow", "trailingUnderscore": "allow" },
       { "selector": "variable", "modifiers": ["destructured"], "format": null },
       { "selector": "variable", "types": ["boolean"], "format": ["PascalCase"], "prefix": ["is", "should", "has", "can", "did", "will", "does"] },
-      { "selector": "variableLike", "format": ["camelCase"] },
-      { "selector": ["function", "variable"], "format": ["camelCase"] },
-      {
-        "selector": "variable",
-        "format": ["PascalCase"],
-        "filter": {
-          "regex": "^(Erc20Permit|Erc721Permit)$",
-          "match": true
-        }
-      }
+      { "selector": "variableLike", "format": ["StrictPascalCase"] },
+      { "selector": ["function", "variable"], "format": ["StrictPascalCase"] }
     ]
   }
 }
