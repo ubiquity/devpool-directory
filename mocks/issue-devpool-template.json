@@ -41,6 +41,8 @@
   "updated_at": "",
   "url": "",
   "user": null,
+  "owner": "ubiquity",
+  "repo": "devpool-directory",
   "labels": [
     {
       "name": "Pricing: 200 USD"
@@ -49,8 +51,8 @@
       "name": "Time: 1h"
     },
     {
-      "name": "id: 1"
+      "name": "id: 2"
     }
   ],
-  "body": "body"
+  "body": "https://github.com/ubiquity/test-repo/issues/1"
 }

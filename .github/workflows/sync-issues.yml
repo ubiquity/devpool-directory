@@ -5,6 +5,7 @@ on:
   push:
     branches:
       - development
+
     paths-ignore:
       - "**/total-rewards.json"
   schedule:
