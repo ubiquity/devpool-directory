@@ -41,15 +41,15 @@
     "@typescript-eslint/naming-convention": [
       "error",
       { "selector": "interface", "format": ["StrictPascalCase"], "custom": { "regex": "^I[A-Z]", "match": false } },
-      { "selector": "memberLike", "modifiers": ["private"], "format": ["StrictPascalCase"], "leadingUnderscore": "require" },
+      { "selector": "memberLike", "modifiers": ["private"], "format": ["strictCamelCase"], "leadingUnderscore": "require" },
       { "selector": "typeLike", "format": ["StrictPascalCase"] },
       { "selector": "typeParameter", "format": ["StrictPascalCase"], "prefix": ["T"] },
-      { "selector": "variable", "format": ["StrictPascalCase"], "leadingUnderscore": "allow", "trailingUnderscore": "allow" },
-      { "selector": "variable", "format": ["StrictPascalCase"], "leadingUnderscore": "allow", "trailingUnderscore": "allow" },
+      { "selector": "variable", "format": ["strictCamelCase", "UPPER_CASE"], "leadingUnderscore": "allow", "trailingUnderscore": "allow" },
+      { "selector": "variable", "format": ["strictCamelCase"], "leadingUnderscore": "allow", "trailingUnderscore": "allow" },
       { "selector": "variable", "modifiers": ["destructured"], "format": null },
-      { "selector": "variable", "types": ["boolean"], "format": ["PascalCase"], "prefix": ["is", "should", "has", "can", "did", "will", "does"] },
-      { "selector": "variableLike", "format": ["StrictPascalCase"] },
-      { "selector": ["function", "variable"], "format": ["StrictPascalCase"] }
+      { "selector": "variable", "types": ["boolean"], "format": ["StrictPascalCase"], "prefix": ["is", "should", "has", "can", "did", "will", "does"] },
+      { "selector": "variableLike", "format": ["strictCamelCase"] },
+      { "selector": ["function", "variable"], "format": ["strictCamelCase"] }
     ]
   }
 }
