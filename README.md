@@ -10,18 +10,23 @@ This template repository includes support for the following:
 ## Testing
 
 ### Cypress
+
 To test with Cypress Studio UI, run
+
 ```shell
 yarn cy:open
 ```
 
 Otherwise to simply run the tests through the console, run
+
 ```shell
 yarn cy:run
 ```
 
 ### Jest
+
 To start Jest tests, run
+
 ```shell
 yarn test
 ```
