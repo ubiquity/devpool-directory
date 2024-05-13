@@ -76,7 +76,7 @@
       {
         "selector": "interface",
         "format": [
-          "PascalCase"
+          "StrictPascalCase"
         ],
         "custom": {
           "regex": "^I[A-Z]",
@@ -89,20 +89,20 @@
           "private"
         ],
         "format": [
-          "camelCase"
+          "strictCamelCase"
         ],
         "leadingUnderscore": "require"
       },
       {
         "selector": "typeLike",
         "format": [
-          "PascalCase"
+          "StrictPascalCase"
         ]
       },
       {
         "selector": "typeParameter",
         "format": [
-          "PascalCase"
+          "StrictPascalCase"
         ],
         "prefix": [
           "T"
@@ -111,7 +111,7 @@
       {
         "selector": "variable",
         "format": [
-          "camelCase",
+          "strictCamelCase",
           "UPPER_CASE"
         ],
         "leadingUnderscore": "allow",
@@ -120,7 +120,7 @@
       {
         "selector": "variable",
         "format": [
-          "camelCase"
+          "strictCamelCase"
         ],
         "leadingUnderscore": "allow",
         "trailingUnderscore": "allow"
@@ -138,7 +138,7 @@
           "boolean"
         ],
         "format": [
-          "PascalCase"
+          "StrictPascalCase"
         ],
         "prefix": [
           "is",
@@ -153,7 +153,7 @@
       {
         "selector": "variableLike",
         "format": [
-          "camelCase"
+          "strictCamelCase"
         ]
       },
       {
@@ -162,7 +162,7 @@
           "variable"
         ],
         "format": [
-          "camelCase"
+          "strictCamelCase"
         ]
       }
     ]
