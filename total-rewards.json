@@ -1,14 +1,14 @@
 {
   "rewards": {
     "notAssigned": 6199,
-    "assigned": 25596,
-    "completed": 46638,
+    "assigned": 24021,
+    "completed": 48213,
     "total": 78433
   },
   "tasks": {
     "notAssigned": 22,
-    "assigned": 170,
-    "completed": 435,
+    "assigned": 166,
+    "completed": 439,
     "total": 627
   }
 }
