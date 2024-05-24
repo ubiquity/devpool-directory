@@ -1,10 +1,7 @@
 name: Knip
 
 on:
-  pull_request_target:
-  workflow_dispatch:
-
-permissions: write-all
+  pull_request:
 
 jobs:
   run-knip:
@@ -12,6 +9,10 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+
+      # needed to use yarn v4
+      - name: Enable corepack
+        run: corepack enable
 
       - name: Setup Node
         uses: actions/setup-node@v4
@@ -21,11 +22,17 @@ jobs:
       - name: Install toolchain
         run: yarn install
 
-      - name: Report knip results to pull request
-        uses: Codex-/knip-reporter@v2
+      - name: Store PR number
+        run: echo ${{ github.event.number }} > pr-number.txt
+
+      - name: Run Knip
+        run: yarn knip || yarn knip --reporter json > knip-results.json
+
+      - name: Upload knip result
+        if: failure()
+        uses: actions/upload-artifact@v4
         with:
-          verbose: true
-          comment_id: ${{ github.workflow }}-reporter
-          command_script_name: knip-ci
-          annotations: true
-          ignore_results: false
+          name: knip-results
+          path: |
+            knip-results.json
+            pr-number.txt
