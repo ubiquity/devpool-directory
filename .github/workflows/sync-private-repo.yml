@@ -1,0 +1,30 @@
+name: Sync to Private Repo
+
+on:
+  push:
+    branches:
+      development
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Public Repo
+        uses: actions/checkout@v2
+        with:
+          ref: development
+
+      - name: Configure Git
+        run: |
+          git config --global user.name "github-actions"
+          git config --global user.email "github-actions@github.com"
+
+      - name: Add Private Repo Remote
+        run: |
+          git remote add private https://x-access-token:${{ secrets.PRIVATE_REPO_TOKEN }}@github.com/ubiquity/devpool-directory-private.git
+          git fetch private
+
+      - name: Push Changes to Private Repos
+        run: |
+          git push private development:upstream --force
