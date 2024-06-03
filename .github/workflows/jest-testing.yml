@@ -19,16 +19,9 @@ jobs:
       - uses: actions/checkout@master
         with:
           fetch-depth: 0
-#      - name: Build & Run test suite
-#        run: |
-#          yarn
-#          yarn test | tee ./coverage.txt && exit ${PIPESTATUS[0]}
-      - name: Jest Coverage Comment
+      - name: Jest With Coverage Comment
         # Ensures this step is run even on previous step failure (e.g. test failed)
         if: always()
         uses: ArtiomTr/jest-coverage-report-action@v2
-#        with:
-#          coverage-summary-path: coverage/coverage-summary.json
-#          junitxml-path: junit.xml
-#          junitxml-title: JUnit
-#          coverage-path: ./coverage.txt
+        with:
+          package-manager: yarn
