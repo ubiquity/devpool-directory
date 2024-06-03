@@ -1,10 +1,7 @@
 name: Run Jest testing suite
 on:
   workflow_dispatch:
-  workflow_run:
-    workflows: ["Build"]
-    types:
-      - completed
+  pull_request_target:
 
 env:
   NODE_ENV: "test"
@@ -17,15 +14,15 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: "20.10.0"
+
       - uses: actions/checkout@master
         with:
           fetch-depth: 0
-      - uses: jwalton/gh-find-current-pr@v1
-        id: findPr
+
       - name: Jest With Coverage Comment
         # Ensures this step is run even on previous step failure (e.g. test failed)
         if: always()
         uses: ArtiomTr/jest-coverage-report-action@v2
         with:
           package-manager: yarn
-          prnumber: ${{ steps.findPr.outputs.number }}
+          prnumber: ${{ github.event.pull_request.number || github.event.workflow_run.pull_requests[0].number }}
