@@ -17,11 +17,14 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: "20.10.0"
+
       - uses: actions/checkout@master
         with:
           fetch-depth: 0
+
       - uses: jwalton/gh-find-current-pr@v1
         id: findPr
+
       - name: Jest With Coverage Comment
         # Ensures this step is run even on previous step failure (e.g. test failed)
         if: always()
