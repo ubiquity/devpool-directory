@@ -1,11 +1,10 @@
 name: Run Jest testing suite
 on:
   workflow_dispatch:
-  pull_request_target:
-#  workflow_run:
-#    workflows: ["Build"]
-#    types:
-#      - completed
+  workflow_run:
+    workflows: ["Build"]
+    types:
+      - completed
 
 env:
   NODE_ENV: "test"
