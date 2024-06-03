@@ -27,7 +27,7 @@ jobs:
         # Ensures this step is run even on previous step failure (e.g. test failed)
         if: always()
         uses: ArtiomTr/jest-coverage-report-action@v2
-#        with:
+#        with: testing
 #          coverage-summary-path: coverage/coverage-summary.json
 #          junitxml-path: junit.xml
 #          junitxml-title: JUnit
