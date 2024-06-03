@@ -21,9 +21,12 @@ jobs:
       - uses: actions/checkout@master
         with:
           fetch-depth: 0
+      - uses: jwalton/gh-find-current-pr@v1
+        id: findPr
       - name: Jest With Coverage Comment
         # Ensures this step is run even on previous step failure (e.g. test failed)
         if: always()
         uses: ArtiomTr/jest-coverage-report-action@v2
         with:
           package-manager: yarn
+          prnumber: ${{ steps.findPr.outputs.number }}
