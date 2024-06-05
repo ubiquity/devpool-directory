@@ -4,7 +4,7 @@ on:
   workflow_dispatch:
   push:
     branches:
-      - $default-branch
+      - main
 
 permissions:
   contents: write
@@ -17,7 +17,7 @@ jobs:
       - uses: google-github-actions/release-please-action@v3
         with:
           release-type: node
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
           node-version: "20.10.0"

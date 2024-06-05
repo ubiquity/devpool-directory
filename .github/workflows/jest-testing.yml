@@ -1,8 +1,10 @@
 name: Run Jest testing suite
 on:
   workflow_dispatch:
-  pull_request_target:
-    types: [opened, synchronize]
+  workflow_run:
+    workflows: ["Build"]
+    types:
+      - completed
 
 env:
   NODE_ENV: "test"
@@ -15,19 +17,15 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: "20.10.0"
+
       - uses: actions/checkout@master
         with:
           fetch-depth: 0
-      - name: Build & Run test suite
-        run: |
-          yarn
-          yarn test | tee ./coverage.txt && exit ${PIPESTATUS[0]}
-      - name: Jest Coverage Comment
+
+      - name: Jest With Coverage Comment
         # Ensures this step is run even on previous step failure (e.g. test failed)
         if: always()
-        uses: MishaKav/jest-coverage-comment@main
+        uses: ArtiomTr/jest-coverage-report-action@v2
         with:
-          coverage-summary-path: coverage/coverage-summary.json
-          junitxml-path: junit.xml
-          junitxml-title: JUnit
-          coverage-path: ./coverage.txt
+          package-manager: yarn
+          prnumber: ${{ github.event.pull_request.number || github.event.workflow_run.pull_requests[0].number }}
