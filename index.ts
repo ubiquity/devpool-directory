@@ -76,11 +76,11 @@ async function main() {
       // for all issues
       if (devpoolIssue) {
         // if it exists in the devpool, then update it
-        await handleDevPoolIssue(projectIssues, projectIssue, projectUrl, devpoolIssue, isFork, false);
+        await handleDevPoolIssue(projectIssues, projectIssue, projectUrl, devpoolIssue, isFork);
       } 
       else if (devpoolRFC) {
         // if it exists in the RFC devpool, then update it
-        await handleDevPoolIssue(projectIssues, projectIssue, projectUrl, devpoolIssue, isFork, true);
+        await handleDevPoolIssue(projectIssues, projectIssue, projectUrl, devpoolIssue, isFork);
       }
       else {
         // if it doesn't exist in the devpool, then create it
