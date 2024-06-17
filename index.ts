@@ -74,15 +74,10 @@ async function main() {
       const body = isFork ? projectIssue.html_url.replace("https://github.com", "https://www.github.com") : projectIssue.html_url;
 
       // for all issues
-      if (devpoolIssue) {
+      if (devpoolIssue || devpoolRFC) {
         // if it exists in the devpool, then update it
         await handleDevPoolIssue(projectIssues, projectIssue, projectUrl, devpoolIssue, isFork);
-      } 
-      else if (devpoolRFC) {
-        // if it exists in the RFC devpool, then update it
-        await handleDevPoolIssue(projectIssues, projectIssue, projectUrl, devpoolIssue, isFork);
-      }
-      else {
+      } else {
         // if it doesn't exist in the devpool, then create it
         await createDevPoolIssue(projectIssue, projectUrl, body, twitterMap);
       }
