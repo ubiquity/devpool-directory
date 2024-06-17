@@ -510,7 +510,7 @@ async function applyStateChanges(projectIssues: GitHubIssue[], projectIssue: Git
       comment: "Closed (no price labels)",
     },
     // HAS price labels set and open in the RFC devpool
-    RFCPriceLabels_Close: {
+    rfcPriceLabelsClosed: {
       cause: isRFC && (!hasCorrectPriceLabels) && devpoolIssue.state === "open",
       effect: "closed",
       comment: "Closed (has price labels)",
