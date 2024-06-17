@@ -25,6 +25,8 @@ export const projects = _projects as {
 
 export const DEVPOOL_OWNER_NAME = "ubiquity";
 export const DEVPOOL_REPO_NAME = "devpool-directory";
+export const DEVPOOL_RFC_OWNER_NAME = "ubiquity";
+export const DEVPOOL_RFC_REPO_NAME = "devpool-rfc";
 export enum LABELS {
   PRICE = "Price",
   UNAVAILABLE = "Unavailable",
@@ -389,14 +391,14 @@ export async function createDevPoolIssue(projectIssue: GitHubIssue, projectUrl: 
   // if the project issue is assigned to someone, then skip it
   if (projectIssue.assignee) return;
 
-  // if issue doesn't have the "Price" label then skip it, no need to pollute repo with draft issues
-  if (!(projectIssue.labels as GitHubLabel[]).some((label) => label.name.includes(LABELS.PRICE))) return;
+  // if the issue has no price labels, it will be added to RFC repo
+  const hasNoPriceLabels = !(projectIssue.labels as GitHubLabel[]).some((label) => label.name.includes(LABELS.PRICE));
 
   // create a new issue
   try {
     const createdIssue = await octokit.rest.issues.create({
-      owner: DEVPOOL_OWNER_NAME,
-      repo: DEVPOOL_REPO_NAME,
+      owner: hasNoPriceLabels ? DEVPOOL_RFC_OWNER_NAME : DEVPOOL_OWNER_NAME,
+      repo: hasNoPriceLabels ? DEVPOOL_RFC_REPO_NAME : DEVPOOL_REPO_NAME,
       title: projectIssue.title,
       body,
       labels: getDevpoolIssueLabels(projectIssue, projectUrl),
@@ -429,13 +431,16 @@ export async function handleDevPoolIssue(
   projectIssue: GitHubIssue,
   projectUrl: string,
   devpoolIssue: GitHubIssue,
-  isFork: boolean
+  isFork: boolean,
+  isRFC: boolean,
 ) {
   // remove the unavailable label as getDevpoolIssueLabels() adds it and statitics rely on it
   const labelRemoved = getDevpoolIssueLabels(projectIssue, projectUrl).filter((label) => label != LABELS.UNAVAILABLE);
   const originals = devpoolIssue.labels.map((label) => (label as GitHubLabel).name);
   const hasChanges = !areEqual(originals, labelRemoved);
-  const hasNoPriceLabels = !(projectIssue.labels as GitHubLabel[]).some((label) => label.name.includes(LABELS.PRICE));
+
+  const hasPriceLabels = !(projectIssue.labels as GitHubLabel[]).some((label) => label.name.includes(LABELS.PRICE));
+  const hasCorrectPriceLabels = isRFC ? (!hasPriceLabels) : hasPriceLabels
 
   const metaChanges = {
     // the title of the issue has changed
@@ -448,7 +453,7 @@ export async function handleDevPoolIssue(
 
   await applyMetaChanges(metaChanges, devpoolIssue, projectIssue, isFork, labelRemoved, originals);
 
-  const newState = await applyStateChanges(projectIssues, projectIssue, devpoolIssue, hasNoPriceLabels);
+  const newState = await applyStateChanges(projectIssues, projectIssue, devpoolIssue, hasCorrectPriceLabels, isRFC);
 
   await applyUnavailableLabelToDevpoolIssue(
     projectIssue,
@@ -490,7 +495,7 @@ async function applyMetaChanges(
   }
 }
 
-async function applyStateChanges(projectIssues: GitHubIssue[], projectIssue: GitHubIssue, devpoolIssue: GitHubIssue, hasNoPriceLabels: boolean) {
+async function applyStateChanges(projectIssues: GitHubIssue[], projectIssue: GitHubIssue, devpoolIssue: GitHubIssue, hasCorrectPriceLabels: boolean, isRFC: boolean) {
   const stateChanges: StateChanges = {
     // missing in the partners
     forceMissing_Close: {
@@ -500,9 +505,15 @@ async function applyStateChanges(projectIssues: GitHubIssue[], projectIssue: Git
     },
     // no price labels set and open in the devpool
     noPriceLabels_Close: {
-      cause: hasNoPriceLabels && devpoolIssue.state === "open",
+      cause: (!isRFC) && (!hasCorrectPriceLabels) && devpoolIssue.state === "open",
       effect: "closed",
       comment: "Closed (no price labels)",
+    },
+    // HAS price labels set and open in the RFC devpool
+    RFCPriceLabels_Close: {
+      cause: isRFC && (!hasCorrectPriceLabels) && devpoolIssue.state === "open",
+      effect: "closed",
+      comment: "Closed (has price labels)",
     },
     // it's closed, been merged and still open in the devpool
     issueComplete_Close: {
@@ -528,20 +539,20 @@ async function applyStateChanges(projectIssues: GitHubIssue[], projectIssue: Git
       effect: "closed",
       comment: "Closed (assigned-open)",
     },
-    // it's open, merged, unassigned, has price labels and is closed in the devpool
+    // it's open, merged, unassigned, has CORRECT price labels and is closed in the devpool
     issueReopenedMerged_Open: {
       cause:
         projectIssue.state === "open" &&
         devpoolIssue.state === "closed" &&
         !!projectIssue.pull_request?.merged_at &&
-        !hasNoPriceLabels &&
+        !hasCorrectPriceLabels &&
         !projectIssue.assignee?.login,
       effect: "open",
       comment: "Reopened (merged)",
     },
-    // it's open, unassigned, has price labels and is closed in the devpool
+    // it's open, unassigned, has CORRECT price labels and is closed in the devpool
     issueUnassigned_Open: {
-      cause: projectIssue.state === "open" && devpoolIssue.state === "closed" && !projectIssue.assignee?.login && !hasNoPriceLabels,
+      cause: projectIssue.state === "open" && devpoolIssue.state === "closed" && !projectIssue.assignee?.login && !hasCorrectPriceLabels,
       effect: "open",
       comment: "Reopened (unassigned)",
     },
