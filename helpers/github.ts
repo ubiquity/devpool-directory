@@ -493,7 +493,7 @@ async function applyMetaChanges(
 }
 
 async function applyStateChanges(projectIssues: GitHubIssue[], projectIssue: GitHubIssue, devpoolIssue: GitHubIssue, hasNoPriceLabels: boolean) {
-  const isRFC = devpoolIssue.repo == DEVPOOL_RFC_REPO_NAME
+  const isRFC = devpoolIssue.repository_url.includes(DEVPOOL_RFC_REPO_NAME)
   const hasCorrectPriceLabels = isRFC ? hasNoPriceLabels : (!hasNoPriceLabels)
 
   const stateChanges: StateChanges = {
