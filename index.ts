@@ -2,6 +2,8 @@ import dotenv from "dotenv";
 import {
   DEVPOOL_OWNER_NAME,
   DEVPOOL_REPO_NAME,
+  DEVPOOL_RFC_OWNER_NAME,
+  DEVPOOL_RFC_REPO_NAME,
   getAllIssues,
   getIssueByLabel,
   getProjectUrls,
@@ -36,6 +38,7 @@ async function main() {
 
   // get devpool issues
   const devpoolIssues: GitHubIssue[] = await getAllIssues(DEVPOOL_OWNER_NAME, DEVPOOL_REPO_NAME);
+  const devpoolRFCs: GitHubIssue[] = await getAllIssues(DEVPOOL_RFC_OWNER_NAME, DEVPOOL_RFC_REPO_NAME);
 
   // Calculate total rewards from open issues
   const { rewards, tasks } = await calculateStatistics(devpoolIssues);
@@ -63,6 +66,8 @@ async function main() {
     for (const projectIssue of projectIssues) {
       // if issue exists in devpool
       const devpoolIssue = getIssueByLabel(devpoolIssues, `id: ${projectIssue.node_id}`);
+      // if issue exists in RFC devpool
+      const devpoolRFC = getIssueByLabel(devpoolRFCs, `id: ${projectIssue.node_id}`);
 
       // adding www creates a link to an issue that does not count as a mention
       // helps with preventing a mention in partner's repo especially during testing
@@ -71,8 +76,13 @@ async function main() {
       // for all issues
       if (devpoolIssue) {
         // if it exists in the devpool, then update it
-        await handleDevPoolIssue(projectIssues, projectIssue, projectUrl, devpoolIssue, isFork);
-      } else {
+        await handleDevPoolIssue(projectIssues, projectIssue, projectUrl, devpoolIssue, isFork, false);
+      } 
+      else if (devpoolRFC) {
+        // if it exists in the RFC devpool, then update it
+        await handleDevPoolIssue(projectIssues, projectIssue, projectUrl, devpoolIssue, isFork, true);
+      }
+      else {
         // if it doesn't exist in the devpool, then create it
         await createDevPoolIssue(projectIssue, projectUrl, body, twitterMap);
       }
