@@ -431,8 +431,7 @@ export async function handleDevPoolIssue(
   projectIssue: GitHubIssue,
   projectUrl: string,
   devpoolIssue: GitHubIssue,
-  isFork: boolean,
-  isRFC: boolean,
+  isFork: boolean
 ) {
   // remove the unavailable label as getDevpoolIssueLabels() adds it and statitics rely on it
   const labelRemoved = getDevpoolIssueLabels(projectIssue, projectUrl).filter((label) => label != LABELS.UNAVAILABLE);
