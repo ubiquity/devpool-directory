@@ -438,9 +438,7 @@ export async function handleDevPoolIssue(
   const labelRemoved = getDevpoolIssueLabels(projectIssue, projectUrl).filter((label) => label != LABELS.UNAVAILABLE);
   const originals = devpoolIssue.labels.map((label) => (label as GitHubLabel).name);
   const hasChanges = !areEqual(originals, labelRemoved);
-
-  const hasPriceLabels = !(projectIssue.labels as GitHubLabel[]).some((label) => label.name.includes(LABELS.PRICE));
-  const hasCorrectPriceLabels = isRFC ? (!hasPriceLabels) : hasPriceLabels
+  const hasNoPriceLabels = !(projectIssue.labels as GitHubLabel[]).some((label) => label.name.includes(LABELS.PRICE));
 
   const metaChanges = {
     // the title of the issue has changed
@@ -453,7 +451,7 @@ export async function handleDevPoolIssue(
 
   await applyMetaChanges(metaChanges, devpoolIssue, projectIssue, isFork, labelRemoved, originals);
 
-  const newState = await applyStateChanges(projectIssues, projectIssue, devpoolIssue, hasCorrectPriceLabels, isRFC);
+  const newState = await applyStateChanges(projectIssues, projectIssue, devpoolIssue, hasNoPriceLabels);
 
   await applyUnavailableLabelToDevpoolIssue(
     projectIssue,
@@ -495,7 +493,10 @@ async function applyMetaChanges(
   }
 }
 
-async function applyStateChanges(projectIssues: GitHubIssue[], projectIssue: GitHubIssue, devpoolIssue: GitHubIssue, hasCorrectPriceLabels: boolean, isRFC: boolean) {
+async function applyStateChanges(projectIssues: GitHubIssue[], projectIssue: GitHubIssue, devpoolIssue: GitHubIssue, hasNoPriceLabels: boolean) {
+  const isRFC = devpoolIssue.repo == DEVPOOL_RFC_REPO_NAME
+  const hasCorrectPriceLabels = isRFC ? hasNoPriceLabels : (!hasNoPriceLabels)
+
   const stateChanges: StateChanges = {
     // missing in the partners
     forceMissing_Close: {
@@ -510,7 +511,7 @@ async function applyStateChanges(projectIssues: GitHubIssue[], projectIssue: Git
       comment: "Closed (no price labels)",
     },
     // HAS price labels set and open in the RFC devpool
-    rfcPriceLabelsClosed: {
+    RFCPriceLabels_Close: {
       cause: isRFC && (!hasCorrectPriceLabels) && devpoolIssue.state === "open",
       effect: "closed",
       comment: "Closed (has price labels)",
