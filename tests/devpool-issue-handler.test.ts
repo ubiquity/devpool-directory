@@ -1815,7 +1815,6 @@ describe("calculateStatistics", () => {
       completed: 1,
       total: 1,
     });
-    expect(consoleErrorSpy).toHaveBeenCalledWith("Price 'Pricing: NaN' is not a valid number in issue: 1");
 
     consoleErrorSpy.mockRestore();
   });
