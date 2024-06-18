@@ -37,12 +37,6 @@ async function main() {
   // get devpool issues
   const devpoolIssues: GitHubIssue[] = await getAllIssues(DEVPOOL_OWNER_NAME, DEVPOOL_REPO_NAME);
 
-  // Calculate total rewards from open issues
-  const { rewards, tasks } = await calculateStatistics(devpoolIssues);
-  const statistics: Statistics = { rewards, tasks };
-
-  await writeTotalRewardsToGithub(statistics);
-
   // aggregate projects.urls and opt settings
   const projectUrls = await getProjectUrls();
 
@@ -78,6 +72,12 @@ async function main() {
       }
     }
   }
+
+  // Calculate total rewards from devpool issues
+  const { rewards, tasks } = await calculateStatistics(await getAllIssues(DEVPOOL_OWNER_NAME, DEVPOOL_REPO_NAME));
+  const statistics: Statistics = { rewards, tasks };
+
+  await writeTotalRewardsToGithub(statistics);
 }
 
 void (async () => {
