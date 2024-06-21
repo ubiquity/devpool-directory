@@ -9,6 +9,7 @@ on:
 jobs:
   knip-reporter:
     runs-on: ubuntu-latest
+    if: ${{ github.event.workflow_run.conclusion != 'success' }}
     steps:
       - uses: actions/download-artifact@v4
         with:
@@ -24,7 +25,6 @@ jobs:
           trim: true
 
       - name: Report knip results to pull request
-        if: ${{ github.event.workflow_run.conclusion != 'success' }}
         uses: gitcoindev/knip-reporter@main
         with:
           verbose: true
