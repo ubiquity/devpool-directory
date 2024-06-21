@@ -20,4 +20,4 @@ jobs:
           fetch-depth: 0
 
       - name: Jest With Coverage
-        run: yarn test
+        run: yarn install --immutable --immutable-cache --check-cache && yarn test
