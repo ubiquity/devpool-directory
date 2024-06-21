@@ -7,5 +7,6 @@ describe("Homepage tests", () => {
     });
     cy.get("@consoleError").should("not.be.called");
     cy.get("body").should("exist");
+    cy.get("h1").should("exist");
   });
 });
