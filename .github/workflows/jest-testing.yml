@@ -21,3 +21,7 @@ jobs:
 
       - name: Jest With Coverage
         run: yarn install --immutable --immutable-cache --check-cache && yarn test
+
+      - name: Add Jest Report to Summary
+        if: always()
+        run: echo "$(cat test-dashboard.md)" >> $GITHUB_STEP_SUMMARY
