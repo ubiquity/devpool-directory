@@ -1,10 +1,7 @@
 name: Run Jest testing suite
 on:
   workflow_dispatch:
-  workflow_run:
-    workflows: ["Build"]
-    types:
-      - completed
+  pull_request:
 
 env:
   NODE_ENV: "test"
@@ -22,10 +19,9 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Jest With Coverage Comment
-        # Ensures this step is run even on previous step failure (e.g. test failed)
+      - name: Jest With Coverage
+        run: yarn install --immutable --immutable-cache --check-cache && yarn test
+
+      - name: Add Jest Report to Summary
         if: always()
-        uses: ArtiomTr/jest-coverage-report-action@v2
-        with:
-          package-manager: yarn
-          prnumber: ${{ github.event.pull_request.number || github.event.workflow_run.pull_requests[0].number }}
+        run: echo "$(cat test-dashboard.md)" >> $GITHUB_STEP_SUMMARY
