@@ -406,15 +406,17 @@ export async function createDevPoolIssue(projectIssue: GitHubIssue, projectUrl: 
       return;
     }
 
-    // post to social media
-    try {
-      const socialMediaText = getSocialMediaText(createdIssue.data);
-      const tweetId = await twitter.postTweet(socialMediaText);
-
-      twitterMap[createdIssue.data.node_id] = tweetId?.id ?? "";
-      await writeFile("./twitterMap.json", JSON.stringify(twitterMap));
-    } catch (err) {
-      console.error("Failed to post tweet: ", err);
+    // post to social media (only if has a price label)
+    if (!hasNoPriceLabels) {
+      try {
+        const socialMediaText = getSocialMediaText(createdIssue.data);
+        const tweetId = await twitter.postTweet(socialMediaText);
+  
+        twitterMap[createdIssue.data.node_id] = tweetId?.id ?? "";
+        await writeFile("./twitterMap.json", JSON.stringify(twitterMap));
+      } catch (err) {
+        console.error("Failed to post tweet: ", err);
+      }
     }
   } catch (err) {
     console.error("Failed to create new issue: ", err);
