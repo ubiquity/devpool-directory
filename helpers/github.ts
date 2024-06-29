@@ -32,7 +32,7 @@ export enum LABELS {
   UNAVAILABLE = "Unavailable",
 }
 
-export const octokit = new Octokit({ auth: DEVPOOL_GITHUB_API_TOKEN });
+export const octokit = new Octokit({ auth: process.env.DEVPOOL_GITHUB_API_TOKEN });
 
 //=============
 // Helpers
