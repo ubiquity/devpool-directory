@@ -391,14 +391,14 @@ export async function createDevPoolIssue(projectIssue: GitHubIssue, projectUrl: 
   // if the project issue is assigned to someone, then skip it
   if (projectIssue.assignee) return;
 
-  // if the issue has no price labels, it will be added to RFC repo
-  const hasNoPriceLabels = !(projectIssue.labels as GitHubLabel[]).some((label) => label.name.includes(LABELS.PRICE));
+  // if the issue has a price label, it will be added to the devpool, and if it doesn't, it will be added to the rfcs
+  const hasPriceLabel = (projectIssue.labels as GitHubLabel[]).some((label) => label.name.includes(LABELS.PRICE));
 
   // create a new issue
   try {
     const createdIssue = await octokit.rest.issues.create({
-      owner: hasNoPriceLabels ? DEVPOOL_RFC_OWNER_NAME : DEVPOOL_OWNER_NAME,
-      repo: hasNoPriceLabels ? DEVPOOL_RFC_REPO_NAME : DEVPOOL_REPO_NAME,
+      owner: hasPriceLabel ? DEVPOOL_OWNER_NAME: DEVPOOL_RFC_OWNER_NAME,
+      repo: hasPriceLabel ? DEVPOOL_REPO_NAME: DEVPOOL_RFC_REPO_NAME,
       title: projectIssue.title,
       body,
       labels: getDevpoolIssueLabels(projectIssue, projectUrl),
@@ -411,7 +411,7 @@ export async function createDevPoolIssue(projectIssue: GitHubIssue, projectUrl: 
     }
 
     // post to social media (only if has a price label)
-    if (!hasNoPriceLabels) {
+    if (hasPriceLabel) {
       try {
         const socialMediaText = getSocialMediaText(createdIssue.data);
         const tweetId = await twitter.postTweet(socialMediaText);
