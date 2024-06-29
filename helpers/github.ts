@@ -23,12 +23,16 @@ export const projects = _projects as {
   category?: Record<string, string>;
 };
 
+export const DEVPOOL_OWNER_NAME = "ubiquity";
+export const DEVPOOL_REPO_NAME = "devpool-directory";
+export const DEVPOOL_RFC_OWNER_NAME = "ubiquity";
+export const DEVPOOL_RFC_REPO_NAME = "devpool-rfc";
 export enum LABELS {
   PRICE = "Price",
   UNAVAILABLE = "Unavailable",
 }
 
-export const octokit = new Octokit({ auth: process.env.DEVPOOL_GITHUB_API_TOKEN });
+export const octokit = new Octokit({ auth: DEVPOOL_GITHUB_API_TOKEN });
 
 //=============
 // Helpers
@@ -283,8 +287,8 @@ export async function calculateStatistics(issues: GitHubIssue[]) {
 
   issues.forEach((issue) => {
     if (!issue.repository_url || !issue.html_url) return;
-    if (!issue.repository_url.includes(process.env.DEVPOOL_REPO_NAME) || !issue.html_url.includes(process.env.DEVPOOL_REPO_NAME)) return;
-    if ("repo" in issue && issue.repo != process.env.DEVPOOL_REPO_NAME) return;
+    if (!issue.repository_url.includes(DEVPOOL_REPO_NAME) || !issue.html_url.includes(DEVPOOL_REPO_NAME)) return;
+    if ("repo" in issue && issue.repo != DEVPOOL_REPO_NAME) return;
 
     const labels = issue.labels as GitHubLabel[];
     // devpool issue has unavailable label because it's assigned and so it's closed
@@ -335,8 +339,8 @@ export async function calculateStatistics(issues: GitHubIssue[]) {
 
 export async function writeTotalRewardsToGithub(statistics: Statistics) {
   try {
-    const owner = process.env.DEVPOOL_OWNER_NAME;
-    const repo = process.env.DEVPOOL_REPO_NAME;
+    const owner = DEVPOOL_OWNER_NAME;
+    const repo = DEVPOOL_REPO_NAME;
     const filePath = "total-rewards.json";
     const content = JSON.stringify(statistics, null, 2);
 
@@ -393,8 +397,8 @@ export async function createDevPoolIssue(projectIssue: GitHubIssue, projectUrl: 
   // create a new issue
   try {
     const createdIssue = await octokit.rest.issues.create({
-      owner: hasNoPriceLabels ? process.env.DEVPOOL_RFC_OWNER_NAME : process.env.DEVPOOL_OWNER_NAME,
-      repo: hasNoPriceLabels ? process.env.DEVPOOL_RFC_REPO_NAME : process.env.DEVPOOL_REPO_NAME,
+      owner: hasNoPriceLabels ? DEVPOOL_RFC_OWNER_NAME : DEVPOOL_OWNER_NAME,
+      repo: hasNoPriceLabels ? DEVPOOL_RFC_REPO_NAME : DEVPOOL_REPO_NAME,
       title: projectIssue.title,
       body,
       labels: getDevpoolIssueLabels(projectIssue, projectUrl),
@@ -473,8 +477,8 @@ async function applyMetaChanges(
   if (shouldUpdate) {
     try {
       await octokit.rest.issues.update({
-        owner: process.env.DEVPOOL_OWNER_NAME,
-        repo: process.env.DEVPOOL_REPO_NAME,
+        owner: DEVPOOL_OWNER_NAME,
+        repo: DEVPOOL_REPO_NAME,
         issue_number: devpoolIssue.number,
         title: metaChanges.title ? projectIssue.title : devpoolIssue.title,
         body: metaChanges.body && !isFork ? projectIssue.html_url : projectIssue.html_url.replace("https://", "https://www."),
@@ -491,7 +495,7 @@ async function applyMetaChanges(
 }
 
 async function applyStateChanges(projectIssues: GitHubIssue[], projectIssue: GitHubIssue, devpoolIssue: GitHubIssue, hasNoPriceLabels: boolean) {
-  const isRFC = devpoolIssue.repository_url.includes(process.env.DEVPOOL_RFC_REPO_NAME)
+  const isRFC = devpoolIssue.repository_url.includes(DEVPOOL_RFC_REPO_NAME)
   const hasCorrectPriceLabels = isRFC ? hasNoPriceLabels : (!hasNoPriceLabels)
 
   const stateChanges: StateChanges = {
@@ -568,8 +572,8 @@ async function applyStateChanges(projectIssues: GitHubIssue[], projectIssue: Git
 
       try {
         await octokit.rest.issues.update({
-          owner: process.env.DEVPOOL_OWNER_NAME,
-          repo: process.env.DEVPOOL_REPO_NAME,
+          owner: DEVPOOL_OWNER_NAME,
+          repo: DEVPOOL_REPO_NAME,
           issue_number: devpoolIssue.number,
           state: value.effect,
         });
@@ -605,8 +609,8 @@ async function applyUnavailableLabelToDevpoolIssue(
   ) {
     try {
       await octokit.rest.issues.addLabels({
-        owner: process.env.DEVPOOL_OWNER_NAME,
-        repo: process.env.DEVPOOL_REPO_NAME,
+        owner: DEVPOOL_OWNER_NAME,
+        repo: DEVPOOL_REPO_NAME,
         issue_number: devpoolIssue.number,
         labels: metaChanges.labels ? labelRemoved.concat(LABELS.UNAVAILABLE) : originals.concat(LABELS.UNAVAILABLE),
       });
@@ -616,8 +620,8 @@ async function applyUnavailableLabelToDevpoolIssue(
   } else if (projectIssue.state === "closed" && devpoolIssue.labels.some((label) => (label as GitHubLabel).name === LABELS.UNAVAILABLE)) {
     try {
       await octokit.rest.issues.removeLabel({
-        owner: process.env.DEVPOOL_OWNER_NAME,
-        repo: process.env.DEVPOOL_REPO_NAME,
+        owner: DEVPOOL_OWNER_NAME,
+        repo: DEVPOOL_REPO_NAME,
         issue_number: devpoolIssue.number,
         name: LABELS.UNAVAILABLE,
       });
