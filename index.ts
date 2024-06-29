@@ -10,6 +10,10 @@ import {
   writeTotalRewardsToGithub,
   handleDevPoolIssue,
   createDevPoolIssue,
+  DEVPOOL_OWNER_NAME,
+  DEVPOOL_REPO_NAME,
+  DEVPOOL_RFC_OWNER_NAME,
+  DEVPOOL_RFC_REPO_NAME,
 } from "./helpers/github";
 import { readFile, writeFile } from "fs/promises";
 import { Statistics } from "./types/statistics";
@@ -33,8 +37,8 @@ async function main() {
   }
 
   // get devpool issues
-  const devpoolIssues: GitHubIssue[] = await getAllIssues(process.env.DEVPOOL_OWNER_NAME, process.env.DEVPOOL_REPO_NAME);
-  const devpoolRFCs: GitHubIssue[] = await getAllIssues(process.env.DEVPOOL_RFC_OWNER_NAME, process.env.DEVPOOL_RFC_REPO_NAME);
+  const devpoolIssues: GitHubIssue[] = (await getAllIssues(DEVPOOL_OWNER_NAME, DEVPOOL_REPO_NAME))
+                                .concat(await getAllIssues(DEVPOOL_RFC_OWNER_NAME, DEVPOOL_RFC_REPO_NAME));
 
   // Calculate total rewards from open issues
   const { rewards, tasks } = await calculateStatistics(devpoolIssues);
@@ -62,15 +66,13 @@ async function main() {
     for (const projectIssue of projectIssues) {
       // if issue exists in devpool
       const devpoolIssue = getIssueByLabel(devpoolIssues, `id: ${projectIssue.node_id}`);
-      // if issue exists in RFC devpool
-      const devpoolRFC = getIssueByLabel(devpoolRFCs, `id: ${projectIssue.node_id}`);
 
       // adding www creates a link to an issue that does not count as a mention
       // helps with preventing a mention in partner's repo especially during testing
       const body = isFork ? projectIssue.html_url.replace("https://github.com", "https://www.github.com") : projectIssue.html_url;
 
       // for all issues
-      if (devpoolIssue || devpoolRFC) {
+      if (devpoolIssue) {
         // if it exists in the devpool, then update it
         await handleDevPoolIssue(projectIssues, projectIssue, projectUrl, devpoolIssue, isFork);
       } else {
