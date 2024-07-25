@@ -266,7 +266,7 @@ export async function getProjectUrls(opt: typeof optInOptOut = optInOptOut) {
 }
 
 // Function to calculate total rewards and tasks statistics
-export async function calculateStatistics(issues: GitHubIssue[]) {
+export async function calculateStatistics(devpoolIssues: GitHubIssue[]) {
   const rewards = {
     notAssigned: 0,
     assigned: 0,
@@ -281,10 +281,16 @@ export async function calculateStatistics(issues: GitHubIssue[]) {
     total: 0,
   };
 
-  issues.forEach((issue) => {
+  devpoolIssues.forEach((issue) => {
     if (!issue.repository_url || !issue.html_url) return;
     if (!issue.repository_url.includes(process.env.DEVPOOL_REPO_NAME) || !issue.html_url.includes(process.env.DEVPOOL_REPO_NAME)) return;
     if ("repo" in issue && issue.repo != process.env.DEVPOOL_REPO_NAME) return;
+
+    const linkedRepoFromBody = issue.body?.match(/https:\/\/github.com\/[^/]+\/[^/]+/);
+    const linkedRepoFromBodyAlt = issue.body?.match(/https:\/\/www.github.com\/[^/]+\/[^/]+/);
+
+    let toExclude = optInOptOut.out.some((orgOrRepo) => linkedRepoFromBody?.[0].includes(orgOrRepo));
+    toExclude = toExclude || optInOptOut.out.some((orgOrRepo) => linkedRepoFromBodyAlt?.[0].includes(orgOrRepo));
 
     const labels = issue.labels as GitHubLabel[];
     // devpool issue has unavailable label because it's assigned and so it's closed
@@ -292,41 +298,26 @@ export async function calculateStatistics(issues: GitHubIssue[]) {
     // devpool issue doesn't have unavailable label because it's unassigned and closed so it's merged therefore completed
     const isCompleted = !labels.some((label) => (label.name as string).includes(LABELS.UNAVAILABLE)) && issue.state === "closed";
     const isOpen = issue.state === "open";
+    const priceLabel = labels.find((label) => (label.name as string).includes("Pricing"));
+    const price = priceLabel ? parseInt((priceLabel.name as string).split(":")[1].trim(), 10) : 0;
 
-    // Increment tasks statistics
-    tasks.total++;
-    if (isOpen) {
+    if (isOpen && !toExclude) {
+      rewards.notAssigned += !isNaN(price) ? price : 0;
       tasks.notAssigned++;
-    } else if (isAssigned) {
+      tasks.total++;
+      rewards.total += !isNaN(price) ? price : 0;
+    } else if (isAssigned && !toExclude) {
+      rewards.assigned += !isNaN(price) ? price : 0;
       tasks.assigned++;
+      tasks.total++;
+      rewards.total += !isNaN(price) ? price : 0;
     } else if (isCompleted) {
+      rewards.completed += !isNaN(price) ? price : 0;
       tasks.completed++;
+      tasks.total++;
+      rewards.total += !isNaN(price) ? price : 0;
     } else {
       console.error(`Issue ${issue.number} is not assigned, not completed and not open`);
-    }
-
-    if (labels.some((label) => label.name as string)) {
-      const priceLabel = labels.find((label) => (label.name as string).includes("Pricing"));
-      if (priceLabel) {
-        // ignore pricing not set
-        if (priceLabel.name === "Pricing: not set") return;
-
-        const price = parseInt((priceLabel.name as string).split(":")[1].trim(), 10);
-
-        if (!isNaN(price)) {
-          // Increment rewards statistics, if it is assigned but not completed
-          if (isAssigned) {
-            rewards.assigned += price;
-          } else if (isCompleted) {
-            rewards.completed += price;
-          } else {
-            rewards.notAssigned += price;
-          }
-          rewards.total += price;
-        } else {
-          console.error(`Price '${priceLabel.name}' is not a valid number in issue: ${issue.number}`);
-        }
-      }
     }
   });
 

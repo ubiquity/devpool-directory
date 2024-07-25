@@ -35,14 +35,6 @@ async function main() {
   // get devpool issues
   const devpoolIssues: GitHubIssue[] = (await getAllIssues(process.env.DEVPOOL_OWNER_NAME, process.env.DEVPOOL_REPO_NAME))
 
-  // Calculate total rewards from open issues
-  if (!process.env.RFC) {
-    const { rewards, tasks } = await calculateStatistics(devpoolIssues);
-    const statistics: Statistics = { rewards, tasks };
-
-    await writeTotalRewardsToGithub(statistics);
-  }
-
   // aggregate projects.urls and opt settings
   const projectUrls = await getProjectUrls();
 
@@ -77,6 +69,14 @@ async function main() {
         await createDevPoolIssue(projectIssue, projectUrl, body, twitterMap);
       }
     }
+  }
+
+  // Calculate total rewards from devpool issues
+  if (!process.env.RFC) {
+    const { rewards, tasks } = await calculateStatistics(await getAllIssues(process.env.DEVPOOL_OWNER_NAME, process.env.DEVPOOL_REPO_NAME));
+    const statistics: Statistics = { rewards, tasks };
+
+    await writeTotalRewardsToGithub(statistics);
   }
 }
 
