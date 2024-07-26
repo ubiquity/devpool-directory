@@ -7,6 +7,16 @@ import { writeFile } from "fs/promises";
 import twitter from "./twitter";
 import { TwitterMap } from "..";
 
+// Usually
+export const DEVPOOL_OWNER_NAME = process.env.DEVPOOL_OWNER_NAME;
+export const DEVPOOL_REPO_NAME = process.env.DEVPOOL_REPO_NAME;
+export const IS_RFC = process.env.RFC == "1";
+
+// For rfc-issue-handler.test.ts
+// export const DEVPOOL_OWNER_NAME = "ubiquity";
+// export const DEVPOOL_REPO_NAME = "devpool-rfc";
+// export const IS_RFC = true;
+
 export type GitHubIssue = RestEndpointMethodTypes["issues"]["get"]["response"]["data"];
 export type GitHubLabel = RestEndpointMethodTypes["issues"]["listLabelsOnIssue"]["response"]["data"][0];
 
@@ -127,12 +137,24 @@ export function getDevpoolIssueLabels(issue: GitHubIssue, projectUrl: string) {
   // get owner and repo name from issue's URL because the repo name could be updated
   const [ownerName, repoName] = getRepoCredentials(issue.html_url);
 
+  const pricing = getIssuePriceLabel(issue)
+
+  let devpoolIssueLabels: string[];
+
   // default labels
-  const devpoolIssueLabels = [
-    getIssuePriceLabel(issue), // price
-    `Partner: ${ownerName}/${repoName}`, // partner
-    `id: ${issue.node_id}`, // id
-  ];
+  if (pricing != "Pricing: not set") {
+    devpoolIssueLabels = [
+      pricing,
+      `Partner: ${ownerName}/${repoName}`, // partner
+      `id: ${issue.node_id}`, // id
+    ];
+  }
+  else {
+    devpoolIssueLabels = [
+      `Partner: ${ownerName}/${repoName}`, // partner
+      `id: ${issue.node_id}`, // id
+    ];
+  }
 
   // if project is already assigned then add the "Unavailable" label
   if (issue.assignee?.login) devpoolIssueLabels.push(LABELS.UNAVAILABLE);
@@ -283,8 +305,8 @@ export async function calculateStatistics(devpoolIssues: GitHubIssue[]) {
 
   devpoolIssues.forEach((issue) => {
     if (!issue.repository_url || !issue.html_url) return;
-    if (!issue.repository_url.includes(process.env.DEVPOOL_REPO_NAME) || !issue.html_url.includes(process.env.DEVPOOL_REPO_NAME)) return;
-    if ("repo" in issue && issue.repo != process.env.DEVPOOL_REPO_NAME) return;
+    if (!issue.repository_url.includes(DEVPOOL_REPO_NAME) || !issue.html_url.includes(DEVPOOL_REPO_NAME)) return;
+    if ("repo" in issue && issue.repo != DEVPOOL_REPO_NAME) return;
 
     const linkedRepoFromBody = issue.body?.match(/https:\/\/github.com\/[^/]+\/[^/]+/);
     const linkedRepoFromBodyAlt = issue.body?.match(/https:\/\/www.github.com\/[^/]+\/[^/]+/);
@@ -326,8 +348,8 @@ export async function calculateStatistics(devpoolIssues: GitHubIssue[]) {
 
 export async function writeTotalRewardsToGithub(statistics: Statistics) {
   try {
-    const owner = process.env.DEVPOOL_OWNER_NAME;
-    const repo = process.env.DEVPOOL_REPO_NAME;
+    const owner = DEVPOOL_OWNER_NAME;
+    const repo = DEVPOOL_REPO_NAME;
     const filePath = "total-rewards.json";
     const content = JSON.stringify(statistics, null, 2);
 
@@ -380,14 +402,14 @@ export async function createDevPoolIssue(projectIssue: GitHubIssue, projectUrl: 
 
   // check if the issue is the same type as it should be
   const hasPriceLabel = (projectIssue.labels as GitHubLabel[]).some((label) => label.name.includes(LABELS.PRICE));
-  const hasCorrectPriceLabel = (process.env.RFC && !hasPriceLabel) || (!process.env.RFC && hasPriceLabel)
+  const hasCorrectPriceLabel = (IS_RFC && !hasPriceLabel) || (!IS_RFC && hasPriceLabel)
   if (!hasCorrectPriceLabel) return;
 
   // create a new issue
   try {
     const createdIssue = await octokit.rest.issues.create({
-      owner: process.env.DEVPOOL_OWNER_NAME,
-      repo: process.env.DEVPOOL_REPO_NAME,
+      owner: DEVPOOL_OWNER_NAME,
+      repo: DEVPOOL_REPO_NAME,
       title: projectIssue.title,
       body,
       labels: getDevpoolIssueLabels(projectIssue, projectUrl),
@@ -400,7 +422,7 @@ export async function createDevPoolIssue(projectIssue: GitHubIssue, projectUrl: 
     }
 
     // post to social media (only if it's not an RFC)
-    if (!process.env.RFC) {
+    if (!IS_RFC) {
       try {
         const socialMediaText = getSocialMediaText(createdIssue.data);
         const tweetId = await twitter.postTweet(socialMediaText);
@@ -466,8 +488,8 @@ async function applyMetaChanges(
   if (shouldUpdate) {
     try {
       await octokit.rest.issues.update({
-        owner: process.env.DEVPOOL_OWNER_NAME,
-        repo: process.env.DEVPOOL_REPO_NAME,
+        owner: DEVPOOL_OWNER_NAME,
+        repo: DEVPOOL_REPO_NAME,
         issue_number: devpoolIssue.number,
         title: metaChanges.title ? projectIssue.title : devpoolIssue.title,
         body: metaChanges.body && !isFork ? projectIssue.html_url : projectIssue.html_url.replace("https://", "https://www."),
@@ -484,7 +506,9 @@ async function applyMetaChanges(
 }
 
 async function applyStateChanges(projectIssues: GitHubIssue[], projectIssue: GitHubIssue, devpoolIssue: GitHubIssue, hasPriceLabel: boolean) {
-  const hasCorrectPriceLabel = (process.env.RFC && !hasPriceLabel) || (!process.env.RFC && hasPriceLabel)
+  const hasCorrectPriceLabel = (IS_RFC && !hasPriceLabel) || (!IS_RFC && hasPriceLabel)
+
+  // console.log(hasCorrectPriceLabel)
 
   const stateChanges: StateChanges = {
     // missing in the partners
@@ -495,13 +519,13 @@ async function applyStateChanges(projectIssues: GitHubIssue[], projectIssue: Git
     },
     // no price labels set and open in the devpool
     noPriceLabels_Close: {
-      cause: (!process.env.RFC) && (!hasCorrectPriceLabel) && devpoolIssue.state === "open",
+      cause: (!IS_RFC) && (!hasCorrectPriceLabel) && devpoolIssue.state === "open",
       effect: "closed",
       comment: "Closed (no price labels)",
     },
     // HAS price labels set and open in the RFC devpool
     rfcPriceLabels_Close: {
-      cause: process.env.RFC && (!hasCorrectPriceLabel) && devpoolIssue.state === "open",
+      cause: IS_RFC && (!hasCorrectPriceLabel) && devpoolIssue.state === "open",
       effect: "closed",
       comment: "Closed (has price labels)",
     },
@@ -560,8 +584,8 @@ async function applyStateChanges(projectIssues: GitHubIssue[], projectIssue: Git
 
       try {
         await octokit.rest.issues.update({
-          owner: process.env.DEVPOOL_OWNER_NAME,
-          repo: process.env.DEVPOOL_REPO_NAME,
+          owner: DEVPOOL_OWNER_NAME,
+          repo: DEVPOOL_REPO_NAME,
           issue_number: devpoolIssue.number,
           state: value.effect,
         });
@@ -597,8 +621,8 @@ async function applyUnavailableLabelToDevpoolIssue(
   ) {
     try {
       await octokit.rest.issues.addLabels({
-        owner: process.env.DEVPOOL_OWNER_NAME,
-        repo: process.env.DEVPOOL_REPO_NAME,
+        owner: DEVPOOL_OWNER_NAME,
+        repo: DEVPOOL_REPO_NAME,
         issue_number: devpoolIssue.number,
         labels: metaChanges.labels ? labelRemoved.concat(LABELS.UNAVAILABLE) : originals.concat(LABELS.UNAVAILABLE),
       });
@@ -608,8 +632,8 @@ async function applyUnavailableLabelToDevpoolIssue(
   } else if (projectIssue.state === "closed" && devpoolIssue.labels.some((label) => (label as GitHubLabel).name === LABELS.UNAVAILABLE)) {
     try {
       await octokit.rest.issues.removeLabel({
-        owner: process.env.DEVPOOL_OWNER_NAME,
-        repo: process.env.DEVPOOL_REPO_NAME,
+        owner: DEVPOOL_OWNER_NAME,
+        repo: DEVPOOL_REPO_NAME,
         issue_number: devpoolIssue.number,
         name: LABELS.UNAVAILABLE,
       });

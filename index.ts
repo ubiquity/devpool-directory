@@ -1,5 +1,8 @@
 import dotenv from "dotenv";
 import {
+  DEVPOOL_OWNER_NAME,
+  DEVPOOL_REPO_NAME,
+  IS_RFC,
   getAllIssues,
   getIssueByLabel,
   getProjectUrls,
@@ -33,7 +36,7 @@ async function main() {
   }
 
   // get devpool issues
-  const devpoolIssues: GitHubIssue[] = (await getAllIssues(process.env.DEVPOOL_OWNER_NAME, process.env.DEVPOOL_REPO_NAME))
+  const devpoolIssues: GitHubIssue[] = (await getAllIssues(DEVPOOL_OWNER_NAME, DEVPOOL_REPO_NAME))
 
   // aggregate projects.urls and opt settings
   const projectUrls = await getProjectUrls();
@@ -41,7 +44,7 @@ async function main() {
   // aggregate all project issues
   const allProjectIssues: GitHubIssue[] = [];
 
-  const isFork = await checkIfForked(process.env.DEVPOOL_OWNER_NAME);
+  const isFork = await checkIfForked(DEVPOOL_OWNER_NAME);
 
   // for each project URL
   for (const projectUrl of projectUrls) {
@@ -72,8 +75,8 @@ async function main() {
   }
 
   // Calculate total rewards from devpool issues
-  if (!process.env.RFC) {
-    const { rewards, tasks } = await calculateStatistics(await getAllIssues(process.env.DEVPOOL_OWNER_NAME, process.env.DEVPOOL_REPO_NAME));
+  if (IS_RFC) {
+    const { rewards, tasks } = await calculateStatistics(await getAllIssues(DEVPOOL_OWNER_NAME, DEVPOOL_REPO_NAME));
     const statistics: Statistics = { rewards, tasks };
 
     await writeTotalRewardsToGithub(statistics);
