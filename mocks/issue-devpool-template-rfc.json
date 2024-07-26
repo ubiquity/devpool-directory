@@ -1,0 +1,55 @@
+{
+  "assignee": {
+    "login": "",
+    "avatar_url": "",
+    "email": "undefined",
+    "events_url": "",
+    "followers_url": "",
+    "following_url": "",
+    "gists_url": "",
+    "gravatar_id": null,
+    "html_url": "",
+    "id": 1,
+    "name": "undefined",
+    "node_id": "",
+    "organizations_url": "",
+    "received_events_url": "",
+    "repos_url": "",
+    "site_admin": false,
+    "starred_at": "",
+    "starred_url": "",
+    "subscriptions_url": "",
+    "type": "",
+    "url": ""
+  },
+  "author_association": "NONE",
+  "closed_at": null,
+  "comments": 0,
+  "comments_url": "",
+  "created_at": "",
+  "events_url": "",
+  "html_url": "https://github.com/ubiquity/devpool-rfc/issues/1",
+  "id": 1,
+  "labels_url": "",
+  "locked": false,
+  "milestone": null,
+  "node_id": "1",
+  "number": 1,
+  "repository_url": "https://github.com/ubiquity/devpool-rfc",
+  "state": "open",
+  "title": "issue",
+  "updated_at": "",
+  "url": "",
+  "user": null,
+  "owner": "ubiquity",
+  "repo": "devpool-rfc",
+  "labels": [
+    {
+      "name": "Time: 1h"
+    },
+    {
+      "name": "id: 2"
+    }
+  ],
+  "body": "https://github.com/ubiquity/test-repo/issues/1"
+}
