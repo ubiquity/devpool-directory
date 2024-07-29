@@ -10,7 +10,7 @@ import { TwitterMap } from "..";
 // Usually
 export const DEVPOOL_OWNER_NAME = process.env.DEVPOOL_OWNER_NAME;
 export const DEVPOOL_REPO_NAME = process.env.DEVPOOL_REPO_NAME;
-export const IS_RFC = process.env.RFC == "1";
+export const IS_RFC = JSON.parse(process.env.RFC);
 
 // For rfc-issue-handler.test.ts
 // export const DEVPOOL_OWNER_NAME = "ubiquity";

@@ -16,7 +16,7 @@ env:
   TWITTER_ACCESS_TOKEN_SECRET: "<twitter_access_token_secret>"
   DEVPOOL_OWNER_NAME: ubiquity
   DEVPOOL_REPO_NAME: devpool-directory
-  RFC: 0
+  RFC: false
 
 jobs:
   testing:
