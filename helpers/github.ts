@@ -7,15 +7,9 @@ import { writeFile } from "fs/promises";
 import twitter from "./twitter";
 import { TwitterMap } from "..";
 
-// Usually
-export const DEVPOOL_OWNER_NAME = process.env.DEVPOOL_OWNER_NAME;
-export const DEVPOOL_REPO_NAME = process.env.DEVPOOL_REPO_NAME;
-export const IS_RFC = JSON.parse(process.env.RFC);
-
-// For rfc-issue-handler.test.ts
-// export const DEVPOOL_OWNER_NAME = "ubiquity";
-// export const DEVPOOL_REPO_NAME = "devpool-rfc";
-// export const IS_RFC = true;
+export const DEVPOOL_OWNER_NAME = process.env.DEVPOOL_OWNER_NAME!;
+export const DEVPOOL_REPO_NAME = process.env.DEVPOOL_REPO_NAME!;
+export const IS_RFC = JSON.parse(process.env.RFC!);
 
 export type GitHubIssue = RestEndpointMethodTypes["issues"]["get"]["response"]["data"];
 export type GitHubLabel = RestEndpointMethodTypes["issues"]["listLabelsOnIssue"]["response"]["data"][0];
