@@ -48,7 +48,6 @@ jobs:
           TWITTER_ACCESS_TOKEN_SECRET: ${{ secrets.TWITTER_ACCESS_TOKEN_SECRET }}
           DEVPOOL_OWNER_NAME: "ubiquity"
           DEVPOOL_REPO_NAME: "devpool-directory"
-          RFC: "false"
         run: npx tsx index.ts
 
       - uses: actions/upload-artifact@v4

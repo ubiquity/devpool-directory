@@ -9,7 +9,6 @@ import { TwitterMap } from "..";
 
 export const DEVPOOL_OWNER_NAME = process.env.DEVPOOL_OWNER_NAME!;
 export const DEVPOOL_REPO_NAME = process.env.DEVPOOL_REPO_NAME!;
-export const IS_RFC = JSON.parse(process.env.RFC!);
 
 export type GitHubIssue = RestEndpointMethodTypes["issues"]["get"]["response"]["data"];
 export type GitHubLabel = RestEndpointMethodTypes["issues"]["listLabelsOnIssue"]["response"]["data"][0];
@@ -396,8 +395,6 @@ export async function createDevPoolIssue(projectIssue: GitHubIssue, projectUrl: 
 
   // check if the issue is the same type as it should be
   const hasPriceLabel = (projectIssue.labels as GitHubLabel[]).some((label) => label.name.includes(LABELS.PRICE));
-  const hasCorrectPriceLabel = (IS_RFC && !hasPriceLabel) || (!IS_RFC && hasPriceLabel)
-  if (!hasCorrectPriceLabel) return;
 
   // create a new issue
   try {
@@ -416,7 +413,7 @@ export async function createDevPoolIssue(projectIssue: GitHubIssue, projectUrl: 
     }
 
     // post to social media (only if it's not an RFC)
-    if (!IS_RFC) {
+    if (hasPriceLabel) {
       try {
         const socialMediaText = getSocialMediaText(createdIssue.data);
         const tweetId = await twitter.postTweet(socialMediaText);
@@ -500,28 +497,12 @@ async function applyMetaChanges(
 }
 
 async function applyStateChanges(projectIssues: GitHubIssue[], projectIssue: GitHubIssue, devpoolIssue: GitHubIssue, hasPriceLabel: boolean) {
-  const hasCorrectPriceLabel = (IS_RFC && !hasPriceLabel) || (!IS_RFC && hasPriceLabel)
-
-  // console.log(hasCorrectPriceLabel)
-
   const stateChanges: StateChanges = {
     // missing in the partners
     forceMissing_Close: {
       cause: !projectIssues.some((projectIssue) => projectIssue.node_id === getIssueLabelValue(devpoolIssue, "id:")),
       effect: "closed",
       comment: "Closed (missing in partners)",
-    },
-    // no price labels set and open in the devpool
-    noPriceLabels_Close: {
-      cause: (!IS_RFC) && (!hasCorrectPriceLabel) && devpoolIssue.state === "open",
-      effect: "closed",
-      comment: "Closed (no price labels)",
-    },
-    // HAS price labels set and open in the RFC devpool
-    rfcPriceLabels_Close: {
-      cause: IS_RFC && (!hasCorrectPriceLabel) && devpoolIssue.state === "open",
-      effect: "closed",
-      comment: "Closed (has price labels)",
     },
     // it's closed, been merged and still open in the devpool
     issueComplete_Close: {
@@ -547,20 +528,19 @@ async function applyStateChanges(projectIssues: GitHubIssue[], projectIssue: Git
       effect: "closed",
       comment: "Closed (assigned-open)",
     },
-    // it's open, merged, unassigned, has CORRECT price labels and is closed in the devpool
+    // it's open, merged, unassigned and is closed in the devpool
     issueReopenedMerged_Open: {
       cause:
         projectIssue.state === "open" &&
         devpoolIssue.state === "closed" &&
         !!projectIssue.pull_request?.merged_at &&
-        hasCorrectPriceLabel &&
         !projectIssue.assignee?.login,
       effect: "open",
       comment: "Reopened (merged)",
     },
-    // it's open, unassigned, has CORRECT price labels and is closed in the devpool
+    // it's open, unassigned and is closed in the devpool
     issueUnassigned_Open: {
-      cause: projectIssue.state === "open" && devpoolIssue.state === "closed" && !projectIssue.assignee?.login && hasCorrectPriceLabel,
+      cause: projectIssue.state === "open" && devpoolIssue.state === "closed" && !projectIssue.assignee?.login,
       effect: "open",
       comment: "Reopened (unassigned)",
     },

@@ -2,7 +2,6 @@ import dotenv from "dotenv";
 import {
   DEVPOOL_OWNER_NAME,
   DEVPOOL_REPO_NAME,
-  IS_RFC,
   getAllIssues,
   getIssueByLabel,
   getProjectUrls,
@@ -36,7 +35,7 @@ async function main() {
   }
 
   // get devpool issues
-  const devpoolIssues: GitHubIssue[] = (await getAllIssues(DEVPOOL_OWNER_NAME, DEVPOOL_REPO_NAME))
+  const devpoolIssues: GitHubIssue[] = await getAllIssues(DEVPOOL_OWNER_NAME, DEVPOOL_REPO_NAME);
 
   // aggregate projects.urls and opt settings
   const projectUrls = await getProjectUrls();
@@ -75,12 +74,10 @@ async function main() {
   }
 
   // Calculate total rewards from devpool issues
-  if (IS_RFC) {
-    const { rewards, tasks } = await calculateStatistics(await getAllIssues(DEVPOOL_OWNER_NAME, DEVPOOL_REPO_NAME));
-    const statistics: Statistics = { rewards, tasks };
+  const { rewards, tasks } = await calculateStatistics(await getAllIssues(DEVPOOL_OWNER_NAME, DEVPOOL_REPO_NAME));
+  const statistics: Statistics = { rewards, tasks };
 
-    await writeTotalRewardsToGithub(statistics);
-  }
+  await writeTotalRewardsToGithub(statistics);
 }
 
 void (async () => {
