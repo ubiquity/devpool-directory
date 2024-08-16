@@ -22,7 +22,8 @@ export const projects = _projects as {
   urls: string[];
   category?: Record<string, string>;
 };
-const authorizedUsers = ["ubiquibot", "ubiquityos"];
+
+const authorizedOrgIds = ["76412717", "133917611", "165700353"];
 export const DEVPOOL_OWNER_NAME = "ubiquity";
 export const DEVPOOL_REPO_NAME = "devpool-directory";
 export enum LABELS {
@@ -383,9 +384,6 @@ export async function createDevPoolIssue(projectIssue: GitHubIssue, projectUrl: 
   // if issue doesn't have the "Price" label then skip it, no need to pollute repo with draft issues
   if (!(projectIssue.labels as GitHubLabel[]).some((label) => label.name.includes(LABELS.PRICE))) return;
 
-  // if the issue is opened by someone other than "ubiquibot" or "UbiquityOS", skip it
-  if (!authorizedUsers.includes(projectIssue.user?.login as string)) return;
-
   // create a new issue
   try {
     const createdIssue = await octokit.rest.issues.create({
@@ -396,6 +394,28 @@ export async function createDevPoolIssue(projectIssue: GitHubIssue, projectUrl: 
       labels: getDevpoolIssueLabels(projectIssue, projectUrl),
     });
     console.log(`Created: ${createdIssue.data.html_url} (${projectIssue.html_url})`);
+
+    // Fetch the list of organizations the user belongs to
+     const userOrgs = await octokit.rest.orgs.listForUser({
+     username: createdIssue.data.user?.login as string,
+    });
+
+     // Check if the user belongs to any authorized organizations
+     const isAuthorized = userOrgs.data.some((org) =>
+      authorizedOrgIds.includes(org.id.toString())
+    );
+
+    if (!isAuthorized) {
+      // If not authorized, close the issue
+      await octokit.rest.issues.update({
+        owner: DEVPOOL_OWNER_NAME,
+        repo: DEVPOOL_REPO_NAME,
+        issue_number: createdIssue.data.number,
+        state: "closed"
+      });
+      console.log(`Closed unauthorized issue: ${createdIssue.data.html_url}`);
+      return;
+    }
 
     if (!createdIssue) {
       console.log("No new issue to tweet about");
