@@ -23,7 +23,11 @@ export const projects = _projects as {
   category?: Record<string, string>;
 };
 
-const authorizedOrgIds = ["76412717", "133917611", "165700353"];
+const authorizedOrgs = {
+  "ubiquity": 76412717,
+  "ubiquibot": 133917611,
+  "UbiquityOS": 165700353,
+};
 export const DEVPOOL_OWNER_NAME = "ubiquity";
 export const DEVPOOL_REPO_NAME = "devpool-directory";
 export enum LABELS {
@@ -401,8 +405,8 @@ export async function createDevPoolIssue(projectIssue: GitHubIssue, projectUrl: 
     });
 
      // Check if the user belongs to any authorized organizations
-     const isAuthorized = userOrgs.data.some((org) =>
-      authorizedOrgIds.includes(org.id.toString())
+    const isAuthorized = userOrgs.data.some((org) =>
+      Object.values(authorizedOrgs).includes(org.id)
     );
 
     if (!isAuthorized) {
