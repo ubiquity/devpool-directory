@@ -22,7 +22,7 @@ export const projects = _projects as {
   urls: string[];
   category?: Record<string, string>;
 };
-
+const authorizedUsers = ["ubiquibot", "ubiquityos"];
 export const DEVPOOL_OWNER_NAME = "ubiquity";
 export const DEVPOOL_REPO_NAME = "devpool-directory";
 export enum LABELS {
@@ -382,6 +382,9 @@ export async function createDevPoolIssue(projectIssue: GitHubIssue, projectUrl: 
 
   // if issue doesn't have the "Price" label then skip it, no need to pollute repo with draft issues
   if (!(projectIssue.labels as GitHubLabel[]).some((label) => label.name.includes(LABELS.PRICE))) return;
+
+  // if the issue is opened by someone other than "ubiquibot" or "UbiquityOS", skip it
+  if (!authorizedUsers.includes(projectIssue.user?.login as string)) return;
 
   // create a new issue
   try {
