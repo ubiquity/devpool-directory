@@ -17,7 +17,7 @@ To test with Cypress Studio UI, run
 yarn cy:open
 ```
 
-Otherwise to simply run the tests through the console, run
+Otherwise, to simply run the tests through the console, run
 
 ```shell
 yarn cy:run
