@@ -6,7 +6,6 @@ This template repository includes support for the following:
 - Environment Variables
 - Conventional Commits
 - Automatic deployment to Cloudflare Pages
-- `manifest.json` plugin description
 
 ## Testing
 
