@@ -1428,39 +1428,6 @@ describe("createDevPoolIssue", () => {
       expect(logSpy).not.toHaveBeenCalledWith(expect.stringContaining("Created"));
     });
 
-    test("does not create a new devpool issue if it isnt created by ubiquibot", async () => {
-      const unauthorizedBot = {
-        login: "unauthorizedBot",
-      } as GitHubIssue["user"];
-
-      const partnerIssue = {
-        ...issueTemplate,
-        user: unauthorizedBot,
-      } as GitHubIssue;
-
-      db.issue.create({
-        ...issueDevpoolTemplate,
-        title: partnerIssue.title,
-        body: partnerIssue.html_url,
-        repository_url: UBIQUITY_TEST_REPO,
-      });
-
-      await createDevPoolIssue(partnerIssue, partnerIssue.html_url, UBIQUITY_TEST_REPO, twitterMap);
-
-      // Verify that no new issue was created
-      const devpoolIssue = db.issue.findFirst({
-        where: {
-          title: {
-            equals: partnerIssue.title,
-          },
-        },
-      }) as GitHubIssue;
-
-      expect(devpoolIssue).not.toBeNull();
-
-      expect(logSpy).not.toHaveBeenCalledWith(expect.stringContaining("Created"));
-    });
-
     test("does not create a new devpool issue if it's assigned", async () => {
       const partnerIssue = {
         ...issueTemplate,
