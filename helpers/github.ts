@@ -23,11 +23,6 @@ export const projects = _projects as {
   category?: Record<string, string>;
 };
 
-const authorizedOrgs = {
-  "ubiquity": 76412717,
-  "ubiquibot": 133917611,
-  "UbiquityOS": 165700353,
-};
 export const DEVPOOL_OWNER_NAME = "ubiquity";
 export const DEVPOOL_REPO_NAME = "devpool-directory";
 export enum LABELS {
@@ -399,28 +394,6 @@ export async function createDevPoolIssue(projectIssue: GitHubIssue, projectUrl: 
     });
     console.log(`Created: ${createdIssue.data.html_url} (${projectIssue.html_url})`);
 
-    // Fetch the list of organizations the user belongs to
-     const userOrgs = await octokit.rest.orgs.listForUser({
-     username: createdIssue.data.user?.login as string,
-    });
-
-     // Check if the user belongs to any authorized organizations
-    const isAuthorized = userOrgs.data.some((org) =>
-      Object.values(authorizedOrgs).includes(org.id)
-    );
-
-    if (!isAuthorized) {
-      // If not authorized, close the issue
-      await octokit.rest.issues.update({
-        owner: DEVPOOL_OWNER_NAME,
-        repo: DEVPOOL_REPO_NAME,
-        issue_number: createdIssue.data.number,
-        state: "closed"
-      });
-      console.log(`Closed unauthorized issue: ${createdIssue.data.html_url}`);
-      return;
-    }
-
     if (!createdIssue) {
       console.log("No new issue to tweet about");
       return;
@@ -439,6 +412,44 @@ export async function createDevPoolIssue(projectIssue: GitHubIssue, projectUrl: 
   } catch (err) {
     console.error("Failed to create new issue: ", err);
     return;
+  }
+
+  const isAuthorized = await isAuthorizedBot(projectIssue);
+  if (!isAuthorized) {
+    console.log("The bot is not authorized to create an issue in this repo. Closing the issue.");
+
+    // Close the unauthorized issue
+    try {
+      await octokit.rest.issues.update({
+        owner: projectIssue.repository?.owner.login as string,
+        repo: projectIssue.repository?.name as string,
+        issue_number: projectIssue.number,
+        state: "closed",
+      });
+      console.log(`Closed unauthorized issue: ${projectIssue.html_url}`);
+    } catch (error) {
+      console.error("Error closing the unauthorized issue:", error);
+    }
+
+  }
+}
+
+async function isAuthorizedBot(createdIssue: GitHubIssue) {
+  const authorizedOrgIds = [76412717, 133917611, 165700353];
+
+  try {
+    const installation = await octokit.rest.apps.getRepoInstallation({
+      owner: createdIssue.repository?.owner.login as string,
+      repo: createdIssue.repository?.name as string,
+    });
+
+    const botOrgId = installation.data.account?.id;
+
+    // Check if the bot's organization ID is in the list of authorized IDs
+    return authorizedOrgIds.includes(botOrgId as number);
+  } catch (error) {
+    console.error("Error checking bot authorization:", error);
+    return false;
   }
 }
 
