@@ -4,12 +4,12 @@ on:
   workflow_dispatch:
   push:
     branches:
-      - delete-unauthorized-users
+      - development
 
     paths-ignore:
       - "**/total-rewards.json"
   schedule:
-    - cron: "2 * * * *" # every hour at minute 15 (github recommends to set such cron jobs not at the start of an hour)
+    - cron: "15 * * * *" # every hour at minute 15 (github recommends to set such cron jobs not at the start of an hour)
 
 jobs:
   sync-issues:
