@@ -1,0 +1,28 @@
+name: Sync branch to template
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '0 0 1 * *'
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+  
+      - name: Sync branch to template
+        run: |
+          branch_name=$(git rev-parse --abbrev-ref HEAD)
+          original_remote=$(git remote get-url origin)
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+          git config --global user.name "github-actions[bot]"
+          git remote add template https://github.com/ubiquity/ts-template
+          git fetch template development
+          git update-index --assume-unchanged ".github/workflows/sync.yml"
+          git merge template/development --allow-unrelated-histories
+          git push "$original_remote" HEAD:"$branch_name"
