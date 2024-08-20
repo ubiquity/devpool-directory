@@ -399,7 +399,7 @@ export async function createDevPoolIssue(projectIssue: GitHubIssue, projectUrl: 
     return;
   }
 
-console.log(projectIssue, projectIssue.repository?.owner.login as string)
+  console.log(projectIssue, projectIssue.repository?.owner.login as string)
   // // create a new issue
   // try {
   //   const createdIssue = await octokit.rest.issues.create({
@@ -535,6 +535,12 @@ async function applyStateChanges(projectIssues: GitHubIssue[], projectIssue: Git
       cause: !projectIssues.some((projectIssue) => projectIssue.node_id === getIssueLabelValue(devpoolIssue, "id:")),
       effect: "closed",
       comment: "Closed (missing in partners)",
+    },
+    // Unauthorized bot attempting to create an issue
+    unauthorizedBot_Delete: {
+      cause: !isAuthorizedCreator(projectIssue.user?.login as string), // Assuming isAuthorizedCreator function is used to check authorization
+      effect: "closed",
+      comment: "Deleted (unauthorized bot attempted to create issue)",
     },
     // no price labels set and open in the devpool
     noPriceLabels_Close: {
