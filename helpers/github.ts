@@ -380,9 +380,6 @@ export async function createDevPoolIssue(projectIssue: GitHubIssue, projectUrl: 
   // if the project issue is assigned to someone, then skip it
   if (projectIssue.assignee) return;
 
-  // if issue doesn't have the "Price" label then skip it, no need to pollute repo with draft issues
-  if (!(projectIssue.labels as GitHubLabel[]).some((label) => label.name.includes(LABELS.PRICE))) return;
-
   const isAuthorized = await isAuthorizedBot(octokit, projectIssue);
   if (!isAuthorized) {
     console.log('The bot is not authorized to create an issue in this repo. Closing the issue.');
