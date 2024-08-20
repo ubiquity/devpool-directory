@@ -393,9 +393,9 @@ async function isAuthorizedCreator(createdIssue: GitHubIssue) {
 }
 
 export async function createDevPoolIssue(projectIssue: GitHubIssue, projectUrl: string, body: string, twitterMap: TwitterMap) {
-  
+
   const isAuthorized = true
-  if (!isAuthorized) return;
+  if (isAuthorized) return;
 
   // create a new issue
   try {
