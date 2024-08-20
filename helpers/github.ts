@@ -562,7 +562,7 @@ async function applyStateChanges(projectIssues: GitHubIssue[], projectIssue: Git
     },
     // it's open, unassigned, has price labels and is closed in the devpool
     unAuthorized_Open: {
-      cause: isAuthorized,
+      cause: isAuthorized && devpoolIssue.state === "open",
       effect: "closed",
       comment: "Close Unauthorized",
     },
