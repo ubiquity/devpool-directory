@@ -391,6 +391,7 @@ export async function createDevPoolIssue(projectIssue: GitHubIssue, projectUrl: 
         owner: DEVPOOL_OWNER_NAME,
         repo: DEVPOOL_REPO_NAME,
         issue_number: projectIssue.number,
+        state: "closed"
       });
       console.log(`Deleted unauthorized issue: ${projectIssue.html_url}`);
     } catch (err) {
@@ -544,7 +545,7 @@ async function applyStateChanges(projectIssues: GitHubIssue[], projectIssue: Git
     unauthorizedBot_Delete: {
       cause: !isAuthorizedCreator(projectIssue), // Assuming isAuthorizedCreator function is used to check authorization
       effect: "closed",
-      comment: "Deleted (unauthorized bot attempted to create issue)",
+      comment: "Closed (unauthorized bot attempted to create issue)",
     },
     // no price labels set and open in the devpool
     noPriceLabels_Close: {
