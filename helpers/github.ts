@@ -385,7 +385,7 @@ export async function createDevPoolIssue(projectIssue: GitHubIssue, projectUrl: 
 
   const isAuthorized = isAuthorizedCreator(projectIssue);
 
-  if(await isAuthorized === false) return
+  if(!isAuthorized) return;
 
   // create a new issue
   try {
@@ -424,8 +424,8 @@ async function isAuthorizedCreator(createdIssue: GitHubIssue) {
 
   try {
     const installation = await octokit.rest.apps.getRepoInstallation({
-      owner: createdIssue.repository?.owner.login as string,
-      repo: createdIssue.repository?.name as string,
+      owner: DEVPOOL_OWNER_NAME,
+      repo: DEVPOOL_REPO_NAME
     });
 
     const botOrgId = installation.data.account?.id;
