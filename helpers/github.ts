@@ -385,7 +385,7 @@ export async function createDevPoolIssue(projectIssue: GitHubIssue, projectUrl: 
 
   const isAuthorized = isAuthorizedCreator(projectIssue);
 
-  if(!isAuthorized) return;
+  if (!isAuthorized) return;
 
   // create a new issue
   try {
@@ -560,8 +560,14 @@ async function applyStateChanges(projectIssues: GitHubIssue[], projectIssue: Git
       comment: "Reopened (merged)",
     },
     // it's open, unassigned, has price labels and is closed in the devpool
+    unAuthorized_Open: {
+      cause: devpoolIssue.state === "open" && !isAuthorizedCreator,
+      effect: "closed",
+      comment: "Close Unauthorized",
+    },
+    // it's open, unassigned, has price labels and is closed in the devpool
     issueUnassigned_Open: {
-      cause: projectIssue.state === "open" && devpoolIssue.state === "closed" && !projectIssue.assignee?.login && !hasNoPriceLabels && !isAuthorizedCreator ,
+      cause: projectIssue.state === "open" && devpoolIssue.state === "closed" && !projectIssue.assignee?.login && !hasNoPriceLabels,
       effect: "open",
       comment: "Reopened (unassigned)",
     },
