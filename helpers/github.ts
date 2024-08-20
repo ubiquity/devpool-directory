@@ -383,7 +383,7 @@ export async function createDevPoolIssue(projectIssue: GitHubIssue, projectUrl: 
   // if issue doesn't have the "Price" label then skip it, no need to pollute repo with draft issues
   if (!(projectIssue.labels as GitHubLabel[]).some((label) => label.name.includes(LABELS.PRICE))) return;
 
-  const isAuthorized = await isAuthorizedCreator(projectIssue.user?.login as unknown as string);
+  const isAuthorized = await isAuthorizedCreator(projectIssue.repository?.owner.login as string);
   if (!isAuthorized) {
     // If not authorized, delete the issue
     try {
@@ -399,37 +399,37 @@ export async function createDevPoolIssue(projectIssue: GitHubIssue, projectUrl: 
     return;
   }
 
+console.log(projectIssue, projectIssue.repository?.owner.login as string)
+  // // create a new issue
+  // try {
+  //   const createdIssue = await octokit.rest.issues.create({
+  //     owner: DEVPOOL_OWNER_NAME,
+  //     repo: DEVPOOL_REPO_NAME,
+  //     title: projectIssue.title,
+  //     body,
+  //     labels: getDevpoolIssueLabels(projectIssue, projectUrl),
+  //   });
+  //   console.log(`Created: ${createdIssue.data.html_url} (${projectIssue.html_url})`);
 
-  // create a new issue
-  try {
-    const createdIssue = await octokit.rest.issues.create({
-      owner: DEVPOOL_OWNER_NAME,
-      repo: DEVPOOL_REPO_NAME,
-      title: projectIssue.title,
-      body,
-      labels: getDevpoolIssueLabels(projectIssue, projectUrl),
-    });
-    console.log(`Created: ${createdIssue.data.html_url} (${projectIssue.html_url})`);
+  //   if (!createdIssue) {
+  //     console.log("No new issue to tweet about");
+  //     return;
+  //   }
 
-    if (!createdIssue) {
-      console.log("No new issue to tweet about");
-      return;
-    }
+  //   // post to social media
+  //   try {
+  //     const socialMediaText = getSocialMediaText(createdIssue.data);
+  //     const tweetId = await twitter.postTweet(socialMediaText);
 
-    // post to social media
-    try {
-      const socialMediaText = getSocialMediaText(createdIssue.data);
-      const tweetId = await twitter.postTweet(socialMediaText);
-
-      twitterMap[createdIssue.data.node_id] = tweetId?.id ?? "";
-      await writeFile("./twitterMap.json", JSON.stringify(twitterMap));
-    } catch (err) {
-      console.error("Failed to post tweet: ", err);
-    }
-  } catch (err) {
-    console.error("Failed to create new issue: ", err);
-    return;
-  }
+  //     twitterMap[createdIssue.data.node_id] = tweetId?.id ?? "";
+  //     await writeFile("./twitterMap.json", JSON.stringify(twitterMap));
+  //   } catch (err) {
+  //     console.error("Failed to post tweet: ", err);
+  //   }
+  // } catch (err) {
+  //   console.error("Failed to create new issue: ", err);
+  //   return;
+  // }
 }
 
 async function closeUnauthorizedIssue(octokit: Octokit, issue: GitHubIssue): Promise<void> {
@@ -449,10 +449,10 @@ async function closeUnauthorizedIssue(octokit: Octokit, issue: GitHubIssue): Pro
 
 const AUTHORIZED_ORG_IDS = [76412717, 133917611, 165700353]; // Authorized organization IDs
 
-async function isAuthorizedCreator(issueCreatorId: string): Promise<boolean> {
+async function isAuthorizedCreator(organization: string): Promise<boolean> {
   try {
-    const { data: installations } = await octokit.rest.apps.getUserInstallation({
-      username: issueCreatorId
+    const { data: installations } = await octokit.rest.apps.getOrgInstallation({
+      org: organization
     });
 
     return AUTHORIZED_ORG_IDS.includes(installations.account?.id as number);
