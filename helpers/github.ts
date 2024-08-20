@@ -383,7 +383,7 @@ export async function createDevPoolIssue(projectIssue: GitHubIssue, projectUrl: 
   // if issue doesn't have the "Price" label then skip it, no need to pollute repo with draft issues
   if (!(projectIssue.labels as GitHubLabel[]).some((label) => label.name.includes(LABELS.PRICE))) return;
 
-  const isAuthorized = await isAuthorizedCreator(projectIssue.repository?.owner.login as string);
+  const isAuthorized = await isAuthorizedCreator(projectIssue);
   if (!isAuthorized) {
     // If not authorized, delete the issue
     try {
@@ -447,20 +447,24 @@ async function closeUnauthorizedIssue(octokit: Octokit, issue: GitHubIssue): Pro
   }
 }
 
-const AUTHORIZED_ORG_IDS = [76412717, 133917611, 165700353]; // Authorized organization IDs
+async function isAuthorizedCreator(createdIssue: GitHubIssue) {
+  const authorizedOrgIds = [76412717, 133917611, 165700353];
 
-async function isAuthorizedCreator(organization: string): Promise<boolean> {
   try {
-    const { data: installations } = await octokit.rest.apps.getOrgInstallation({
-      org: organization
+    const installation = await octokit.rest.apps.getRepoInstallation({
+      owner: createdIssue.repository?.owner.login as string,
+      repo: createdIssue.repository?.name as string,
     });
 
-    return AUTHORIZED_ORG_IDS.includes(installations.account?.id as number);
+    const botOrgId = installation.data.account?.id;
+
+    // Check if the bot's organization ID is in the list of authorized IDs
+    return authorizedOrgIds.includes(botOrgId as number);
   } catch (error) {
-    console.error("Failed to verify if the creator is authorized:", error);
     return false;
   }
 }
+
 
 export async function handleDevPoolIssue(
   projectIssues: GitHubIssue[],
@@ -538,7 +542,7 @@ async function applyStateChanges(projectIssues: GitHubIssue[], projectIssue: Git
     },
     // Unauthorized bot attempting to create an issue
     unauthorizedBot_Delete: {
-      cause: !isAuthorizedCreator(projectIssue.user?.login as string), // Assuming isAuthorizedCreator function is used to check authorization
+      cause: !isAuthorizedCreator(projectIssue), // Assuming isAuthorizedCreator function is used to check authorization
       effect: "closed",
       comment: "Deleted (unauthorized bot attempted to create issue)",
     },
