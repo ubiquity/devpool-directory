@@ -4,7 +4,7 @@ on:
   workflow_dispatch:
   push:
     branches:
-      - test-delete-issues
+      - delete-unauthorized-users
 
     paths-ignore:
       - "**/total-rewards.json"
