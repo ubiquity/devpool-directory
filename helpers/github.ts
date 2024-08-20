@@ -405,7 +405,7 @@ export async function createDevPoolIssue(projectIssue: GitHubIssue, projectUrl: 
 
   const isAuthorized = await isAuthorizedCreator(projectIssue)
   if (!isAuthorized) return;
-  
+
   // create a new issue
   try {
     const createdIssue = await octokit.rest.issues.create({
@@ -513,6 +513,12 @@ async function applyStateChanges(projectIssues: GitHubIssue[], projectIssue: Git
       effect: "closed",
       comment: "Closed (missing in partners)",
     },
+    // it's open, unassigned, has price labels and is closed in the devpool
+    unAuthorized_Open: {
+      cause: !isAuthorized && devpoolIssue.state === "open",
+      effect: "closed",
+      comment: "Close Unauthorized",
+    },
     // no price labels set and open in the devpool
     noPriceLabels_Close: {
       cause: hasNoPriceLabels && devpoolIssue.state === "open",
@@ -559,12 +565,6 @@ async function applyStateChanges(projectIssues: GitHubIssue[], projectIssue: Git
       cause: projectIssue.state === "open" && devpoolIssue.state === "closed" && !projectIssue.assignee?.login && !hasNoPriceLabels,
       effect: "open",
       comment: "Reopened (unassigned)",
-    },
-    // it's open, unassigned, has price labels and is closed in the devpool
-    unAuthorized_Open: {
-      cause: !isAuthorized && devpoolIssue.state === "open",
-      effect: "closed",
-      comment: "Close Unauthorized",
     },
   };
 
