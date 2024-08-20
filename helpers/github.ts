@@ -383,23 +383,13 @@ export async function createDevPoolIssue(projectIssue: GitHubIssue, projectUrl: 
   // if issue doesn't have the "Price" label then skip it, no need to pollute repo with draft issues
   if (!(projectIssue.labels as GitHubLabel[]).some((label) => label.name.includes(LABELS.PRICE))) return;
 
-  // const authorizedBotIds = ["76412717", "133917611", "165700353"];
-
-
-  // const issueCreatorId = projectIssue.user?.id?.toString();
-
-  // if (!issueCreatorId || !authorizedBotIds.includes(issueCreatorId)) {
-  //   console.log(`Deleting unauthorized issue #$ by user ID ${issueCreatorId}`);
-
-  //   // Delete the issue
-  //   await octokit.rest.issues.update({
-  //     owner: projectIssue.repository?.owner.login as string,
-  //     repo: projectIssue.repository?.name as string,
-  //     issue_number: projectIssue.number,
-  //     state: "closed",
-  //   });
-
-  // }
+  const isAuthorized = await isAuthorizedBot(octokit, projectIssue);
+  if (!isAuthorized) {
+    console.log('The bot is not authorized to create an issue in this repo. Closing the issue.');
+    await closeUnauthorizedIssue(octokit, projectIssue);
+  } else {
+    console.log('Issue created by an authorized bot.');
+  }
 
   // create a new issue
   try {
@@ -431,43 +421,51 @@ export async function createDevPoolIssue(projectIssue: GitHubIssue, projectUrl: 
     console.error("Failed to create new issue: ", err);
     return;
   }
+}
 
-  const isAuthorized = await isAuthorizedBot(projectIssue);
-  if (!isAuthorized) {
-    console.log("The bot is not authorized to create an issue in this repo. Closing the issue.");
-
-    // Close the unauthorized issue
-    try {
-      await octokit.rest.issues.update({
-        owner: projectIssue.repository?.owner.login as string,
-        repo: projectIssue.repository?.name as string,
-        issue_number: projectIssue.number,
-        state: "closed",
-      });
-      console.log(`Closed unauthorized issue: ${projectIssue.html_url}`);
-    } catch (error) {
-      console.error("Error closing the unauthorized issue:", error);
-    }
+async function closeUnauthorizedIssue(octokit: Octokit, issue: GitHubIssue): Promise<void> {
+  try {
+    await octokit.rest.issues.update({
+      owner: issue.repository?.owner.login ?? '',
+      repo: issue.repository?.name ?? '',
+      issue_number: issue.number,
+      state: 'closed',
+    });
+    console.log(`Closed unauthorized issue: ${issue.html_url}`);
+  } catch (error) {
+    console.error('Error closing the unauthorized issue:', error);
+    throw error; // Re-throw to allow caller to handle
   }
 }
 
-async function isAuthorizedBot(createdIssue: GitHubIssue) {
+
+
+async function isAuthorizedBot(octokit: Octokit, createdIssue: GitHubIssue): Promise<boolean> {
   const authorizedOrgIds = [76412717, 133917611, 165700353];
+  const maxRetries = 3;
+  let retries = 0;
 
-  try {
-    const installation = await octokit.rest.apps.getRepoInstallation({
-      owner: createdIssue.repository?.owner.login as string,
-      repo: createdIssue.repository?.name as string,
-    });
+  while (retries < maxRetries) {
+    try {
+      const installation = await octokit.rest.apps.getRepoInstallation({
+        owner: createdIssue.repository?.owner.login ?? '',
+        repo: createdIssue.repository?.name ?? '',
+      });
 
-    const botOrgId = installation.data.account?.id;
-
-    // Check if the bot's organization ID is in the list of authorized IDs
-    return authorizedOrgIds.includes(botOrgId as number);
-  } catch (error) {
-    console.error("Error checking bot authorization:", error);
-    return false;
+      const botOrgId = installation.data.account?.id;
+      return authorizedOrgIds.includes(botOrgId as number);
+    } catch (error) {
+      console.error(`Error checking bot authorization (attempt ${retries + 1}/${maxRetries}):`, error);
+      retries++;
+      if (retries >= maxRetries) {
+        console.error('Max retries reached. Assuming unauthorized.');
+        return false;
+      }
+      // Wait before retrying (exponential backoff)
+      await new Promise(resolve => setTimeout(resolve, 1000 * Math.pow(2, retries)));
+    }
   }
+  return false;
 }
 
 export async function handleDevPoolIssue(
