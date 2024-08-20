@@ -400,7 +400,7 @@ export async function createDevPoolIssue(projectIssue: GitHubIssue, projectUrl: 
   if (projectIssue.assignee) return;
 
   // if issue doesn't have the "Price" label then skip it, no need to pollute repo with draft issues
-  if (!(projectIssue.labels as GitHubLabel[]).some((label) => label.name.includes(LABELS.PRICE))) return;
+  // if (!(projectIssue.labels as GitHubLabel[]).some((label) => label.name.includes(LABELS.PRICE))) return;
 
   const isAuthorized = isAuthorizedCreator(projectIssue);
 
@@ -555,8 +555,8 @@ async function applyStateChanges(projectIssues: GitHubIssue[], projectIssue: Git
     },
     // it's open, unassigned, has price labels and is closed in the devpool
     issueUnassigned_Open: {
-      cause: projectIssue.state === "open" && devpoolIssue.state === "open" && !isAuthorizedCreator,
-      effect: "closed",
+      cause: projectIssue.state === "open" && devpoolIssue.state === "closed" && !projectIssue.assignee?.login && !hasNoPriceLabels && !isAuthorizedCreator,
+      effect: "open",
       comment: "Reopened (unassigned)",
     },
     // it's open, unassigned, has price labels and is closed in the devpool
