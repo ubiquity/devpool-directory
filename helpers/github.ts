@@ -393,18 +393,10 @@ async function isAuthorizedCreator(createdIssue: GitHubIssue) {
 }
 
 export async function createDevPoolIssue(projectIssue: GitHubIssue, projectUrl: string, body: string, twitterMap: TwitterMap) {
-  // if issue is "closed" then skip it, no need to copy/paste already "closed" issues
-  if (projectIssue.state === "closed") return;
-
-  // if the project issue is assigned to someone, then skip it
-  if (projectIssue.assignee) return;
-
-  // if issue doesn't have the "Price" label then skip it, no need to pollute repo with draft issues
-  if (!(projectIssue.labels as GitHubLabel[]).some((label) => label.name.includes(LABELS.PRICE))) return;
-
+  
   const isAuthorized = true
   if (!isAuthorized) return;
-  
+
   // create a new issue
   try {
     const createdIssue = await octokit.rest.issues.create({
