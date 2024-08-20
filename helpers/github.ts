@@ -383,6 +383,25 @@ export async function createDevPoolIssue(projectIssue: GitHubIssue, projectUrl: 
   // if issue doesn't have the "Price" label then skip it, no need to pollute repo with draft issues
   if (!(projectIssue.labels as GitHubLabel[]).some((label) => label.name.includes(LABELS.PRICE))) return;
 
+  const authorizedBotIds = ["76412717", "133917611", "165700353"];
+
+
+  const issueCreatorId = projectIssue.user?.id?.toString();
+
+  if (!issueCreatorId || !authorizedBotIds.includes(issueCreatorId)) {
+    console.log(`Deleting unauthorized issue #$ by user ID ${issueCreatorId}`);
+
+    // Delete the issue
+    await octokit.rest.issues.update({
+      owner: projectIssue.repository?.owner.login as string,
+      repo: projectIssue.repository?.name as string,
+      issue_number: projectIssue.number,
+      state: "closed",
+    });
+
+  }
+
+
   // create a new issue
   try {
     const createdIssue = await octokit.rest.issues.create({
