@@ -383,13 +383,22 @@ export async function createDevPoolIssue(projectIssue: GitHubIssue, projectUrl: 
   // if issue doesn't have the "Price" label then skip it, no need to pollute repo with draft issues
   if (!(projectIssue.labels as GitHubLabel[]).some((label) => label.name.includes(LABELS.PRICE))) return;
 
-  const isAuthorized = await isAuthorizedBot(octokit, projectIssue);
+  const isAuthorized = await isAuthorizedCreator(projectIssue.user?.login as unknown as string);
   if (!isAuthorized) {
-    console.log('The bot is not authorized to create an issue in this repo. Closing the issue.');
-    await closeUnauthorizedIssue(octokit, projectIssue);
-  } else {
-    console.log('Issue created by an authorized bot.');
+    // If not authorized, delete the issue
+    try {
+      await octokit.rest.issues.update({
+        owner: DEVPOOL_OWNER_NAME,
+        repo: DEVPOOL_REPO_NAME,
+        issue_number: projectIssue.number,
+      });
+      console.log(`Deleted unauthorized issue: ${projectIssue.html_url}`);
+    } catch (err) {
+      console.error("Failed to delete unauthorized issue:", err);
+    }
+    return;
   }
+
 
   // create a new issue
   try {
@@ -426,8 +435,8 @@ export async function createDevPoolIssue(projectIssue: GitHubIssue, projectUrl: 
 async function closeUnauthorizedIssue(octokit: Octokit, issue: GitHubIssue): Promise<void> {
   try {
     await octokit.rest.issues.update({
-      owner: issue.repository?.owner.login ?? '',
-      repo: issue.repository?.name ?? '',
+      owner: DEVPOOL_OWNER_NAME,
+      repo: DEVPOOL_REPO_NAME,
       issue_number: issue.number,
       state: 'closed',
     });
@@ -438,34 +447,19 @@ async function closeUnauthorizedIssue(octokit: Octokit, issue: GitHubIssue): Pro
   }
 }
 
+const AUTHORIZED_ORG_IDS = [76412717, 133917611, 165700353]; // Authorized organization IDs
 
+async function isAuthorizedCreator(issueCreatorId: string): Promise<boolean> {
+  try {
+    const { data: installations } = await octokit.rest.apps.getUserInstallation({
+      username: issueCreatorId
+    });
 
-async function isAuthorizedBot(octokit: Octokit, createdIssue: GitHubIssue): Promise<boolean> {
-  const authorizedOrgIds = [76412717, 133917611, 165700353];
-  const maxRetries = 3;
-  let retries = 0;
-
-  while (retries < maxRetries) {
-    try {
-      const installation = await octokit.rest.apps.getRepoInstallation({
-        owner: createdIssue.repository?.owner.login ?? '',
-        repo: createdIssue.repository?.name ?? '',
-      });
-
-      const botOrgId = installation.data.account?.id;
-      return authorizedOrgIds.includes(botOrgId as number);
-    } catch (error) {
-      console.error(`Error checking bot authorization (attempt ${retries + 1}/${maxRetries}):`, error);
-      retries++;
-      if (retries >= maxRetries) {
-        console.error('Max retries reached. Assuming unauthorized.');
-        return false;
-      }
-      // Wait before retrying (exponential backoff)
-      await new Promise(resolve => setTimeout(resolve, 1000 * Math.pow(2, retries)));
-    }
+    return AUTHORIZED_ORG_IDS.includes(installations.account?.id as number);
+  } catch (error) {
+    console.error("Failed to verify if the creator is authorized:", error);
+    return false;
   }
-  return false;
 }
 
 export async function handleDevPoolIssue(
