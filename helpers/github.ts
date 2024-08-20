@@ -512,12 +512,6 @@ async function applyStateChanges(projectIssues: GitHubIssue[], projectIssue: Git
       effect: "closed",
       comment: "Closed (missing in partners)",
     },
-    // Unauthorized bot attempting to create an issue
-    unauthorizedBot_Close: {
-      cause: projectIssue.user?.id === 76412717, // Assuming isAuthorizedCreator function is used to check authorization
-      effect: "open",
-      comment: "Closed (unauthorized bot attempted to create issue)",
-    },
     // no price labels set and open in the devpool
     noPriceLabels_Close: {
       cause: hasNoPriceLabels && devpoolIssue.state === "open",
@@ -561,7 +555,7 @@ async function applyStateChanges(projectIssues: GitHubIssue[], projectIssue: Git
     },
     // it's open, unassigned, has price labels and is closed in the devpool
     issueUnassigned_Open: {
-      cause: projectIssue.state === "open" && devpoolIssue.state === "closed" && !projectIssue.assignee?.login && !hasNoPriceLabels,
+      cause: projectIssue.state === "open" && devpoolIssue.state === "closed" && !projectIssue.assignee?.login && !hasNoPriceLabels && !isAuthorizedCreator,
       effect: "open",
       comment: "Reopened (unassigned)",
     },
