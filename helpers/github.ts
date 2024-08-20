@@ -383,24 +383,10 @@ export async function createDevPoolIssue(projectIssue: GitHubIssue, projectUrl: 
   // if issue doesn't have the "Price" label then skip it, no need to pollute repo with draft issues
   if (!(projectIssue.labels as GitHubLabel[]).some((label) => label.name.includes(LABELS.PRICE))) return;
 
-  const isAuthorized = await isAuthorizedCreator(projectIssue);
-  if (!isAuthorized) {
-    // If not authorized, close the issue
-    try {
-      await octokit.rest.issues.update({
-        owner: DEVPOOL_OWNER_NAME,
-        repo: DEVPOOL_REPO_NAME,
-        issue_number: projectIssue.number,
-        state: "closed"
-      });
-      console.log(`Deleted unauthorized issue: ${projectIssue.html_url}`);
-    } catch (err) {
-      console.error("Failed to delete unauthorized issue:", err);
-    }
-    return;
-  }
+  const isAuthorized = isAuthorizedCreator(projectIssue);
 
-  console.log(projectIssue, projectIssue.repository?.owner.login as string)
+  if(await isAuthorized === false) return
+
   // create a new issue
   try {
     const createdIssue = await octokit.rest.issues.create({
@@ -527,7 +513,7 @@ async function applyStateChanges(projectIssues: GitHubIssue[], projectIssue: Git
       comment: "Closed (missing in partners)",
     },
     // Unauthorized bot attempting to create an issue
-    unauthorizedBot_Delete: {
+    unauthorizedBot_Close: {
       cause: !isAuthorizedCreator(projectIssue), // Assuming isAuthorizedCreator function is used to check authorization
       effect: "closed",
       comment: "Closed (unauthorized bot attempted to create issue)",
