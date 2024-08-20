@@ -403,9 +403,8 @@ export async function createDevPoolIssue(projectIssue: GitHubIssue, projectUrl: 
   if (!(projectIssue.labels as GitHubLabel[]).some((label) => label.name.includes(LABELS.PRICE))) return;
 
   const isAuthorized = true
-
   if (!isAuthorized) return;
-
+  
   // create a new issue
   try {
     const createdIssue = await octokit.rest.issues.create({
