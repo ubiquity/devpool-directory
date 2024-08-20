@@ -504,6 +504,7 @@ async function applyMetaChanges(
 }
 
 async function applyStateChanges(projectIssues: GitHubIssue[], projectIssue: GitHubIssue, devpoolIssue: GitHubIssue, hasNoPriceLabels: boolean) {
+  const isAuthorized = await isAuthorizedCreator(projectIssue);
   const stateChanges: StateChanges = {
     // missing in the partners
     forceMissing_Close: {
@@ -554,13 +555,13 @@ async function applyStateChanges(projectIssues: GitHubIssue[], projectIssue: Git
     },
     // it's open, unassigned, has price labels and is closed in the devpool
     issueUnassigned_Open: {
-      cause: projectIssue.state === "open" && devpoolIssue.state === "closed" && !projectIssue.assignee?.login && !hasNoPriceLabels && !isAuthorizedCreator,
+      cause: projectIssue.state === "open" && devpoolIssue.state === "closed" && !projectIssue.assignee?.login && !hasNoPriceLabels,
       effect: "open",
       comment: "Reopened (unassigned)",
     },
     // it's open, unassigned, has price labels and is closed in the devpool
     unAuthorized_Open: {
-      cause: !isAuthorizedCreator,
+      cause: isAuthorized,
       effect: "closed",
       comment: "Close Unauthorized",
     },
