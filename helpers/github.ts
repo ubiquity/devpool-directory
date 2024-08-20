@@ -404,7 +404,7 @@ export async function createDevPoolIssue(projectIssue: GitHubIssue, projectUrl: 
   if (!(projectIssue.labels as GitHubLabel[]).some((label) => label.name.includes(LABELS.PRICE))) return;
 
   const isAuthorized = await isAuthorizedCreator(projectIssue)
-  if (isAuthorized) return;
+  if (!isAuthorized) return;
   
   // create a new issue
   try {
