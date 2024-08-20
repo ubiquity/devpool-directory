@@ -430,7 +430,6 @@ export async function createDevPoolIssue(projectIssue: GitHubIssue, projectUrl: 
     } catch (error) {
       console.error("Error closing the unauthorized issue:", error);
     }
-
   }
 }
 
@@ -448,11 +447,7 @@ async function isAuthorizedBot(createdIssue: GitHubIssue) {
     // Check if the bot's organization ID is in the list of authorized IDs
     return authorizedOrgIds.includes(botOrgId as number);
   } catch (error) {
-    if (error.status === 404) {
-      console.error(`Installation not found for repository ${createdIssue.repository?.owner.login}/${createdIssue.repository?.name}. Ensure that the GitHub App is installed.`);
-    } else {
-      console.error("Error checking bot authorization:", error);
-    }
+    console.error("Error checking bot authorization:", error);
     return false;
   }
 }
