@@ -402,7 +402,7 @@ export async function createDevPoolIssue(projectIssue: GitHubIssue, projectUrl: 
   // if issue doesn't have the "Price" label then skip it, no need to pollute repo with draft issues
   if (!(projectIssue.labels as GitHubLabel[]).some((label) => label.name.includes(LABELS.PRICE))) return;
 
-  const isAuthorized = true
+  const isAuthorized = await isAuthorizedCreator(projectIssue)
   if (isAuthorized) return;
   
   // create a new issue
