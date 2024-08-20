@@ -555,8 +555,8 @@ async function applyStateChanges(projectIssues: GitHubIssue[], projectIssue: Git
     },
     // it's open, unassigned, has price labels and is closed in the devpool
     issueUnassigned_Open: {
-      cause: projectIssue.state === "open" && devpoolIssue.state === "closed" && !projectIssue.assignee?.login && !hasNoPriceLabels,
-      effect: "open",
+      cause: projectIssue.state === "open" && devpoolIssue.state === "closed" && !projectIssue.assignee?.login && !hasNoPriceLabels && !isAuthorizedCreator,
+      effect: "closed",
       comment: "Reopened (unassigned)",
     },
     // it's open, unassigned, has price labels and is closed in the devpool
