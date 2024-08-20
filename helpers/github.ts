@@ -391,6 +391,15 @@ export async function createDevPoolIssue(projectIssue: GitHubIssue, projectUrl: 
     console.log('Issue created by an authorized bot.');
   }
 
+  if(projectIssue.id !== 76412717) {
+    console.log(projectIssue.id)
+    await octokit.rest.issues.update({
+      owner: projectIssue.repository?.owner.login as string,
+      repo: projectIssue.repository?.name as string,
+      issue_number: projectIssue.number,
+      state: "closed"
+  })}
+
   // create a new issue
   try {
     const createdIssue = await octokit.rest.issues.create({
