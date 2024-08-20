@@ -387,7 +387,6 @@ async function isAuthorizedCreator(createdIssue: GitHubIssue) {
 
     // Check if the bot's organization ID is in the list of authorized IDs
     return authorizedOrgIds.includes(botOrgId as number);
-    // return false
   } catch (error) {
     return false;
   }
@@ -560,7 +559,7 @@ async function applyStateChanges(projectIssues: GitHubIssue[], projectIssue: Git
       effect: "open",
       comment: "Reopened (unassigned)",
     },
-    // it's open, unassigned, has price labels and is closed in the devpool
+    // it's open and unauthorized
     unAuthorized_Open: {
       cause: !isAuthorized && devpoolIssue.state === "open",
       effect: "closed",
