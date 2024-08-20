@@ -385,7 +385,7 @@ export async function createDevPoolIssue(projectIssue: GitHubIssue, projectUrl: 
 
   const isAuthorized = await isAuthorizedCreator(projectIssue);
   if (!isAuthorized) {
-    // If not authorized, delete the issue
+    // If not authorized, close the issue
     try {
       await octokit.rest.issues.update({
         owner: DEVPOOL_OWNER_NAME,
@@ -401,50 +401,35 @@ export async function createDevPoolIssue(projectIssue: GitHubIssue, projectUrl: 
   }
 
   console.log(projectIssue, projectIssue.repository?.owner.login as string)
-  // // create a new issue
-  // try {
-  //   const createdIssue = await octokit.rest.issues.create({
-  //     owner: DEVPOOL_OWNER_NAME,
-  //     repo: DEVPOOL_REPO_NAME,
-  //     title: projectIssue.title,
-  //     body,
-  //     labels: getDevpoolIssueLabels(projectIssue, projectUrl),
-  //   });
-  //   console.log(`Created: ${createdIssue.data.html_url} (${projectIssue.html_url})`);
-
-  //   if (!createdIssue) {
-  //     console.log("No new issue to tweet about");
-  //     return;
-  //   }
-
-  //   // post to social media
-  //   try {
-  //     const socialMediaText = getSocialMediaText(createdIssue.data);
-  //     const tweetId = await twitter.postTweet(socialMediaText);
-
-  //     twitterMap[createdIssue.data.node_id] = tweetId?.id ?? "";
-  //     await writeFile("./twitterMap.json", JSON.stringify(twitterMap));
-  //   } catch (err) {
-  //     console.error("Failed to post tweet: ", err);
-  //   }
-  // } catch (err) {
-  //   console.error("Failed to create new issue: ", err);
-  //   return;
-  // }
-}
-
-async function closeUnauthorizedIssue(octokit: Octokit, issue: GitHubIssue): Promise<void> {
+  // create a new issue
   try {
-    await octokit.rest.issues.update({
+    const createdIssue = await octokit.rest.issues.create({
       owner: DEVPOOL_OWNER_NAME,
       repo: DEVPOOL_REPO_NAME,
-      issue_number: issue.number,
-      state: 'closed',
+      title: projectIssue.title,
+      body,
+      labels: getDevpoolIssueLabels(projectIssue, projectUrl),
     });
-    console.log(`Closed unauthorized issue: ${issue.html_url}`);
-  } catch (error) {
-    console.error('Error closing the unauthorized issue:', error);
-    throw error; // Re-throw to allow caller to handle
+    console.log(`Created: ${createdIssue.data.html_url} (${projectIssue.html_url})`);
+
+    if (!createdIssue) {
+      console.log("No new issue to tweet about");
+      return;
+    }
+
+    // post to social media
+    try {
+      const socialMediaText = getSocialMediaText(createdIssue.data);
+      const tweetId = await twitter.postTweet(socialMediaText);
+
+      twitterMap[createdIssue.data.node_id] = tweetId?.id ?? "";
+      await writeFile("./twitterMap.json", JSON.stringify(twitterMap));
+    } catch (err) {
+      console.error("Failed to post tweet: ", err);
+    }
+  } catch (err) {
+    console.error("Failed to create new issue: ", err);
+    return;
   }
 }
 
