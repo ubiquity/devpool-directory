@@ -13,7 +13,7 @@ jobs:
       - name: Read sync.yml content
         id: read-sync-yml
         run: |
-          SYNC_CONTENT=$(cat .github/templates/sync.yml | sed 's/[$()`]/\\&/g')
+          SYNC_CONTENT=$(cat .github/templates/sync.yml)
           echo "SYNC_CONTENT<<EOF" >> $GITHUB_ENV
           echo "$SYNC_CONTENT" >> $GITHUB_ENV
           echo "EOF" >> $GITHUB_ENV
@@ -49,7 +49,7 @@ jobs:
             echo "commiting"
             git commit -m "Add sync.yml workflow"
             echo "pushing"
-            git push $original_remote $branch_name
+            # git push $original_remote $branch_name
             gh pr create --title "Add sync.yml workflow that synchronizes the template every month" --body "Details: https://github.com/ubiquity/ts-template/issues/54" --head "$branch_name" --base development
             cd ..
             rm -rf $REPO
