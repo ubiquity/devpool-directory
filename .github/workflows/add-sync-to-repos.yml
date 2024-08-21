@@ -38,12 +38,17 @@ jobs:
             branch_name="add-sync-script"
             git checkout -b $branch_name
             mkdir -p .github/workflows
+            echo "sync.yml content:"
             echo "${{ env.SYNC_CONTENT }}"
+            echo "------"
             echo "${{ env.SYNC_CONTENT }}" > .github/workflows/sync.yml
+            echo "configuring git"
             git config --global user.email "github-actions[bot]@users.noreply.github.com"
             git config --global user.name "github-actions[bot]"
             git add .github/workflows/sync.yml
+            echo "commiting"
             git commit -m "Add sync.yml workflow"
+            echo "pushing"
             git push $original_remote $branch_name
             gh pr create --title "Add sync.yml workflow that synchronizes the template every month" --body "Details: https://github.com/ubiquity/ts-template/issues/54" --head "$branch_name" --base development
             cd ..
