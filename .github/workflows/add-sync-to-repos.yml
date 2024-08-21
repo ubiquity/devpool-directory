@@ -13,7 +13,7 @@ jobs:
       - name: Read sync.yml content
         id: read-sync-yml
         run: |
-          SYNC_CONTENT=$(cat .github/workflows/sync.yml)
+          SYNC_CONTENT=$(cat .github/templates/sync.yml | sed 's/[$()`]/\\&/g')
           echo "SYNC_CONTENT<<EOF" >> $GITHUB_ENV
           echo "$SYNC_CONTENT" >> $GITHUB_ENV
           echo "EOF" >> $GITHUB_ENV
@@ -39,7 +39,7 @@ jobs:
             branch_name="add-sync-script"
             git checkout -b $branch_name
             mkdir -p .github/workflows
-            echo ${{env.SYNC_CONTENT}} > .github/workflows/sync.yml
+            echo "${{ env.SYNC_CONTENT }}" > .github/workflows/sync.yml
             git add .github/workflows/sync.yml
             git commit -m "Add sync.yml workflow"
             git push origin $branch_name
