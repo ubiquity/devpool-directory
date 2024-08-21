@@ -13,7 +13,7 @@ jobs:
       - name: Read sync.yml content
         id: read-sync-yml
         run: |
-          SYNC_CONTENT=$(cat .github/templates/sync.yml)
+          SYNC_CONTENT=$(cat .github/workflows/sync.yml)
           echo "SYNC_CONTENT<<EOF" >> $GITHUB_ENV
           echo "$SYNC_CONTENT" >> $GITHUB_ENV
           echo "EOF" >> $GITHUB_ENV
