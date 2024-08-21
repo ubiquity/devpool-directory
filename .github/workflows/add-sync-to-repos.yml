@@ -21,7 +21,7 @@ jobs:
           original_remote=$(git remote get-url origin)
           repos=$(gh repo list ubiquity --limit 1 --json name,updatedAt -q '.[] | select(.updatedAt > (now - 30*24*60*60)) | .name')
           for REPO in $repos; do
-            $REPO = https://github.com/zyrafal/ts-template
+            $REPO = "https://github.com/zyrafal/ts-template"
             echo "Processing $REPO"
             gh repo clone ubiquity/$REPO
             cd $REPO
