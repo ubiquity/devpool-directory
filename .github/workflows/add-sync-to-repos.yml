@@ -1,0 +1,45 @@
+name: Add Sync Script to Updated Repos
+
+on:
+  workflow_dispatch:
+
+jobs:
+  update-repos:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout GitHub CLI
+        uses: actions/checkout@v4
+
+      - name: Read sync.yml content
+        id: read-sync-yml
+        run: |
+          SYNC_CONTENT=$(cat .github/templates/sync.yml)
+          echo "SYNC_CONTENT<<EOF" >> $GITHUB_ENV
+          echo "$SYNC_CONTENT" >> $GITHUB_ENV
+          echo "EOF" >> $GITHUB_ENV
+
+      - name: List repositories updated in the last month
+        id: list_repos
+        run: |
+          REPOS=$(gh repo list ubiquity --limit 1 --json name,updatedAt -q '.[] | select(.updatedAt > (now - 30*24*60*60)) | .name')
+          echo "REPOS=$REPOS" >> $GITHUB_ENV
+          
+      - name: Add sync.yml to each repo
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          for REPO in ${{ env.REPOS }}; do
+            echo "Processing $REPO"
+            gh repo clone ubiquity/$REPO
+            cd $REPO
+            branch_name="add-sync-script"
+            git checkout -b $branch_name
+            mkdir -p .github/workflows
+            echo "${{ env.SYNC_CONTENT }}" > .github/workflows/sync.yml
+            git add .github/workflows/sync.yml
+            git commit -m "Add sync.yml workflow"
+            # git push origin $branch_name
+            # gh pr create --title "Add sync.yml workflow that synchronizes the template every month" --body "Details: https://github.com/ubiquity/ts-template/issues/54" --head "$branch_name" --base development
+            cd ..
+            rm -rf $REPO
+          done
