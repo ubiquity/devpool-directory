@@ -29,7 +29,7 @@ jobs:
             git config --global user.name "github-actions[bot]"
             git add .github/workflows/sync.yml
             git commit -m "Add sync.yml workflow"
-            git push $original_remote $branch_name
+            git push "$original_remote" "$branch_name"
             gh pr create --title "Add sync.yml workflow that synchronizes the template every month" --body "Details: https://github.com/ubiquity/ts-template/issues/54" --head "$original_remote:$branch_name" --base development
             cd ..
             rm -rf $REPO
