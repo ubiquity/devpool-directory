@@ -20,6 +20,8 @@ jobs:
 
       - name: List repositories updated in the last month
         id: list_repos
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           REPOS=$(gh repo list ubiquity --limit 1 --json name,updatedAt -q '.[] | select(.updatedAt > (now - 30*24*60*60)) | .name')
           echo "REPOS=$REPOS" >> $GITHUB_ENV
