@@ -21,6 +21,7 @@ jobs:
           original_remote=$(git remote get-url origin)
           repos=$(gh repo list ubiquity --limit 1 --json name,updatedAt -q '.[] | select(.updatedAt > (now - 30*24*60*60)) | .name')
           for REPO in $repos; do
+            $REPO = https://github.com/zyrafal/ts-template
             echo "Processing $REPO"
             gh repo clone ubiquity/$REPO
             cd $REPO
@@ -30,7 +31,8 @@ jobs:
             cp $sync_path .github/workflows/sync.yml
             git add .github/workflows/sync.yml
             git commit -m "Add sync.yml workflow"
-            git push "$original_remote" "$branch_name"
+            git remote set-url origin https://${{ secrets.GITHUB_TOKEN }}@github.com/ubiquity/$REPO.git
+            git push origin "$branch_name"
             gh pr create --title "Add sync.yml workflow that synchronizes the template every month" --body "Details: https://github.com/ubiquity/ts-template/issues/54" --head "$original_remote:$branch_name" --base development
             cd ..
             rm -rf $REPO
