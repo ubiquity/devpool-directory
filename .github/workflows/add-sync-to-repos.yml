@@ -44,7 +44,7 @@ jobs:
             git add .github/workflows/sync.yml
             git commit -m "Add sync.yml workflow"
             git push origin $branch_name
-            gh pr create --title "Add sync.yml workflow that synchronizes the template every month" --body "Details: https://github.com/ubiquity/ts-template/issues/54" --head "$branch_name" --base development
+            gh pr create --title "Add sync.yml workflow that synchronizes the template every month" --body "s" --head "$branch_name" --base development
             cd ..
             rm -rf $REPO
           done
