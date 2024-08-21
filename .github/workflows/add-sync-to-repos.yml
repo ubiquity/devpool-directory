@@ -10,27 +10,13 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Read sync.yml content
-        id: read-sync-yml
-        run: |
-          SYNC_CONTENT=$(cat .github/workflows/sync.yml)
-          echo "SYNC_CONTENT<<EOF" >> $GITHUB_ENV
-          echo "$SYNC_CONTENT" >> $GITHUB_ENV
-          echo "EOF" >> $GITHUB_ENV
-
-      - name: List repositories updated in the last month
-        id: list_repos
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          REPOS=$(gh repo list ubiquity --limit 1 --json name,updatedAt -q '.[] | select(.updatedAt > (now - 30*24*60*60)) | .name')
-          echo "REPOS=$REPOS" >> $GITHUB_ENV
-          
       - name: Add sync.yml to each repo
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
+          sync_path=$(realpath .github/workflows/sync.yml)
           original_remote=$(git remote get-url origin)
+          repos=$(gh repo list ubiquity --limit 1 --json name,updatedAt -q '.[] | select(.updatedAt > (now - 30*24*60*60)) | .name')
           for REPO in ${{ env.REPOS }}; do
             echo "Processing $REPO"
             gh repo clone ubiquity/$REPO
@@ -38,11 +24,7 @@ jobs:
             branch_name="add-sync-script"
             git checkout -b $branch_name
             mkdir -p .github/workflows
-            echo "sync.yml content:"
-            echo "${{ env.SYNC_CONTENT }}"
-            echo "------"
-            echo "${{ env.SYNC_CONTENT }}" > .github/workflows/sync.yml
-            echo "configuring git"
+            cp ${{ env.SYNC_YML_PATH }} .github/workflows/sync.yml
             git config --global user.email "github-actions[bot]@users.noreply.github.com"
             git config --global user.name "github-actions[bot]"
             git add .github/workflows/sync.yml
