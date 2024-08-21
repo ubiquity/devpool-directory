@@ -17,7 +17,7 @@ jobs:
           sync_path=$(realpath .github/workflows/sync.yml)
           original_remote=$(git remote get-url origin)
           repos=$(gh repo list ubiquity --limit 1 --json name,updatedAt -q '.[] | select(.updatedAt > (now - 30*24*60*60)) | .name')
-          for REPO in ${{ env.REPOS }}; do
+          for REPO in $repos; do
             echo "Processing $REPO"
             gh repo clone ubiquity/$REPO
             cd $REPO
