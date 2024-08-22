@@ -1,6 +1,6 @@
 #!/bin/bash
 
-REPO="jordan-ae/devpool-directory"
+REPO="ubiquity/devpool-directory"
 AUTHORIZED_ORG_IDS=(76412717 133917611 165700353)
 
 # Fetch issues with author login and author association (organization info might be absent)
