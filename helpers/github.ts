@@ -530,7 +530,7 @@ async function applyStateChanges(projectIssues: GitHubIssue[], projectIssue: Git
       effect: "open",
       comment: "Reopened (merged)",
     },
-    // it's open, unassigned, has price labels, authorized and is closed in the devpool
+    // it's open, unassigned, has price labels, and is closed in the devpool
     issueUnassigned_Open: {
       cause: projectIssue.state === "open" && devpoolIssue.state === "closed" && !projectIssue.assignee?.login && !hasNoPriceLabels,
       effect: "open",
