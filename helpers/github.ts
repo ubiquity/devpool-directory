@@ -23,7 +23,7 @@ export const projects = _projects as {
   category?: Record<string, string>;
 };
 
-export const DEVPOOL_OWNER_NAME = "ubiquity";
+export const DEVPOOL_OWNER_NAME = "jordan-ae";
 export const DEVPOOL_REPO_NAME = "devpool-directory";
 export enum LABELS {
   PRICE = "Price",
@@ -373,25 +373,6 @@ export async function writeTotalRewardsToGithub(statistics: Statistics) {
   }
 }
 
-async function isAuthorizedCreator() {
-  const authorizedOrgIds = [76412717, 133917611, 165700353];
-
-  try {
-    const installation = await octokit.rest.apps.getRepoInstallation({
-      owner: DEVPOOL_OWNER_NAME,
-      repo: DEVPOOL_REPO_NAME
-    });
-
-    const botOrgId = installation.data.account?.id;
-
-    // Check if the bot's organization ID is in the list of authorized IDs
-    return authorizedOrgIds.includes(botOrgId as number);
-  } catch (error) {
-    console.log(`Error checking bots authorization: ${error}`)
-    throw error
-  }
-}
-
 export async function createDevPoolIssue(projectIssue: GitHubIssue, projectUrl: string, body: string, twitterMap: TwitterMap) {
   // if issue is "closed" then skip it, no need to copy/paste already "closed" issues
   if (projectIssue.state === "closed") return;
@@ -401,10 +382,6 @@ export async function createDevPoolIssue(projectIssue: GitHubIssue, projectUrl: 
 
   // if issue doesn't have the "Price" label then skip it, no need to pollute repo with draft issues
   if (!(projectIssue.labels as GitHubLabel[]).some((label) => label.name.includes(LABELS.PRICE))) return;
-
-  // if bot is unauthorized, then skip it
-  const isAuthorized = await isAuthorizedCreator()
-  if (!isAuthorized) return;
 
   // create a new issue
   try {
@@ -505,7 +482,6 @@ async function applyMetaChanges(
 }
 
 async function applyStateChanges(projectIssues: GitHubIssue[], projectIssue: GitHubIssue, devpoolIssue: GitHubIssue, hasNoPriceLabels: boolean) {
-  const isAuthorized = await isAuthorizedCreator();
   const stateChanges: StateChanges = {
     // missing in the partners
     forceMissing_Close: {
@@ -556,16 +532,10 @@ async function applyStateChanges(projectIssues: GitHubIssue[], projectIssue: Git
     },
     // it's open, unassigned, has price labels, authorized and is closed in the devpool
     issueUnassigned_Open: {
-      cause: projectIssue.state === "open" && devpoolIssue.state === "closed" && !projectIssue.assignee?.login && !hasNoPriceLabels && isAuthorized,
+      cause: projectIssue.state === "open" && devpoolIssue.state === "closed" && !projectIssue.assignee?.login && !hasNoPriceLabels,
       effect: "open",
       comment: "Reopened (unassigned)",
-    },
-    // it's open and unauthorized
-    unAuthorized_Open: {
-      cause: !isAuthorized && devpoolIssue.state === "open",
-      effect: "closed",
-      comment: "Close (Unauthorized)",
-    },
+    }
   };
 
   let newState: "open" | "closed" | undefined = undefined;
