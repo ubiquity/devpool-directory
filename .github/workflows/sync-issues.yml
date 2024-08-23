@@ -51,7 +51,7 @@ jobs:
       - name: Delete Unauthorized Issues
         run: bash ./scripts/delete-unauthorized-issues.sh
         env:
-         GH_TOKEN: ${{ secrets.PAT }}  
+         GH_TOKEN: ${{ steps.get_installation_token.outputs.token }}
 
       - uses: actions/upload-artifact@v4
         with:
