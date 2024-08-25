@@ -62,6 +62,9 @@ export class IssueRemover {
     let didDelete = false;
 
     for (const issue of issues) {
+      if (issue.pull_request || issue.state !== "open") {
+        continue;
+      }
       if (issue.user?.type === "Bot") {
         if (!allowedBots.has(issue.user?.login.split("[bot]")[0])) {
           console.log(`Deleting issue ${issue.html_url} created by bot ${issue.user?.login}`);
