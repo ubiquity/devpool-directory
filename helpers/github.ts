@@ -248,7 +248,7 @@ export async function getProjectUrls(opt: typeof optInOptOut = optInOptOut) {
     const len = orgOrRepo.split("/").length;
 
     if (len === 1) {
-      //it's an org, delete all org repos in the list
+      // it's an org, delete all org repos in the list
       projectUrls.forEach((url) => {
         if (url.includes(orgOrRepo)) {
           const [owner, repo] = getRepoCredentials(url);
@@ -260,7 +260,7 @@ export async function getProjectUrls(opt: typeof optInOptOut = optInOptOut) {
       });
     } else {
       // it's a repo, delete the repo from the list
-      projectUrls.forEach((url) => url.includes(orgOrRepo) && projectUrls.delete(url));
+      projectUrls.forEach((url) => url === `https://github.com/${orgOrRepo}` && projectUrls.delete(url));
     }
   }
 
