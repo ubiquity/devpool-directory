@@ -47,11 +47,12 @@ jobs:
           TWITTER_ACCESS_TOKEN: ${{ secrets.TWITTER_ACCESS_TOKEN }}
           TWITTER_ACCESS_TOKEN_SECRET: ${{ secrets.TWITTER_ACCESS_TOKEN_SECRET }}
         run: npx tsx index.ts
-      
+
       - name: Delete Unauthorized Issues
-        run: bash ./scripts/delete-unauthorized-issues.sh
+        run: npx tsx ./scripts/delete-unauthorized-issues.ts
         env:
-         GH_TOKEN: ${{ steps.get_installation_token.outputs.token }}
+          GH_TOKEN: ${{ secrets.GH_TOKEN }}
+          OWNER_REPO: ${{ github.repository }}
 
       - uses: actions/upload-artifact@v4
         with:
