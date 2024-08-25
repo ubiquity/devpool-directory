@@ -53,6 +53,8 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GH_TOKEN }}
           OWNER_REPO: ${{ github.repository }}
+          APP_ID: ${{ secrets.APP_ID }}
+          PRIVATE_KEY: ${{ secrets.APP_PRIVATE_KEY }}
 
       - uses: actions/upload-artifact@v4
         with:
