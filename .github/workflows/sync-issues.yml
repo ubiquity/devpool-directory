@@ -51,7 +51,7 @@ jobs:
       - name: Delete Unauthorized Issues
         run: npx tsx ./scripts/delete-unauthorized-issues.ts
         env:
-          GH_TOKEN: ${{ steps.get_installation_token.outputs.token }}
+          GH_TOKEN: ${{ secrets.GH_TOKEN }}
           OWNER_REPO: ${{ github.repository }}
 
       - uses: actions/upload-artifact@v4
