@@ -23,15 +23,16 @@ jobs:
         run: |
           branch_name=$(git rev-parse --abbrev-ref HEAD)
           original_remote=$(git remote get-url origin)
-          pr_branch="sync/${branch_name}"
+          pr_branch="sync-template/${branch_name}"
           git config --global user.email "github-actions[bot]@users.noreply.github.com"
           git config --global user.name "github-actions[bot]"
-          git remote add template https://github.com/ubiquity/ts-template
-          git fetch template development
-          git update-index --assume-unchanged ".github/workflows/sync.yml"
-          git merge template/development --allow-unrelated-histories || true
           git checkout -b "$pr_branch"
+          git clone https://github.com/ubiquity/ts-template
+          cp -rf ts-template/* .
+          rm -rf ts-template/
           git add .
+          git commit -m "Sync template"
           git push "$original_remote" "$pr_branch"
           gh pr create --title "Sync branch to template" --body "This pull request merges changes from the template repository." --head "$pr_branch" --base "$branch_name"
+
           
