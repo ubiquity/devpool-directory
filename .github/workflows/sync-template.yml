@@ -31,7 +31,7 @@ jobs:
           cp -rf ts-template/* .
           rm -rf ts-template/
           git add .
-          git commit -m "Sync template"
+          git commit -m "chore: sync template"
           git push "$original_remote" "$pr_branch"
           gh pr create --title "Sync branch to template" --body "This pull request merges changes from the template repository." --head "$pr_branch" --base "$branch_name"
 
