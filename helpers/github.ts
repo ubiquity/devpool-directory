@@ -378,7 +378,7 @@ export async function createDevPoolIssue(projectIssue: GitHubIssue, projectUrl: 
   if (projectIssue.state === "closed") return;
 
   // if reposistory is archived skip it 
-  if (projectIssue.repository?.archived) return
+  if (projectIssue.repository?.archived === true) return;
 
   // if the project issue is assigned to someone, then skip it
   if (projectIssue.assignee) return;
@@ -498,6 +498,7 @@ async function applyStateChanges(projectIssues: GitHubIssue[], projectIssue: Git
       effect: "closed",
       comment: "Closed (no price labels)",
     },
+    // issue parent is archived and open in the devpool
     isArchieved_Close: {
       cause: projectIssue.repository?.archived === true,
       effect: "closed",
