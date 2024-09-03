@@ -378,7 +378,12 @@ export async function createDevPoolIssue(projectIssue: GitHubIssue, projectUrl: 
   if (projectIssue.state === "closed") return;
 
   // if reposistory is archived skip it 
-  if (projectIssue.repository?.archived === true) return;
+  if (!projectIssue.repository || projectIssue.repository.archived === true) {
+    if (!projectIssue.repository) {
+      throw new Error("Repository data is missing for the project issue.");
+    }
+    return;
+  }
 
   // if the project issue is assigned to someone, then skip it
   if (projectIssue.assignee) return;
