@@ -248,7 +248,7 @@ export async function getProjectUrls(opt: typeof optInOptOut = optInOptOut) {
     const len = orgOrRepo.split("/").length;
 
     if (len === 1) {
-      //it's an org, delete all org repos in the list
+      // it's an org, delete all org repos in the list
       projectUrls.forEach((url) => {
         if (url.includes(orgOrRepo)) {
           const [owner, repo] = getRepoCredentials(url);
@@ -260,7 +260,7 @@ export async function getProjectUrls(opt: typeof optInOptOut = optInOptOut) {
       });
     } else {
       // it's a repo, delete the repo from the list
-      projectUrls.forEach((url) => url.includes(orgOrRepo) && projectUrls.delete(url));
+      projectUrls.forEach((url) => url === `https://github.com/${orgOrRepo}` && projectUrls.delete(url));
     }
   }
 
@@ -291,8 +291,8 @@ export async function calculateStatistics(devpoolIssues: GitHubIssue[]) {
     const linkedRepoFromBody = issue.body?.match(/https:\/\/github.com\/[^/]+\/[^/]+/);
     const linkedRepoFromBodyAlt = issue.body?.match(/https:\/\/www.github.com\/[^/]+\/[^/]+/);
 
-    let toExclude = optInOptOut.out.some((orgOrRepo) => linkedRepoFromBody?.[0].includes(orgOrRepo));
-    toExclude = toExclude || optInOptOut.out.some((orgOrRepo) => linkedRepoFromBodyAlt?.[0].includes(orgOrRepo));
+    let shouldExclude = optInOptOut.out.some((orgOrRepo) => linkedRepoFromBody?.[0].includes(orgOrRepo));
+    shouldExclude = shouldExclude || optInOptOut.out.some((orgOrRepo) => linkedRepoFromBodyAlt?.[0].includes(orgOrRepo));
 
     const labels = issue.labels as GitHubLabel[];
     // devpool issue has unavailable label because it's assigned and so it's closed
@@ -303,12 +303,12 @@ export async function calculateStatistics(devpoolIssues: GitHubIssue[]) {
     const priceLabel = labels.find((label) => (label.name as string).includes("Pricing"));
     const price = priceLabel ? parseInt((priceLabel.name as string).split(":")[1].trim(), 10) : 0;
 
-    if (isOpen && !toExclude) {
+    if (isOpen && !shouldExclude) {
       rewards.notAssigned += !isNaN(price) ? price : 0;
       tasks.notAssigned++;
       tasks.total++;
       rewards.total += !isNaN(price) ? price : 0;
-    } else if (isAssigned && !toExclude) {
+    } else if (isAssigned && !shouldExclude) {
       rewards.assigned += !isNaN(price) ? price : 0;
       tasks.assigned++;
       tasks.total++;
