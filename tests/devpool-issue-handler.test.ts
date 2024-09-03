@@ -1375,7 +1375,10 @@ describe("createDevPoolIssue", () => {
       const partnerIssue = {
         ...issueTemplate,
         assignee: null,
-      } as GitHubIssue;
+        repository: {
+          archived: false,
+        },
+      } as unknown as GitHubIssue;
 
       logSpy.mockClear();
       await createDevPoolIssue(partnerIssue, partnerIssue.html_url, UBIQUITY_TEST_REPO, twitterMap);
@@ -1387,7 +1390,10 @@ describe("createDevPoolIssue", () => {
       const partnerIssue = {
         ...issueTemplate,
         labels: [],
-      } as GitHubIssue;
+        repository: {
+          archived: false,
+        },
+      } as unknown as GitHubIssue;
 
       await createDevPoolIssue(partnerIssue, partnerIssue.html_url, UBIQUITY_TEST_REPO, twitterMap);
 
@@ -1406,7 +1412,10 @@ describe("createDevPoolIssue", () => {
     test("does not create a new devpool issue if it's already a devpool issue", async () => {
       const partnerIssue = {
         ...issueTemplate,
-      } as GitHubIssue;
+        repository: {
+          archived: false,
+        },
+      } as unknown as GitHubIssue;
 
       db.issue.create({
         ...issueDevpoolTemplate,
@@ -1434,7 +1443,10 @@ describe("createDevPoolIssue", () => {
         assignee: {
           login: "hunter",
         } as GitHubIssue["assignee"],
-      } as GitHubIssue;
+        repository: {
+          archived: false,
+        },
+      } as unknown as GitHubIssue;
 
       db.issue.create({
         ...issueDevpoolTemplate,
