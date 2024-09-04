@@ -20,6 +20,7 @@ jobs:
       - name: Sync branch to template
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          IGNORE_FILES: "README.md another-file.txt"
         run: |
           branch_name=$(git rev-parse --abbrev-ref HEAD)
           original_remote=$(git remote get-url origin)
@@ -28,6 +29,9 @@ jobs:
           git config --global user.name "github-actions[bot]"
           git checkout -b "$pr_branch"
           git clone https://github.com/ubiquity/ts-template
+          for file in $IGNORE_FILES; do
+            rm -rf "ts-template/$file"
+          done
           cp -rf ts-template/* .
           rm -rf ts-template/
           git add .
