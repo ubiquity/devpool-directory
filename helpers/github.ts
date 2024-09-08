@@ -7,6 +7,8 @@ import { writeFile } from "fs/promises";
 import twitter from "./twitter";
 import { TwitterMap } from "..";
 
+const PRICING_NOT_SET = "Pricing: not set"
+
 export const DEVPOOL_OWNER_NAME = process.env.DEVPOOL_OWNER_NAME!;
 export const DEVPOOL_REPO_NAME = process.env.DEVPOOL_REPO_NAME!;
 
@@ -135,7 +137,7 @@ export function getDevpoolIssueLabels(issue: GitHubIssue, projectUrl: string) {
   let devpoolIssueLabels: string[];
 
   // default labels
-  if (pricing != "Pricing: not set") {
+  if (pricing != PRICING_NOT_SET) {
     devpoolIssueLabels = [
       pricing,
       `Partner: ${ownerName}/${repoName}`, // partner
@@ -206,7 +208,7 @@ export function getIssueLabelValue(issue: GitHubIssue, labelPrefix: string) {
  * @returns price label
  */
 export function getIssuePriceLabel(issue: GitHubIssue) {
-  const defaultPriceLabel = "Pricing: not set";
+  const defaultPriceLabel = PRICING_NOT_SET;
   const labels = issue.labels as GitHubLabel[];
   const priceLabels = labels.filter((label) => label.name.includes("Price:") || label.name.includes("Pricing:"));
   // NOTICE: we rename "Price" to "Pricing" because the bot removes all manually added price labels starting with "Price:"
