@@ -428,11 +428,21 @@ export async function handleDevPoolIssue(
   const hasChanges = !areEqual(originals, labelRemoved);
   const hasNoPriceLabels = !(projectIssue.labels as GitHubLabel[]).some((label) => label.name.includes(LABELS.PRICE));
 
+  let shouldUpdateBody = false;
+
+  if (!isFork && devpoolIssue.body != projectIssue.html_url) {
+    // not a fork, so body uses https://github.com
+    shouldUpdateBody = true;
+  } else if (isFork && devpoolIssue.body != projectIssue.html_url.replace("https://", "https://www.")) {
+    // it's a fork, so body uses https://www.github.com
+    shouldUpdateBody = true;
+  }
+
   const metaChanges = {
     // the title of the issue has changed
     title: devpoolIssue.title != projectIssue.title,
     // the issue url has updated
-    body: !isFork && devpoolIssue.body != projectIssue.html_url,
+    body: shouldUpdateBody,
     // the price/priority labels have changed
     labels: hasChanges,
   };
@@ -483,9 +493,7 @@ async function applyMetaChanges(
       console.error(err);
     }
 
-    if (metaChanges.title || metaChanges.body || metaChanges.labels) {
-      console.log(`Updated metadata: ${devpoolIssue.html_url} (${projectIssue.html_url})`);
-    }
+    console.log(`Updated metadata: ${devpoolIssue.html_url} - (${projectIssue.html_url})`, metaChanges);
   }
 }
 
