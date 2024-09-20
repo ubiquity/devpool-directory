@@ -462,13 +462,21 @@ async function applyMetaChanges(
   const shouldUpdate = metaChanges.title || metaChanges.body || metaChanges.labels;
 
   if (shouldUpdate) {
+    let newBody = devpoolIssue.body;
+
+    if (metaChanges.body && !isFork) {
+      newBody = projectIssue.html_url;
+    } else {
+      newBody = projectIssue.html_url.replace("https://", "https://www.");
+    }
+
     try {
       await octokit.rest.issues.update({
         owner: DEVPOOL_OWNER_NAME,
         repo: DEVPOOL_REPO_NAME,
         issue_number: devpoolIssue.number,
         title: metaChanges.title ? projectIssue.title : devpoolIssue.title,
-        body: metaChanges.body && !isFork ? projectIssue.html_url : projectIssue.html_url.replace("https://", "https://www."),
+        body: newBody,
         labels: metaChanges.labels ? labelRemoved : originals,
       });
     } catch (err) {
