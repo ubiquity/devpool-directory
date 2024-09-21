@@ -14,9 +14,9 @@ export async function handleDevPoolIssue(
   // Filter out 'id' and 'Partner' labels and store separately
   const filteredLabels = devpoolLabels.filter((label) => !label.includes("id:") && !label.includes("Partner:"));
   let idAndPartnerLabels = devpoolLabels.filter((label) => label.includes("id:") || label.includes("Partner:"));
+  const idLabel = `id: ${projectIssue.node_id}`;
 
-  if (idAndPartnerLabels.find((label) => label.includes("id:")) !== projectIssue.node_id) {
-    const idLabel = `id: ${projectIssue.node_id}`;
+  if (!idAndPartnerLabels.includes(idLabel)) {
     const [owner, repo] = getRepoCredentials(projectIssue.html_url);
     const partnerLabel = `Partner: ${owner}/${repo}`;
     idAndPartnerLabels = [idLabel, partnerLabel];
