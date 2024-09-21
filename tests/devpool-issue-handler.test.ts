@@ -610,7 +610,6 @@ describe("handleDevPoolIssue", () => {
 
   const HTML_URL = "https://github.com/not-ubiquity/devpool-directory/issues/1";
   const REPO_URL = "https://github.com/not-ubiquity/devpool-directory";
-  const PROJECT_URL = "https://github.com/ubiquity/test-repo";
   const BODY = "https://www.github.com/ubiquity/test-repo/issues/1";
   /**
    * ========================
@@ -1191,7 +1190,7 @@ describe("node ID mismatch", () => {
       title: false,
     });
   });
-})
+});
 
 describe("getProjectUrls", () => {
   const responseMap = {

@@ -3,12 +3,7 @@ import { getRepoCredentials } from "../helpers/repos";
 import { GitHubIssue } from "../types/github";
 import { applyMetaChanges, applyStateChanges } from "./state-updates";
 
-export async function handleDevPoolIssue(
-  missingInPartners: boolean,
-  projectIssue: GitHubIssue,
-  devpoolIssue: GitHubIssue,
-  isFork: boolean
-) {
+export async function handleDevPoolIssue(missingInPartners: boolean, projectIssue: GitHubIssue, devpoolIssue: GitHubIssue, isFork: boolean) {
   const devpoolLabels = devpoolIssue.labels.map((label) => (typeof label === "string" ? label : label.name)).filter((label): label is string => label !== null);
 
   // Filter out 'id' and 'Partner' labels and store separately
