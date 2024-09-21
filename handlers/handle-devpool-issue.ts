@@ -5,7 +5,6 @@ import { applyMetaChanges, applyStateChanges } from "./state-updates";
 export async function handleDevPoolIssue(
   missingInPartners: boolean,
   projectIssue: GitHubIssue,
-  projectUrl: string,
   devpoolIssue: GitHubIssue,
   isFork: boolean
 ) {
@@ -45,7 +44,6 @@ export async function handleDevPoolIssue(
   // Determine if body requires updating
   const projectUrlForComparison = isFork ? projectIssue.html_url.replace("https://", "https://www.") : projectIssue.html_url;
   const shouldUpdateBody = devpoolIssue.body !== projectUrlForComparison;
-
   const hasTitleChanges = devpoolIssue.title !== projectIssue.title;
 
   if (shouldUpdateBody) {

@@ -80,7 +80,7 @@ async function main() {
       }
 
       // if it exists in the devpool, then update it
-      await handleDevPoolIssue(isMissingInPartners, projectIssue, ownerRepo, devpoolIssue, isFork);
+      await handleDevPoolIssue(isMissingInPartners, projectIssue, devpoolIssue, isFork);
     } else {
       // if it doesn't exist in the devpool, then create it
       await createDevPoolIssue(projectIssue, ownerRepo, body, twitterMap);
