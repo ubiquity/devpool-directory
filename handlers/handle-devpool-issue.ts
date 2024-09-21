@@ -1,50 +1,75 @@
-import { getDevpoolIssueLabels } from "../helpers/issue";
-import { areEqual, applyUnavailableLabelToDevpoolIssue } from "../helpers/utils";
-import { GitHubIssue, LABELS, GitHubLabel } from "../types/github";
+import { isTaskPriced } from "../helpers/issue";
+import { GitHubIssue } from "../types/github";
 import { applyMetaChanges, applyStateChanges } from "./state-updates";
 
 export async function handleDevPoolIssue(
-  projectIssues: GitHubIssue[],
+  missingInPartners: boolean,
   projectIssue: GitHubIssue,
   projectUrl: string,
   devpoolIssue: GitHubIssue,
   isFork: boolean
 ) {
-  // remove the unavailable label as getDevpoolIssueLabels() adds it and statitics rely on it
-  const labelRemoved = getDevpoolIssueLabels(projectIssue, projectUrl).filter((label) => label != LABELS.UNAVAILABLE);
-  const originals = devpoolIssue.labels.map((label) => (label as GitHubLabel).name);
-  const hasChanges = !areEqual(originals, labelRemoved);
-  const hasNoPriceLabels = !(projectIssue.labels as GitHubLabel[]).some((label) => label.name.includes(LABELS.PRICE));
+  const devpoolLabels = devpoolIssue.labels.map((label) => (typeof label === "string" ? label : label.name)).filter((label): label is string => label !== null);
 
-  let shouldUpdateBody = false;
+  // Filter out 'id' and 'Partner' labels and store separately
+  const filteredLabels = devpoolLabels.filter((label) => !label.includes("id:") && !label.includes("Partner:"));
+  const idAndPartnerLabels = devpoolLabels.filter((label) => label.includes("id:") || label.includes("Partner:"));
 
-  if (!isFork && devpoolIssue.body != projectIssue.html_url) {
-    // not a fork, so body uses https://github.com
-    shouldUpdateBody = true;
-  } else if (isFork && devpoolIssue.body != projectIssue.html_url.replace("https://", "https://www.")) {
-    // it's a fork, so body uses https://www.github.com
-    shouldUpdateBody = true;
+  const hasPriceLabel = isTaskPriced(projectIssue);
+
+  // Normalize price label if present
+  let updatedLabels = hasPriceLabel ? filteredLabels.map((label) => label.replace("Pricing:", "Price:")) : filteredLabels;
+
+  // Check for label changes by comparing devpool labels with project issue labels
+  const hasLabelChanges = projectIssue.labels.some((label) => {
+    const labelName = typeof label === "string" ? label : label.name;
+    return labelName && !updatedLabels.includes(labelName);
+  });
+
+  if (!hasLabelChanges) {
+    updatedLabels = devpoolLabels; // No changes, revert to original labels
+  } else {
+    const projectLabels = projectIssue.labels
+      .map((label) => (typeof label === "string" ? label : label.name))
+      .filter((label): label is string => label !== null);
+
+    // Merge project labels with id/partner labels if there are changes
+    updatedLabels = [...projectLabels, ...idAndPartnerLabels];
+
+    console.log("Labels need update:", {
+      devpoolLabels,
+      projectLabels: projectIssue.labels.map((label) => (typeof label === "string" ? label : label.name)),
+    });
+  }
+
+  // Determine if body requires updating
+  const projectUrlForComparison = isFork ? projectIssue.html_url.replace("https://", "https://www.") : projectIssue.html_url;
+  const shouldUpdateBody = devpoolIssue.body !== projectUrlForComparison;
+
+  const hasTitleChanges = devpoolIssue.title !== projectIssue.title;
+
+  if (shouldUpdateBody) {
+    console.log("Body needs update:", {
+      isFork,
+      devpoolIssueUrl: devpoolIssue.html_url,
+      projectIssueUrl: projectIssue.html_url,
+      devpoolBody: devpoolIssue.body,
+    });
+  }
+
+  if (hasTitleChanges) {
+    console.log("Title needs update:", {
+      devpoolTitle: devpoolIssue.title,
+      projectTitle: projectIssue.title,
+    });
   }
 
   const metaChanges = {
-    // the title of the issue has changed
-    title: devpoolIssue.title != projectIssue.title,
-    // the issue url has updated
+    title: hasTitleChanges,
     body: shouldUpdateBody,
-    // the price/priority labels have changed
-    labels: hasChanges,
+    labels: hasLabelChanges,
   };
 
-  await applyMetaChanges(metaChanges, devpoolIssue, projectIssue, isFork, labelRemoved, originals);
-
-  const newState = await applyStateChanges(projectIssues, projectIssue, devpoolIssue, hasNoPriceLabels);
-
-  await applyUnavailableLabelToDevpoolIssue(
-    projectIssue,
-    devpoolIssue,
-    metaChanges,
-    labelRemoved,
-    originals,
-    newState ?? (devpoolIssue.state as "open" | "closed")
-  );
+  await applyMetaChanges(metaChanges, devpoolIssue, projectIssue, isFork, updatedLabels);
+  await applyStateChanges(missingInPartners, projectIssue, devpoolIssue, hasPriceLabel);
 }
