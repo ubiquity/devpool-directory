@@ -1,4 +1,4 @@
-import { GitHubIssue, LABELS, GitHubLabel } from "../types/github";
+import { GitHubIssue, GitHubLabel } from "../types/github";
 import { octokit, projects } from "./github";
 import { getRepoCredentials } from "./repos";
 
@@ -94,9 +94,6 @@ export function getDevpoolIssueLabels(issue: GitHubIssue, projectUrl: string) {
     `id: ${issue.node_id}`, // id
   ];
 
-  // if project is already assigned then add the "Unavailable" label
-  if (issue.assignee?.login) devpoolIssueLabels.push(LABELS.UNAVAILABLE);
-
   const labels = issue.labels as GitHubLabel[];
 
   // add all missing labels that exist in a project's issue and don't exist in devpool issue
@@ -156,4 +153,13 @@ export function getIssuePriceLabel(issue: GitHubIssue) {
   const priceLabels = labels.filter((label) => label.name.includes("Price:") || label.name.includes("Pricing:"));
   // NOTICE: we rename "Price" to "Pricing" because the bot removes all manually added price labels starting with "Price:"
   return priceLabels.length > 0 ? priceLabels[0].name.replace("Price", "Pricing") : defaultPriceLabel;
+}
+
+export function isTaskPriced(issue: GitHubIssue): boolean {
+  return (
+    issue.labels?.some((label) => {
+      const labelName = typeof label === "string" ? label : label.name;
+      return labelName?.includes("Price:") || labelName?.includes("Pricing:");
+    }) ?? false
+  );
 }

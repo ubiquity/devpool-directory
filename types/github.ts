@@ -13,5 +13,4 @@ export type StateChanges<T extends string = "open" | "closed"> = {
 
 export enum LABELS {
   PRICE = "Price",
-  UNAVAILABLE = "Unavailable",
 }
