@@ -15,7 +15,7 @@ export async function getAllDevpoolIssues(projectUrls: Set<string>) {
 
   return devpoolIssues
     .filter((issue) => {
-      const match = issue.body?.match(/https:\/\/github.com\/(?<owner>[^/]+)\/(?<repo>[^/]+)\/issues\/(?<number>\d+)/);
+      const match = issue.body?.match(/https:\/\/(www\.)?github.com\/(?<owner>[^/]+)\/(?<repo>[^/]+)\/issues\/(?<number>\d+)/);
       if (match?.groups) {
         const { owner, repo } = match.groups;
 
