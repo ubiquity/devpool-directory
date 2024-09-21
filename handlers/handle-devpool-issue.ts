@@ -1,4 +1,5 @@
 import { isTaskPriced } from "../helpers/issue";
+import { getRepoCredentials } from "../helpers/repos";
 import { GitHubIssue } from "../types/github";
 import { applyMetaChanges, applyStateChanges } from "./state-updates";
 
@@ -12,7 +13,14 @@ export async function handleDevPoolIssue(
 
   // Filter out 'id' and 'Partner' labels and store separately
   const filteredLabels = devpoolLabels.filter((label) => !label.includes("id:") && !label.includes("Partner:"));
-  const idAndPartnerLabels = devpoolLabels.filter((label) => label.includes("id:") || label.includes("Partner:"));
+  let idAndPartnerLabels = devpoolLabels.filter((label) => label.includes("id:") || label.includes("Partner:"));
+
+  if (idAndPartnerLabels.find((label) => label.includes("id:")) !== projectIssue.node_id) {
+    const idLabel = `id: ${projectIssue.node_id}`;
+    const [owner, repo] = getRepoCredentials(projectIssue.html_url);
+    const partnerLabel = `Partner: ${owner}/${repo}`;
+    idAndPartnerLabels = [idLabel, partnerLabel];
+  }
 
   const hasPriceLabel = isTaskPriced(projectIssue);
 
