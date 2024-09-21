@@ -21,27 +21,6 @@ const server = setupServer(...handlers);
 
 beforeAll(() => server.listen());
 afterEach(() => {
-  const openIssues = db.issue.findMany({
-    where: {
-      state: {
-        equals: "open",
-      },
-    },
-  });
-
-  openIssues.forEach((issue) => {
-    const unavailableLabel = issue.labels.find((label: string | unknown) => {
-      if (label && typeof label === "object" && "name" in label) {
-        return label.name === "Unavailable";
-      } else if (typeof label === "string") {
-        return label.includes("Unavailable");
-      } else {
-        return false;
-      }
-    });
-    expect(unavailableLabel).toBeUndefined();
-  });
-
   server.resetHandlers();
   drop(db);
 });
@@ -97,7 +76,7 @@ describe("handleDevPoolIssue", () => {
 
       const issueInDb = createIssues(devpoolIssue, partnerIssue);
 
-      await handleDevPoolIssue([partnerIssue], partnerIssue, UBIQUITY_TEST_REPO, issueInDb, false);
+      await handleDevPoolIssue(false, partnerIssue, UBIQUITY_TEST_REPO, issueInDb, false);
 
       const updatedIssue = db.issue.findFirst({
         where: {
@@ -108,9 +87,10 @@ describe("handleDevPoolIssue", () => {
       }) as GitHubIssue;
 
       expect(updatedIssue).not.toBeNull();
-      expect(logSpy).toHaveBeenCalledWith(`Updated metadata: ${updatedIssue.html_url} - (${partnerIssue.html_url})`, {
+      expect(logSpy).toHaveBeenNthCalledWith(1, `Title needs update:`, { devpoolTitle: "Original Title", projectTitle: "Updated Title" });
+      expect(logSpy).toHaveBeenNthCalledWith(2, `Updated metadata: ${updatedIssue.html_url} - (${partnerIssue.html_url})`, {
         body: false,
-        labels: true,
+        labels: false,
         title: true,
       });
     });
@@ -128,7 +108,7 @@ describe("handleDevPoolIssue", () => {
 
       const issueInDb = createIssues(devpoolIssue, partnerIssue);
 
-      await handleDevPoolIssue([partnerIssue], partnerIssue, UBIQUITY_TEST_REPO, issueInDb, false);
+      await handleDevPoolIssue(false, partnerIssue, UBIQUITY_TEST_REPO, issueInDb, false);
 
       const updatedIssue = db.issue.findFirst({
         where: {
@@ -137,7 +117,6 @@ describe("handleDevPoolIssue", () => {
           },
         },
       }) as GitHubIssue;
-
       expect(updatedIssue).not.toBeNull();
       expect(updatedIssue?.labels).toEqual(expect.arrayContaining([{ name: "enhancement" }]));
 
@@ -160,7 +139,7 @@ describe("handleDevPoolIssue", () => {
 
       const issueInDb = createIssues(devpoolIssue, partnerIssue);
 
-      await handleDevPoolIssue([partnerIssue], partnerIssue, UBIQUITY_TEST_REPO, issueInDb, false);
+      await handleDevPoolIssue(false, partnerIssue, UBIQUITY_TEST_REPO, issueInDb, false);
 
       expect(logSpy).not.toHaveBeenCalled();
     });
@@ -178,7 +157,7 @@ describe("handleDevPoolIssue", () => {
 
       createIssues(devpoolIssue, partnerIssue);
 
-      await handleDevPoolIssue([partnerIssue], partnerIssue, UBIQUITY_TEST_REPO, devpoolIssue, false);
+      await handleDevPoolIssue(false, partnerIssue, UBIQUITY_TEST_REPO, devpoolIssue, false);
 
       expect(logSpy).not.toHaveBeenCalledWith(expect.stringContaining("Updated state"));
     });
@@ -196,7 +175,7 @@ describe("handleDevPoolIssue", () => {
 
       createIssues(devpoolIssue, partnerIssue);
 
-      await handleDevPoolIssue([partnerIssue], partnerIssue, UBIQUITY_TEST_REPO, devpoolIssue, false);
+      await handleDevPoolIssue(false, partnerIssue, UBIQUITY_TEST_REPO, devpoolIssue, false);
 
       expect(logSpy).not.toHaveBeenCalledWith(expect.stringContaining("Updated state"));
     });
@@ -217,7 +196,7 @@ describe("handleDevPoolIssue", () => {
 
       createIssues(devpoolIssue, partnerIssue);
 
-      await handleDevPoolIssue([partnerIssue], partnerIssue, UBIQUITY_TEST_REPO, devpoolIssue, false);
+      await handleDevPoolIssue(false, partnerIssue, UBIQUITY_TEST_REPO, devpoolIssue, false);
 
       expect(logSpy).not.toHaveBeenCalledWith(expect.stringContaining("Updated state"));
     });
@@ -242,7 +221,7 @@ describe("handleDevPoolIssue", () => {
 
       createIssues(devpoolIssue, partnerIssue);
 
-      await handleDevPoolIssue([partnerIssue], partnerIssue, UBIQUITY_TEST_REPO, devpoolIssue, false);
+      await handleDevPoolIssue(false, partnerIssue, UBIQUITY_TEST_REPO, devpoolIssue, false);
 
       expect(logSpy).not.toHaveBeenCalledWith(expect.stringContaining("Updated state"));
     });
@@ -270,7 +249,7 @@ describe("handleDevPoolIssue", () => {
 
       createIssues(devpoolIssue, partnerIssue);
 
-      await handleDevPoolIssue([partnerIssue], partnerIssue, UBIQUITY_TEST_REPO, devpoolIssue, false);
+      await handleDevPoolIssue(false, partnerIssue, UBIQUITY_TEST_REPO, devpoolIssue, false);
 
       expect(logSpy).not.toHaveBeenCalledWith(expect.stringContaining("Updated"));
     });
@@ -288,7 +267,7 @@ describe("handleDevPoolIssue", () => {
 
       createIssues(devpoolIssue, partnerIssue);
 
-      await handleDevPoolIssue([partnerIssue], partnerIssue, UBIQUITY_TEST_REPO, devpoolIssue, false);
+      await handleDevPoolIssue(false, partnerIssue, UBIQUITY_TEST_REPO, devpoolIssue, false);
 
       expect(logSpy).not.toHaveBeenCalledWith(expect.stringContaining("Updated state"));
     });
@@ -313,7 +292,7 @@ describe("handleDevPoolIssue", () => {
 
       createIssues(devpoolIssue, partnerIssue);
 
-      await handleDevPoolIssue([partnerIssue], partnerIssue, UBIQUITY_TEST_REPO, devpoolIssue, false);
+      await handleDevPoolIssue(false, partnerIssue, UBIQUITY_TEST_REPO, devpoolIssue, false);
 
       expect(logSpy).not.toHaveBeenCalledWith(expect.stringContaining("Updated state"));
     });
@@ -332,7 +311,7 @@ describe("handleDevPoolIssue", () => {
 
       const issueInDb = createIssues(devpoolIssue, partnerIssue);
 
-      await handleDevPoolIssue([partnerIssue], partnerIssue, UBIQUITY_TEST_REPO, issueInDb, false);
+      await handleDevPoolIssue(true, partnerIssue, UBIQUITY_TEST_REPO, issueInDb, false);
 
       const updatedIssue = db.issue.findFirst({
         where: {
@@ -362,7 +341,7 @@ describe("handleDevPoolIssue", () => {
 
       const issueInDb = createIssues(devpoolIssue, partnerIssue);
 
-      await handleDevPoolIssue([partnerIssue], partnerIssue, UBIQUITY_TEST_REPO, issueInDb, false);
+      await handleDevPoolIssue(false, partnerIssue, UBIQUITY_TEST_REPO, issueInDb, false);
 
       const updatedIssue = db.issue.findFirst({
         where: {
@@ -399,7 +378,7 @@ describe("handleDevPoolIssue", () => {
 
       const issueInDb = createIssues(devpoolIssue, partnerIssue);
 
-      await handleDevPoolIssue([partnerIssue], partnerIssue, UBIQUITY_TEST_REPO, issueInDb, false);
+      await handleDevPoolIssue(false, partnerIssue, UBIQUITY_TEST_REPO, issueInDb, false);
 
       const updatedIssue = db.issue.findFirst({
         where: {
@@ -430,7 +409,7 @@ describe("handleDevPoolIssue", () => {
 
       const issueInDb = createIssues(devpoolIssue, partnerIssue);
 
-      await handleDevPoolIssue([partnerIssue], partnerIssue, UBIQUITY_TEST_REPO, issueInDb, false);
+      await handleDevPoolIssue(false, partnerIssue, UBIQUITY_TEST_REPO, issueInDb, false);
 
       const updatedIssue = db.issue.findFirst({
         where: {
@@ -463,7 +442,7 @@ describe("handleDevPoolIssue", () => {
 
       const issueInDb = createIssues(devpoolIssue, partnerIssue);
 
-      await handleDevPoolIssue([partnerIssue], partnerIssue, UBIQUITY_TEST_REPO, issueInDb, false);
+      await handleDevPoolIssue(false, partnerIssue, UBIQUITY_TEST_REPO, issueInDb, false);
 
       const updatedIssue = db.issue.findFirst({
         where: {
@@ -495,7 +474,7 @@ describe("handleDevPoolIssue", () => {
 
       const issueInDb = createIssues(devpoolIssue, partnerIssue);
 
-      await handleDevPoolIssue([partnerIssue], partnerIssue, UBIQUITY_TEST_REPO, issueInDb, false);
+      await handleDevPoolIssue(false, partnerIssue, UBIQUITY_TEST_REPO, issueInDb, false);
 
       const updatedIssue = db.issue.findFirst({
         where: {
@@ -526,7 +505,7 @@ describe("handleDevPoolIssue", () => {
 
       const issueInDb = createIssues(devpoolIssue, partnerIssue);
 
-      await handleDevPoolIssue([partnerIssue], partnerIssue, UBIQUITY_TEST_REPO, issueInDb, false);
+      await handleDevPoolIssue(false, partnerIssue, UBIQUITY_TEST_REPO, issueInDb, false);
 
       const updatedIssue = db.issue.findFirst({
         where: {
@@ -564,7 +543,7 @@ describe("handleDevPoolIssue", () => {
 
       const issueInDb = createIssues(devpoolIssue, partnerIssue);
 
-      await handleDevPoolIssue([partnerIssue], partnerIssue, UBIQUITY_TEST_REPO, issueInDb, false);
+      await handleDevPoolIssue(false, partnerIssue, UBIQUITY_TEST_REPO, issueInDb, false);
 
       const updatedIssue = db.issue.findFirst({
         where: {
@@ -577,290 +556,6 @@ describe("handleDevPoolIssue", () => {
       expect(updatedIssue).not.toBeNull();
 
       expect(logSpy).toHaveBeenCalledWith(`Updated state: (Reopened (merged))\n${updatedIssue.html_url} - (${partnerIssue.html_url})`);
-    });
-
-    test("adds Unavailable label to devpool issue when project issue is assigned, open and devpool is closed", async () => {
-      const devpoolIssue = {
-        ...issueDevpoolTemplate,
-        state: "closed",
-      } as GitHubIssue;
-
-      const projectIssue = {
-        ...issueTemplate,
-        state: "open",
-        assignee: {
-          login: "hunter",
-        } as GitHubIssue["assignee"],
-      } as GitHubIssue;
-
-      createIssues(devpoolIssue, projectIssue);
-
-      await handleDevPoolIssue([projectIssue], projectIssue, UBIQUITY_TEST_REPO, devpoolIssue, false);
-
-      const updatedIssue = db.issue.findFirst({
-        where: {
-          id: {
-            equals: 1,
-          },
-        },
-      }) as GitHubIssue;
-
-      expect(updatedIssue).not.toBeNull();
-
-      expect(updatedIssue.state).toEqual("closed");
-
-      expect(updatedIssue.labels).toEqual(
-        expect.arrayContaining([
-          expect.objectContaining({
-            name: "Unavailable",
-          }),
-        ])
-      );
-    });
-
-    test("removes Unavailable label from devpool issue when project issue is assigned and closed", async () => {
-      const devpoolIssue = {
-        ...issueDevpoolTemplate,
-        state: "closed",
-        labels: issueDevpoolTemplate.labels.concat({ name: "Unavailable" }),
-      } as GitHubIssue;
-
-      const projectIssue = {
-        ...issueTemplate,
-        state: "closed",
-        assignee: {
-          login: "hunter",
-        } as GitHubIssue["assignee"],
-      } as GitHubIssue;
-
-      createIssues(devpoolIssue, projectIssue);
-
-      await handleDevPoolIssue([projectIssue], projectIssue, UBIQUITY_TEST_REPO, devpoolIssue, false);
-
-      const updatedIssue = db.issue.findFirst({
-        where: {
-          id: {
-            equals: 1,
-          },
-        },
-      }) as GitHubIssue;
-
-      expect(updatedIssue).not.toBeNull();
-
-      expect(updatedIssue.state).toEqual("closed");
-
-      expect(updatedIssue.labels).not.toEqual(
-        expect.arrayContaining([
-          expect.objectContaining({
-            name: "Unavailable",
-          }),
-        ])
-      );
-    });
-
-    test("removes Unavailable label from devpool issue when project issue is unassigned, closed and merged", async () => {
-      const devpoolIssue = {
-        ...issueDevpoolTemplate,
-        state: "closed",
-        labels: issueDevpoolTemplate.labels.concat({ name: "Unavailable" }),
-        pull_request: {
-          diff_url: "...",
-          html_url: "...",
-          patch_url: "...",
-          url: "...",
-          merged_at: new Date().toISOString(),
-        },
-      } as GitHubIssue;
-
-      const projectIssue = {
-        ...issueTemplate,
-        state: "closed",
-      } as GitHubIssue;
-
-      createIssues(devpoolIssue, projectIssue);
-
-      await handleDevPoolIssue([projectIssue], projectIssue, UBIQUITY_TEST_REPO, devpoolIssue, false);
-
-      const updatedIssue = db.issue.findFirst({
-        where: {
-          id: {
-            equals: 1,
-          },
-        },
-      }) as GitHubIssue;
-
-      expect(updatedIssue).not.toBeNull();
-
-      expect(updatedIssue.state).toEqual("closed");
-
-      expect(updatedIssue.labels).not.toEqual(
-        expect.arrayContaining([
-          expect.objectContaining({
-            name: "Unavailable",
-          }),
-        ])
-      );
-    });
-
-    test("removes Unavailable label from devpool issue when project issue is unassigned and reopened", async () => {
-      const devpoolIssue = {
-        ...issueDevpoolTemplate,
-        state: "closed",
-        labels: issueDevpoolTemplate.labels.concat({ name: "Unavailable" }),
-      } as GitHubIssue;
-
-      const projectIssue = {
-        ...issueTemplate,
-        state: "open",
-      } as GitHubIssue;
-
-      createIssues(devpoolIssue, projectIssue);
-
-      await handleDevPoolIssue([projectIssue], projectIssue, UBIQUITY_TEST_REPO, devpoolIssue, false);
-
-      const updatedIssue = db.issue.findFirst({
-        where: {
-          id: {
-            equals: 1,
-          },
-        },
-      }) as GitHubIssue;
-
-      expect(updatedIssue).not.toBeNull();
-
-      expect(updatedIssue.state).toEqual("open");
-
-      expect(updatedIssue.labels).not.toEqual(
-        expect.arrayContaining([
-          expect.objectContaining({
-            name: "Unavailable",
-          }),
-        ])
-      );
-    });
-
-    test("removes Unavailable label from devpool issue when project issue is unassigned, merged and reopened", async () => {
-      const devpoolIssue = {
-        ...issueDevpoolTemplate,
-        state: "closed",
-        labels: issueDevpoolTemplate.labels.concat({ name: "Unavailable" }),
-      } as GitHubIssue;
-
-      const projectIssue = {
-        ...issueTemplate,
-        state: "open",
-        pull_request: {
-          diff_url: "...",
-          html_url: "...",
-          patch_url: "...",
-          url: "...",
-          merged_at: new Date().toISOString(),
-        },
-      } as GitHubIssue;
-
-      createIssues(devpoolIssue, projectIssue);
-
-      await handleDevPoolIssue([projectIssue], projectIssue, UBIQUITY_TEST_REPO, devpoolIssue, false);
-
-      const updatedIssue = db.issue.findFirst({
-        where: {
-          id: {
-            equals: 1,
-          },
-        },
-      }) as GitHubIssue;
-
-      expect(updatedIssue).not.toBeNull();
-
-      expect(updatedIssue.state).toEqual("open");
-
-      expect(updatedIssue.labels).not.toEqual(
-        expect.arrayContaining([
-          expect.objectContaining({
-            name: "Unavailable",
-          }),
-        ])
-      );
-    });
-
-    test("does not add the Unavailable to an open devpool issue, _ever_", async () => {
-      const devpoolIssue = {
-        ...issueDevpoolTemplate,
-        state: "open",
-        id: 1,
-        number: 1,
-        node_id: "1",
-        repository_url: "https://github.com/ubiquity/devpool-directory",
-        html_url: "https://github.com/ubiquity/devpool-directory/issues/1",
-      } as GitHubIssue;
-
-      // project issue is open and unassigned
-      let projectIssue = {
-        ...issueTemplate,
-        state: "open",
-      } as GitHubIssue;
-
-      createIssues(devpoolIssue, projectIssue);
-
-      await validateOpen(projectIssue, devpoolIssue);
-
-      // project issue is open, unassigned and merged
-      projectIssue = {
-        ...issueTemplate,
-        state: "open",
-        pull_request: {
-          merged_at: new Date().toISOString(),
-          diff_url: "https//github.com/ubiquity/test-repo/pull/1.diff",
-          html_url: "https//github.com/ubiquity/test-repo/pull/1",
-          patch_url: "https//github.com/ubiquity/test-repo/pull/1.patch",
-          url: "https//github.com/ubiquity/test-repo/pull/1",
-        },
-      } as GitHubIssue;
-
-      await validateOpen(projectIssue, devpoolIssue);
-    });
-
-    test("does not remove the Unavailable label from an assigned devpool issue that's open, _ever_", async () => {
-      const devpoolIssue = {
-        ...issueDevpoolTemplate,
-        state: "closed",
-        id: 1,
-        number: 1,
-        node_id: "1",
-        repository_url: "https://github.com/ubiquity/devpool-directory",
-        html_url: "https://github.com/ubiquity/devpool-directory/issues/1",
-      } as GitHubIssue;
-
-      // project issue is open, assigned and unmerged
-      let projectIssue = {
-        ...issueTemplate,
-        state: "open",
-        assignee: {
-          login: "hunter",
-        } as GitHubIssue["assignee"],
-      } as GitHubIssue;
-
-      createIssues(devpoolIssue, projectIssue);
-
-      await validateClosed(projectIssue, devpoolIssue);
-
-      // project issue is open, assigned and merged
-      projectIssue = {
-        ...issueTemplate,
-        state: "open",
-        assignee: {
-          login: "hunter",
-        } as GitHubIssue["assignee"],
-        pull_request: {
-          merged_at: new Date().toISOString(),
-          diff_url: "https//github.com/ubiquity/test-repo/pull/1.diff",
-          html_url: "https//github.com/ubiquity/test-repo/pull/1",
-          patch_url: "https//github.com/ubiquity/test-repo/pull/1.patch",
-          url: "https//github.com/ubiquity/test-repo/pull/1",
-        },
-      } as GitHubIssue;
-
-      await validateClosed(projectIssue, devpoolIssue);
     });
 
     test("checkIfForkedRepo", async () => {
@@ -912,52 +607,6 @@ describe("handleDevPoolIssue", () => {
       expect(warnSpy).toHaveBeenCalledWith(`Getting repo ${orgOrRepo} failed: HttpError`);
     });
   });
-
-  function getDB() {
-    return db.issue.findFirst({
-      where: {
-        id: {
-          equals: 1,
-        },
-      },
-    }) as GitHubIssue;
-  }
-
-  async function validateClosed(projectIssue: GitHubIssue, devpoolIssue: GitHubIssue) {
-    await handleDevPoolIssue([projectIssue], projectIssue, UBIQUITY_TEST_REPO, devpoolIssue, false);
-
-    const updatedIssue = getDB();
-    if (updatedIssue === null) {
-      throw new Error("Updated issue is null");
-    }
-    expect(updatedIssue).not.toBeNull();
-    expect(updatedIssue.state).toEqual("closed");
-    expect(updatedIssue.labels).toEqual(
-      expect.arrayContaining([
-        expect.objectContaining({
-          name: "Unavailable",
-        }),
-      ])
-    );
-  }
-
-  async function validateOpen(projectIssue: GitHubIssue, devpoolIssue: GitHubIssue) {
-    await handleDevPoolIssue([projectIssue], projectIssue, UBIQUITY_TEST_REPO, devpoolIssue, false);
-
-    const updatedIssue = getDB();
-    if (updatedIssue === null) {
-      throw new Error("Updated issue is null");
-    }
-    expect(updatedIssue).not.toBeNull();
-    expect(updatedIssue.state).toEqual("open");
-    expect(updatedIssue.labels).not.toEqual(
-      expect.arrayContaining([
-        expect.objectContaining({
-          name: "Unavailable",
-        }),
-      ])
-    );
-  }
 
   const HTML_URL = "https://github.com/not-ubiquity/devpool-directory/issues/1";
   const REPO_URL = "https://github.com/not-ubiquity/devpool-directory";
@@ -1018,7 +667,7 @@ describe("handleDevPoolIssue", () => {
 
       const issueInDb = createIssues(devpoolIssue, partnerIssue);
 
-      await handleDevPoolIssue([partnerIssue], partnerIssue, PROJECT_URL, issueInDb, true);
+      await handleDevPoolIssue(false, partnerIssue, PROJECT_URL, issueInDb, true);
 
       const updatedIssue = db.issue.findFirst({
         where: {
@@ -1031,9 +680,10 @@ describe("handleDevPoolIssue", () => {
       expect(updatedIssue).not.toBeNull();
       expect(updatedIssue?.title).toEqual("Updated Title");
 
-      expect(logSpy).toHaveBeenCalledWith(`Updated metadata: ${updatedIssue.html_url} - (${partnerIssue.html_url})`, {
+      expect(logSpy).toHaveBeenNthCalledWith(1, `Title needs update:`, { devpoolTitle: "Original Title", projectTitle: "Updated Title" });
+      expect(logSpy).toHaveBeenNthCalledWith(2, `Updated metadata: ${updatedIssue.html_url} - (${partnerIssue.html_url})`, {
         body: false,
-        labels: true,
+        labels: false,
         title: true,
       });
     });
@@ -1054,7 +704,7 @@ describe("handleDevPoolIssue", () => {
 
       const issueInDb = createIssues(devpoolIssue, partnerIssue);
 
-      await handleDevPoolIssue([partnerIssue], partnerIssue, PROJECT_URL, issueInDb, true);
+      await handleDevPoolIssue(false, partnerIssue, PROJECT_URL, issueInDb, true);
 
       const updatedIssue = db.issue.findFirst({
         where: {
@@ -1090,7 +740,7 @@ describe("handleDevPoolIssue", () => {
 
       const issueInDb = createIssues(devpoolIssue, partnerIssue);
 
-      await handleDevPoolIssue([partnerIssue], partnerIssue, PROJECT_URL, issueInDb, true);
+      await handleDevPoolIssue(true, partnerIssue, PROJECT_URL, issueInDb, true);
 
       const updatedIssue = db.issue.findFirst({
         where: {
@@ -1123,7 +773,7 @@ describe("handleDevPoolIssue", () => {
 
       const issueInDb = createIssues(devpoolIssue, partnerIssue);
 
-      await handleDevPoolIssue([partnerIssue], partnerIssue, PROJECT_URL, issueInDb, true);
+      await handleDevPoolIssue(false, partnerIssue, PROJECT_URL, issueInDb, true);
 
       const updatedIssue = db.issue.findFirst({
         where: {
@@ -1163,7 +813,7 @@ describe("handleDevPoolIssue", () => {
 
       const issueInDb = createIssues(devpoolIssue, partnerIssue);
 
-      await handleDevPoolIssue([partnerIssue], partnerIssue, PROJECT_URL, issueInDb, true);
+      await handleDevPoolIssue(false, partnerIssue, PROJECT_URL, issueInDb, true);
 
       const updatedIssue = db.issue.findFirst({
         where: {
@@ -1196,7 +846,7 @@ describe("handleDevPoolIssue", () => {
 
       const issueInDb = createIssues(devpoolIssue, partnerIssue);
 
-      await handleDevPoolIssue([partnerIssue], partnerIssue, PROJECT_URL, issueInDb, true);
+      await handleDevPoolIssue(false, partnerIssue, PROJECT_URL, issueInDb, true);
 
       const updatedIssue = db.issue.findFirst({
         where: {
@@ -1232,7 +882,7 @@ describe("handleDevPoolIssue", () => {
 
       const issueInDb = createIssues(devpoolIssue, partnerIssue);
 
-      await handleDevPoolIssue([partnerIssue], partnerIssue, PROJECT_URL, issueInDb, true);
+      await handleDevPoolIssue(false, partnerIssue, PROJECT_URL, issueInDb, true);
 
       const updatedIssue = db.issue.findFirst({
         where: {
@@ -1267,7 +917,7 @@ describe("handleDevPoolIssue", () => {
 
       const issueInDb = createIssues(devpoolIssue, partnerIssue);
 
-      await handleDevPoolIssue([partnerIssue], partnerIssue, PROJECT_URL, issueInDb, true);
+      await handleDevPoolIssue(false, partnerIssue, PROJECT_URL, issueInDb, true);
 
       const updatedIssue = db.issue.findFirst({
         where: {
@@ -1301,7 +951,7 @@ describe("handleDevPoolIssue", () => {
 
       const issueInDb = createIssues(devpoolIssue, partnerIssue);
 
-      await handleDevPoolIssue([partnerIssue], partnerIssue, PROJECT_URL, issueInDb, true);
+      await handleDevPoolIssue(false, partnerIssue, PROJECT_URL, issueInDb, true);
 
       const updatedIssue = db.issue.findFirst({
         where: {
@@ -1344,7 +994,7 @@ describe("handleDevPoolIssue", () => {
 
       const issueInDb = createIssues(devpoolIssue, partnerIssue);
 
-      await handleDevPoolIssue([partnerIssue], partnerIssue, PROJECT_URL, issueInDb, true);
+      await handleDevPoolIssue(false, partnerIssue, PROJECT_URL, issueInDb, true);
 
       const updatedIssue = db.issue.findFirst({
         where: {
@@ -1622,7 +1272,7 @@ describe("calculateStatistics", () => {
   test("calculates statistics correctly for empty issues array", async () => {
     const issues = [] as GitHubIssue[];
 
-    const result = await calculateStatistics(issues);
+    const result = await calculateStatistics(issues, new Map());
 
     expect(result.rewards).toEqual({
       notAssigned: 0,
@@ -1694,15 +1344,13 @@ describe("calculateStatistics", () => {
         {
           name: "id: 6",
         },
-        {
-          name: "Unavailable",
-        },
       ],
     } as GitHubIssue;
 
     const projectIssue1 = {
       ...issueTemplate,
       state: "closed",
+      state_reason: "completed",
       pull_request: {
         merged_at: new Date().toISOString(),
       } as GitHubIssue["pull_request"],
@@ -1752,15 +1400,16 @@ describe("calculateStatistics", () => {
     } as GitHubIssue;
 
     createIssues(devpoolIssue, projectIssue1);
-    await handleDevPoolIssue([projectIssue1], projectIssue1, UBIQUITY_TEST_REPO, devpoolIssue, false);
+    await handleDevPoolIssue(false, projectIssue1, UBIQUITY_TEST_REPO, devpoolIssue, false);
     createIssues(devpoolIssue2, projectIssue2);
-    await handleDevPoolIssue([projectIssue1, projectIssue2], projectIssue2, UBIQUITY_TEST_REPO, devpoolIssue2, false);
+    await handleDevPoolIssue(false, projectIssue2, UBIQUITY_TEST_REPO, devpoolIssue2, false);
     createIssues(devpoolIssue3, projectIssue3);
-    await handleDevPoolIssue([projectIssue1, projectIssue2, projectIssue3], projectIssue3, UBIQUITY_TEST_REPO, devpoolIssue3, false);
+    await handleDevPoolIssue(false, projectIssue3, UBIQUITY_TEST_REPO, devpoolIssue3, false);
 
-    const issues = [devpoolIssue, devpoolIssue2, projectIssue1, projectIssue2, devpoolIssue3, projectIssue3];
+    const issues = [devpoolIssue, devpoolIssue2, devpoolIssue3];
+    const projectMap = new Map([projectIssue1, projectIssue2, projectIssue3].map((issue) => [issue.node_id, issue]));
 
-    const result = await calculateStatistics(issues as GitHubIssue[]);
+    const result = await calculateStatistics(issues as GitHubIssue[], projectMap);
 
     expect(result.rewards).toEqual({
       notAssigned: 1000, // issue 2
@@ -1817,11 +1466,11 @@ describe("calculateStatistics", () => {
     } as GitHubIssue;
 
     createIssues(devpoolIssue, projectIssue1);
-    await handleDevPoolIssue([projectIssue1], projectIssue1, UBIQUITY_TEST_REPO, devpoolIssue, false);
+    await handleDevPoolIssue(false, projectIssue1, UBIQUITY_TEST_REPO, devpoolIssue, false);
 
-    const issues = [devpoolIssue, projectIssue1];
+    const issues = [devpoolIssue];
 
-    const result = await calculateStatistics(issues as GitHubIssue[]);
+    const result = await calculateStatistics(issues as GitHubIssue[], new Map([projectIssue1].map((issue) => [issue.node_id, issue])));
 
     expect(result.rewards).toEqual({
       notAssigned: 0,
@@ -1832,8 +1481,8 @@ describe("calculateStatistics", () => {
 
     expect(result.tasks).toEqual({
       notAssigned: 0,
-      assigned: 0,
-      completed: 1,
+      assigned: 1,
+      completed: 0,
       total: 1,
     });
 

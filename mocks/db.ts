@@ -17,6 +17,7 @@ export const db = factory({
     comments_url: String,
     events_url: String,
     labels_url: String,
+    state_reason: nullable(String),
     locked: Boolean,
     node_id: String,
     title: String,
