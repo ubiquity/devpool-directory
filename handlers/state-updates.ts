@@ -1,5 +1,4 @@
 import { octokit, DEVPOOL_OWNER_NAME, DEVPOOL_REPO_NAME } from "../helpers/github";
-import { getIssueLabelValue } from "../helpers/issue";
 import { GitHubIssue, StateChanges } from "../types/github";
 
 export async function applyMetaChanges(
@@ -7,8 +6,7 @@ export async function applyMetaChanges(
   devpoolIssue: GitHubIssue,
   projectIssue: GitHubIssue,
   isFork: boolean,
-  labelRemoved: string[],
-  originals: string[]
+  newLabels: string[]
 ) {
   const shouldUpdate = metaChanges.title || metaChanges.body || metaChanges.labels;
 
@@ -26,9 +24,9 @@ export async function applyMetaChanges(
         owner: DEVPOOL_OWNER_NAME,
         repo: DEVPOOL_REPO_NAME,
         issue_number: devpoolIssue.number,
-        title: metaChanges.title ? projectIssue.title : devpoolIssue.title,
-        body: newBody,
-        labels: metaChanges.labels ? labelRemoved : originals,
+        title: metaChanges.title ? projectIssue.title : undefined,
+        body: metaChanges.body ? newBody : undefined,
+        labels: metaChanges.labels ? newLabels : undefined,
       });
     } catch (err) {
       console.error(err);
@@ -38,17 +36,17 @@ export async function applyMetaChanges(
   }
 }
 
-export async function applyStateChanges(projectIssues: GitHubIssue[], projectIssue: GitHubIssue, devpoolIssue: GitHubIssue, hasNoPriceLabels: boolean) {
+export async function applyStateChanges(missingInPartners: boolean, projectIssue: GitHubIssue, devpoolIssue: GitHubIssue, taskHasPriceLabel: boolean) {
   const stateChanges: StateChanges = {
     // missing in the partners
     forceMissing_Close: {
-      cause: !projectIssues.some((projectIssue) => projectIssue.node_id === getIssueLabelValue(devpoolIssue, "id:")),
+      cause: missingInPartners,
       effect: "closed",
       comment: "Closed (missing in partners)",
     },
     // no price labels set and open in the devpool
     noPriceLabels_Close: {
-      cause: hasNoPriceLabels && devpoolIssue.state === "open",
+      cause: !taskHasPriceLabel && devpoolIssue.state === "open",
       effect: "closed",
       comment: "Closed (no price labels)",
     },
@@ -82,14 +80,14 @@ export async function applyStateChanges(projectIssues: GitHubIssue[], projectIss
         projectIssue.state === "open" &&
         devpoolIssue.state === "closed" &&
         !!projectIssue.pull_request?.merged_at &&
-        !hasNoPriceLabels &&
+        taskHasPriceLabel &&
         !projectIssue.assignee?.login,
       effect: "open",
       comment: "Reopened (merged)",
     },
     // it's open, unassigned, has price labels and is closed in the devpool
     issueUnassigned_Open: {
-      cause: projectIssue.state === "open" && devpoolIssue.state === "closed" && !projectIssue.assignee?.login && !hasNoPriceLabels,
+      cause: projectIssue.state === "open" && devpoolIssue.state === "closed" && !projectIssue.assignee?.login && taskHasPriceLabel,
       effect: "open",
       comment: "Reopened (unassigned)",
     },
