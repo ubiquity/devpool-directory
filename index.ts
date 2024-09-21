@@ -41,7 +41,7 @@ async function main() {
 
   // check if the devpool is a fork
   // (if this _is_ a fork, update your DEVPOOL_OWNER_NAME to your org name)
-  const isFork = true; // await checkIfForked(DEVPOOL_OWNER_NAME);
+  const isFork = await checkIfForked(DEVPOOL_OWNER_NAME);
 
   // for each project URL
   for (const projectUrl of projectUrls) {
