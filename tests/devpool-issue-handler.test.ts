@@ -76,7 +76,7 @@ describe("handleDevPoolIssue", () => {
 
       const issueInDb = createIssues(devpoolIssue, partnerIssue);
 
-      await handleDevPoolIssue(false, partnerIssue, UBIQUITY_TEST_REPO, issueInDb, false);
+      await handleDevPoolIssue(false, partnerIssue, issueInDb, false);
 
       const updatedIssue = db.issue.findFirst({
         where: {
@@ -108,7 +108,7 @@ describe("handleDevPoolIssue", () => {
 
       const issueInDb = createIssues(devpoolIssue, partnerIssue);
 
-      await handleDevPoolIssue(false, partnerIssue, UBIQUITY_TEST_REPO, issueInDb, false);
+      await handleDevPoolIssue(false, partnerIssue, issueInDb, false);
 
       const updatedIssue = db.issue.findFirst({
         where: {
@@ -139,7 +139,7 @@ describe("handleDevPoolIssue", () => {
 
       const issueInDb = createIssues(devpoolIssue, partnerIssue);
 
-      await handleDevPoolIssue(false, partnerIssue, UBIQUITY_TEST_REPO, issueInDb, false);
+      await handleDevPoolIssue(false, partnerIssue, issueInDb, false);
 
       expect(logSpy).not.toHaveBeenCalled();
     });
@@ -157,7 +157,7 @@ describe("handleDevPoolIssue", () => {
 
       createIssues(devpoolIssue, partnerIssue);
 
-      await handleDevPoolIssue(false, partnerIssue, UBIQUITY_TEST_REPO, devpoolIssue, false);
+      await handleDevPoolIssue(false, partnerIssue, devpoolIssue, false);
 
       expect(logSpy).not.toHaveBeenCalledWith(expect.stringContaining("Updated state"));
     });
@@ -175,7 +175,7 @@ describe("handleDevPoolIssue", () => {
 
       createIssues(devpoolIssue, partnerIssue);
 
-      await handleDevPoolIssue(false, partnerIssue, UBIQUITY_TEST_REPO, devpoolIssue, false);
+      await handleDevPoolIssue(false, partnerIssue, devpoolIssue, false);
 
       expect(logSpy).not.toHaveBeenCalledWith(expect.stringContaining("Updated state"));
     });
@@ -196,7 +196,7 @@ describe("handleDevPoolIssue", () => {
 
       createIssues(devpoolIssue, partnerIssue);
 
-      await handleDevPoolIssue(false, partnerIssue, UBIQUITY_TEST_REPO, devpoolIssue, false);
+      await handleDevPoolIssue(false, partnerIssue, devpoolIssue, false);
 
       expect(logSpy).not.toHaveBeenCalledWith(expect.stringContaining("Updated state"));
     });
@@ -221,7 +221,7 @@ describe("handleDevPoolIssue", () => {
 
       createIssues(devpoolIssue, partnerIssue);
 
-      await handleDevPoolIssue(false, partnerIssue, UBIQUITY_TEST_REPO, devpoolIssue, false);
+      await handleDevPoolIssue(false, partnerIssue, devpoolIssue, false);
 
       expect(logSpy).not.toHaveBeenCalledWith(expect.stringContaining("Updated state"));
     });
@@ -249,7 +249,7 @@ describe("handleDevPoolIssue", () => {
 
       createIssues(devpoolIssue, partnerIssue);
 
-      await handleDevPoolIssue(false, partnerIssue, UBIQUITY_TEST_REPO, devpoolIssue, false);
+      await handleDevPoolIssue(false, partnerIssue, devpoolIssue, false);
 
       expect(logSpy).not.toHaveBeenCalledWith(expect.stringContaining("Updated"));
     });
@@ -267,7 +267,7 @@ describe("handleDevPoolIssue", () => {
 
       createIssues(devpoolIssue, partnerIssue);
 
-      await handleDevPoolIssue(false, partnerIssue, UBIQUITY_TEST_REPO, devpoolIssue, false);
+      await handleDevPoolIssue(false, partnerIssue, devpoolIssue, false);
 
       expect(logSpy).not.toHaveBeenCalledWith(expect.stringContaining("Updated state"));
     });
@@ -292,7 +292,7 @@ describe("handleDevPoolIssue", () => {
 
       createIssues(devpoolIssue, partnerIssue);
 
-      await handleDevPoolIssue(false, partnerIssue, UBIQUITY_TEST_REPO, devpoolIssue, false);
+      await handleDevPoolIssue(false, partnerIssue, devpoolIssue, false);
 
       expect(logSpy).not.toHaveBeenCalledWith(expect.stringContaining("Updated state"));
     });
@@ -311,7 +311,7 @@ describe("handleDevPoolIssue", () => {
 
       const issueInDb = createIssues(devpoolIssue, partnerIssue);
 
-      await handleDevPoolIssue(true, partnerIssue, UBIQUITY_TEST_REPO, issueInDb, false);
+      await handleDevPoolIssue(true, partnerIssue, issueInDb, false);
 
       const updatedIssue = db.issue.findFirst({
         where: {
@@ -341,7 +341,7 @@ describe("handleDevPoolIssue", () => {
 
       const issueInDb = createIssues(devpoolIssue, partnerIssue);
 
-      await handleDevPoolIssue(false, partnerIssue, UBIQUITY_TEST_REPO, issueInDb, false);
+      await handleDevPoolIssue(false, partnerIssue, issueInDb, false);
 
       const updatedIssue = db.issue.findFirst({
         where: {
@@ -378,7 +378,7 @@ describe("handleDevPoolIssue", () => {
 
       const issueInDb = createIssues(devpoolIssue, partnerIssue);
 
-      await handleDevPoolIssue(false, partnerIssue, UBIQUITY_TEST_REPO, issueInDb, false);
+      await handleDevPoolIssue(false, partnerIssue, issueInDb, false);
 
       const updatedIssue = db.issue.findFirst({
         where: {
@@ -409,7 +409,7 @@ describe("handleDevPoolIssue", () => {
 
       const issueInDb = createIssues(devpoolIssue, partnerIssue);
 
-      await handleDevPoolIssue(false, partnerIssue, UBIQUITY_TEST_REPO, issueInDb, false);
+      await handleDevPoolIssue(false, partnerIssue, issueInDb, false);
 
       const updatedIssue = db.issue.findFirst({
         where: {
@@ -442,7 +442,7 @@ describe("handleDevPoolIssue", () => {
 
       const issueInDb = createIssues(devpoolIssue, partnerIssue);
 
-      await handleDevPoolIssue(false, partnerIssue, UBIQUITY_TEST_REPO, issueInDb, false);
+      await handleDevPoolIssue(false, partnerIssue, issueInDb, false);
 
       const updatedIssue = db.issue.findFirst({
         where: {
@@ -474,7 +474,7 @@ describe("handleDevPoolIssue", () => {
 
       const issueInDb = createIssues(devpoolIssue, partnerIssue);
 
-      await handleDevPoolIssue(false, partnerIssue, UBIQUITY_TEST_REPO, issueInDb, false);
+      await handleDevPoolIssue(false, partnerIssue, issueInDb, false);
 
       const updatedIssue = db.issue.findFirst({
         where: {
@@ -505,7 +505,7 @@ describe("handleDevPoolIssue", () => {
 
       const issueInDb = createIssues(devpoolIssue, partnerIssue);
 
-      await handleDevPoolIssue(false, partnerIssue, UBIQUITY_TEST_REPO, issueInDb, false);
+      await handleDevPoolIssue(false, partnerIssue, issueInDb, false);
 
       const updatedIssue = db.issue.findFirst({
         where: {
@@ -543,7 +543,7 @@ describe("handleDevPoolIssue", () => {
 
       const issueInDb = createIssues(devpoolIssue, partnerIssue);
 
-      await handleDevPoolIssue(false, partnerIssue, UBIQUITY_TEST_REPO, issueInDb, false);
+      await handleDevPoolIssue(false, partnerIssue, issueInDb, false);
 
       const updatedIssue = db.issue.findFirst({
         where: {
@@ -667,7 +667,7 @@ describe("handleDevPoolIssue", () => {
 
       const issueInDb = createIssues(devpoolIssue, partnerIssue);
 
-      await handleDevPoolIssue(false, partnerIssue, PROJECT_URL, issueInDb, true);
+      await handleDevPoolIssue(false, partnerIssue, issueInDb, true);
 
       const updatedIssue = db.issue.findFirst({
         where: {
@@ -704,7 +704,7 @@ describe("handleDevPoolIssue", () => {
 
       const issueInDb = createIssues(devpoolIssue, partnerIssue);
 
-      await handleDevPoolIssue(false, partnerIssue, PROJECT_URL, issueInDb, true);
+      await handleDevPoolIssue(false, partnerIssue, issueInDb, true);
 
       const updatedIssue = db.issue.findFirst({
         where: {
@@ -740,7 +740,7 @@ describe("handleDevPoolIssue", () => {
 
       const issueInDb = createIssues(devpoolIssue, partnerIssue);
 
-      await handleDevPoolIssue(true, partnerIssue, PROJECT_URL, issueInDb, true);
+      await handleDevPoolIssue(true, partnerIssue, issueInDb, true);
 
       const updatedIssue = db.issue.findFirst({
         where: {
@@ -773,7 +773,7 @@ describe("handleDevPoolIssue", () => {
 
       const issueInDb = createIssues(devpoolIssue, partnerIssue);
 
-      await handleDevPoolIssue(false, partnerIssue, PROJECT_URL, issueInDb, true);
+      await handleDevPoolIssue(false, partnerIssue, issueInDb, true);
 
       const updatedIssue = db.issue.findFirst({
         where: {
@@ -813,7 +813,7 @@ describe("handleDevPoolIssue", () => {
 
       const issueInDb = createIssues(devpoolIssue, partnerIssue);
 
-      await handleDevPoolIssue(false, partnerIssue, PROJECT_URL, issueInDb, true);
+      await handleDevPoolIssue(false, partnerIssue, issueInDb, true);
 
       const updatedIssue = db.issue.findFirst({
         where: {
@@ -846,7 +846,7 @@ describe("handleDevPoolIssue", () => {
 
       const issueInDb = createIssues(devpoolIssue, partnerIssue);
 
-      await handleDevPoolIssue(false, partnerIssue, PROJECT_URL, issueInDb, true);
+      await handleDevPoolIssue(false, partnerIssue, issueInDb, true);
 
       const updatedIssue = db.issue.findFirst({
         where: {
@@ -882,7 +882,7 @@ describe("handleDevPoolIssue", () => {
 
       const issueInDb = createIssues(devpoolIssue, partnerIssue);
 
-      await handleDevPoolIssue(false, partnerIssue, PROJECT_URL, issueInDb, true);
+      await handleDevPoolIssue(false, partnerIssue, issueInDb, true);
 
       const updatedIssue = db.issue.findFirst({
         where: {
@@ -917,7 +917,7 @@ describe("handleDevPoolIssue", () => {
 
       const issueInDb = createIssues(devpoolIssue, partnerIssue);
 
-      await handleDevPoolIssue(false, partnerIssue, PROJECT_URL, issueInDb, true);
+      await handleDevPoolIssue(false, partnerIssue, issueInDb, true);
 
       const updatedIssue = db.issue.findFirst({
         where: {
@@ -951,7 +951,7 @@ describe("handleDevPoolIssue", () => {
 
       const issueInDb = createIssues(devpoolIssue, partnerIssue);
 
-      await handleDevPoolIssue(false, partnerIssue, PROJECT_URL, issueInDb, true);
+      await handleDevPoolIssue(false, partnerIssue, issueInDb, true);
 
       const updatedIssue = db.issue.findFirst({
         where: {
@@ -994,7 +994,7 @@ describe("handleDevPoolIssue", () => {
 
       const issueInDb = createIssues(devpoolIssue, partnerIssue);
 
-      await handleDevPoolIssue(false, partnerIssue, PROJECT_URL, issueInDb, true);
+      await handleDevPoolIssue(false, partnerIssue, issueInDb, true);
 
       const updatedIssue = db.issue.findFirst({
         where: {
@@ -1151,6 +1151,47 @@ describe("createDevPoolIssue", () => {
     });
   });
 });
+
+describe("node ID mismatch", () => {
+  const logSpy = jest.spyOn(console, "log").mockImplementation();
+  beforeEach(() => {
+    logSpy.mockClear();
+  });
+
+  test("should correct an incorrect devpool id: label", async () => {
+    const partnerIssue = {
+      ...issueTemplate,
+      labels: [{ name: "Pricing: 200 USD" }, { name: "Time: 1h" }],
+    } as GitHubIssue;
+
+    const devpoolIssue = {
+      ...issueDevpoolTemplate,
+      labels: [{ name: "Pricing: 200 USD" }, { name: "Partner: ubiquity/wrong-repo" }, { name: "id: 1" }, { name: "Time: 1h" }],
+    } as GitHubIssue;
+
+    createIssues(devpoolIssue, partnerIssue);
+
+    await handleDevPoolIssue(false, partnerIssue, devpoolIssue, false);
+
+    const updatedIssue = db.issue.findFirst({
+      where: {
+        id: {
+          equals: 1,
+        },
+      },
+    }) as GitHubIssue;
+
+    expect(updatedIssue).not.toBeNull();
+    expect(updatedIssue?.labels).toEqual(expect.arrayContaining([{ name: "id: 2" }, { name: "Partner: ubiquity/test-repo" }]));
+    expect(updatedIssue?.labels).not.toEqual(expect.arrayContaining([{ name: "id: 1" }, { name: "Partner: ubiquity/wrong-repo" }]));
+
+    expect(logSpy).toHaveBeenCalledWith(`Updated metadata: ${updatedIssue.html_url} - (${partnerIssue.html_url})`, {
+      body: false,
+      labels: true,
+      title: false,
+    });
+  });
+})
 
 describe("getProjectUrls", () => {
   const responseMap = {
@@ -1400,11 +1441,11 @@ describe("calculateStatistics", () => {
     } as GitHubIssue;
 
     createIssues(devpoolIssue, projectIssue1);
-    await handleDevPoolIssue(false, projectIssue1, UBIQUITY_TEST_REPO, devpoolIssue, false);
+    await handleDevPoolIssue(false, projectIssue1, devpoolIssue, false);
     createIssues(devpoolIssue2, projectIssue2);
-    await handleDevPoolIssue(false, projectIssue2, UBIQUITY_TEST_REPO, devpoolIssue2, false);
+    await handleDevPoolIssue(false, projectIssue2, devpoolIssue2, false);
     createIssues(devpoolIssue3, projectIssue3);
-    await handleDevPoolIssue(false, projectIssue3, UBIQUITY_TEST_REPO, devpoolIssue3, false);
+    await handleDevPoolIssue(false, projectIssue3, devpoolIssue3, false);
 
     const issues = [devpoolIssue, devpoolIssue2, devpoolIssue3];
     const projectMap = new Map([projectIssue1, projectIssue2, projectIssue3].map((issue) => [issue.node_id, issue]));
@@ -1466,7 +1507,7 @@ describe("calculateStatistics", () => {
     } as GitHubIssue;
 
     createIssues(devpoolIssue, projectIssue1);
-    await handleDevPoolIssue(false, projectIssue1, UBIQUITY_TEST_REPO, devpoolIssue, false);
+    await handleDevPoolIssue(false, projectIssue1, devpoolIssue, false);
 
     const issues = [devpoolIssue];
 
