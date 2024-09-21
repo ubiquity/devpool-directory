@@ -51,8 +51,28 @@ export class IssueRemover {
     const issues = (await this.runnerOctokit.paginate(this.runnerOctokit.rest.issues.listForRepo, {
       owner,
       repo,
-      state: "open",
+      state: "all",
     })) as RestEndpointMethodTypes["issues"]["listForRepo"]["response"]["data"];
+
+
+    const duplicateIssues = new Set<string>();
+    const uniqueIssues = issues.filter((issue) => {
+      if (duplicateIssues.has(issue.title)) {
+        return false;
+      }
+      duplicateIssues.add(issue.title);
+      return true;
+    })
+
+    if (uniqueIssues.length !== issues.length) {
+      console.log(`Found ${issues.length - uniqueIssues.length} duplicate issues. Deleting duplicates...`);
+      for (const issue of issues) {
+        if (duplicateIssues.has(issue.title)) {
+          await this.deleteIssue(issue.html_url);
+          duplicateIssues.delete(issue.title);
+        }
+      }
+    }
 
     // how we map the bot installs to their org
     const allowedBots = new Set(installations.map((install) => install.app_slug));
