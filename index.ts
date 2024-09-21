@@ -2,19 +2,16 @@ import dotenv from "dotenv";
 import {
   DEVPOOL_OWNER_NAME,
   DEVPOOL_REPO_NAME,
-  getAllIssues,
-  getIssueByLabel,
-  getProjectUrls,
-  getRepoCredentials,
-  GitHubIssue,
-  checkIfForked,
-  calculateStatistics,
-  writeTotalRewardsToGithub,
-  handleDevPoolIssue,
-  createDevPoolIssue,
 } from "./helpers/github";
 import { readFile, writeFile } from "fs/promises";
 import { Statistics } from "./types/statistics";
+import { createDevPoolIssue } from "./handlers/create-devpool-issue";
+import { handleDevPoolIssue } from "./handlers/handle-devpool-issue";
+import { getAllIssues, getIssueByLabel } from "./helpers/issue";
+import { getProjectUrls, getRepoCredentials } from "./helpers/repos";
+import { calculateStatistics, writeTotalRewardsToGithub } from "./helpers/statistics";
+import { checkIfForked } from "./helpers/utils";
+import { GitHubIssue } from "./types/github";
 // init octokit
 dotenv.config();
 
