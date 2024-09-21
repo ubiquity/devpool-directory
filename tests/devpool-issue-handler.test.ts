@@ -1,12 +1,17 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { setupServer } from "msw/node";
-import { GitHubIssue, calculateStatistics, checkIfForked, getProjectUrls, getRepoUrls, writeTotalRewardsToGithub } from "../helpers/github";
 import { db } from "../mocks/db";
 import { handlers } from "../mocks/handlers";
 import { drop } from "@mswjs/data";
 import issueDevpoolTemplate from "../mocks/issue-devpool-template.json";
 import issueTemplate from "../mocks/issue-template.json";
-import { handleDevPoolIssue, createDevPoolIssue } from "../helpers/github";
+import { createDevPoolIssue } from "../handlers/create-devpool-issue";
+import { handleDevPoolIssue } from "../handlers/handle-devpool-issue";
+import { getRepoUrls } from "../helpers/issue";
+import { getProjectUrls } from "../helpers/repos";
+import { calculateStatistics, writeTotalRewardsToGithub } from "../helpers/statistics";
+import { checkIfForked } from "../helpers/utils";
+import { GitHubIssue } from "../types/github";
 
 const DEVPOOL_OWNER_NAME = "ubiquity";
 const DEVPOOL_REPO_NAME = "devpool-directory";
@@ -103,7 +108,11 @@ describe("handleDevPoolIssue", () => {
       }) as GitHubIssue;
 
       expect(updatedIssue).not.toBeNull();
-      expect(logSpy).toHaveBeenCalledWith(`Updated metadata: ${updatedIssue.html_url} - (${partnerIssue.html_url})`, { body: false, "labels": true, title: true });
+      expect(logSpy).toHaveBeenCalledWith(`Updated metadata: ${updatedIssue.html_url} - (${partnerIssue.html_url})`, {
+        body: false,
+        labels: true,
+        title: true,
+      });
     });
 
     test("updates issue labels in devpool when project issue labels change", async () => {
@@ -132,7 +141,11 @@ describe("handleDevPoolIssue", () => {
       expect(updatedIssue).not.toBeNull();
       expect(updatedIssue?.labels).toEqual(expect.arrayContaining([{ name: "enhancement" }]));
 
-      expect(logSpy).toHaveBeenCalledWith(`Updated metadata: ${updatedIssue.html_url} - (${partnerIssue.html_url})`, { body: false, "labels": true, title: false });
+      expect(logSpy).toHaveBeenCalledWith(`Updated metadata: ${updatedIssue.html_url} - (${partnerIssue.html_url})`, {
+        body: false,
+        labels: true,
+        title: false,
+      });
     });
 
     test("does not update issue when no metadata changes are detected", async () => {
@@ -1018,7 +1031,11 @@ describe("handleDevPoolIssue", () => {
       expect(updatedIssue).not.toBeNull();
       expect(updatedIssue?.title).toEqual("Updated Title");
 
-      expect(logSpy).toHaveBeenCalledWith(`Updated metadata: ${updatedIssue.html_url} - (${partnerIssue.html_url})`, { body: false, "labels": true, title: true });
+      expect(logSpy).toHaveBeenCalledWith(`Updated metadata: ${updatedIssue.html_url} - (${partnerIssue.html_url})`, {
+        body: false,
+        labels: true,
+        title: true,
+      });
     });
 
     test("updates issue labels in devpool when project issue labels change in forked repo", async () => {
@@ -1049,7 +1066,11 @@ describe("handleDevPoolIssue", () => {
 
       expect(updatedIssue).not.toBeNull();
 
-      expect(logSpy).toHaveBeenCalledWith(`Updated metadata: ${updatedIssue.html_url} - (${partnerIssue.html_url})`, { body: false, "labels": true, title: false });
+      expect(logSpy).toHaveBeenCalledWith(`Updated metadata: ${updatedIssue.html_url} - (${partnerIssue.html_url})`, {
+        body: false,
+        labels: true,
+        title: false,
+      });
     });
 
     test("closes devpool issue when project issue is missing in forked repo", async () => {
