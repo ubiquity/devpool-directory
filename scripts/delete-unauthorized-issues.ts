@@ -55,22 +55,18 @@ export class IssueRemover {
       state: "all",
     })) as RestEndpointMethodTypes["issues"]["listForRepo"]["response"]["data"];
 
+    //  find duplicates and delete them
+    const seen = new Set();
+    const duplicates = issues.filter((issue) => {
+      const idLabel = getIssueLabelValue(issue, "id");
+      return seen.has(idLabel) ? true : seen.add(idLabel);
+    });
 
-    const duplicateIssues = new Set<string>();
-    issues.forEach((issue) => {
-      if (duplicateIssues.has(issue.body || getIssueLabelValue(issue, "id:") || issue.title)) {
-        return;
-      }
-      duplicateIssues.add(issue.body || getIssueLabelValue(issue, "id:") || issue.title);
-    })
-
-    if (duplicateIssues.size > 0) {
-      console.log(`Found ${duplicateIssues.size} duplicate issues. Deleting duplicates...`);
-      for (const issue of issues) {
-        if (duplicateIssues.has(issue.body || getIssueLabelValue(issue, "id:") || issue.title)) {
-          await this.deleteIssue(issue.html_url);
-          duplicateIssues.delete(issue.body || getIssueLabelValue(issue, "id:") || issue.title);
-        }
+    if (duplicates.length > 0) {
+      console.log("Deleting duplicate issues...");
+      for (const issue of duplicates) {
+        console.log(`Deleting issue ${issue.html_url}`);
+        await this.deleteIssue(issue.html_url);
       }
     }
 
