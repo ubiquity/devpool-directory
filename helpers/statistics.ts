@@ -1,65 +1,71 @@
 import { Statistics } from "../types/statistics";
-import optInOptOut from "../opt.json";
-import { GitHubIssue, GitHubLabel, LABELS } from "../types/github";
+import { GitHubIssue, GitHubLabel } from "../types/github";
 import { DEVPOOL_REPO_NAME, DEVPOOL_OWNER_NAME, octokit } from "./github";
+import { getIssueLabelValue } from "./issue";
+import { getProjectMap } from "./get-project-map";
 
 // Function to calculate total rewards and tasks statistics
-export async function calculateStatistics(devpoolIssues: GitHubIssue[]) {
-  const rewards = {
-    notAssigned: 0,
-    assigned: 0,
-    completed: 0,
-    total: 0,
-  };
+export async function calculateStatistics(devpoolIssues: GitHubIssue[], projectMap: Awaited<ReturnType<typeof getProjectMap>>) {
+  const rewards = { notAssigned: 0, assigned: 0, completed: 0, total: 0 };
+  const tasks = { notAssigned: 0, assigned: 0, completed: 0, total: 0 };
 
-  const tasks = {
-    notAssigned: 0,
-    assigned: 0,
-    completed: 0,
-    total: 0,
-  };
+  devpoolIssues.forEach((devpoolIssue) => {
+    if (!devpoolIssue.repository_url || !devpoolIssue.html_url) return;
 
-  devpoolIssues.forEach((issue) => {
-    if (!issue.repository_url || !issue.html_url) return;
-    if (!issue.repository_url.includes(DEVPOOL_REPO_NAME) || !issue.html_url.includes(DEVPOOL_REPO_NAME)) return;
-    if ("repo" in issue && issue.repo != DEVPOOL_REPO_NAME) return;
+    const isFromDevpool = devpoolIssue.repository_url.includes(DEVPOOL_REPO_NAME) && devpoolIssue.html_url.includes(DEVPOOL_REPO_NAME);
+    if (!isFromDevpool) return;
 
-    const linkedRepoFromBody = issue.body?.match(/https:\/\/github.com\/[^/]+\/[^/]+/);
-    const linkedRepoFromBodyAlt = issue.body?.match(/https:\/\/www.github.com\/[^/]+\/[^/]+/);
+    const partnerTaskId = getIssueLabelValue(devpoolIssue, "id:");
+    if (!partnerTaskId) {
+      console.error(`This is probably an unofficial bot post:  ${devpoolIssue.html_url}`);
+      return;
+    }
 
-    let shouldExclude = optInOptOut.out.some((orgOrRepo) => linkedRepoFromBody?.[0].includes(orgOrRepo));
-    shouldExclude = shouldExclude || optInOptOut.out.some((orgOrRepo) => linkedRepoFromBodyAlt?.[0].includes(orgOrRepo));
+    const task = projectMap.get(partnerTaskId || "");
+    if (!task) {
+      console.error(`Project ${partnerTaskId} not found in partner tasks: likely an unofficial bot issue`);
+      return;
+    }
 
-    const labels = issue.labels as GitHubLabel[];
-    // devpool issue has unavailable label because it's assigned and so it's closed
-    const isAssigned = labels.find((label) => (label.name as string).includes(LABELS.UNAVAILABLE)) && issue.state === "closed";
-    // devpool issue doesn't have unavailable label because it's unassigned and closed so it's merged therefore completed
-    const isCompleted = !labels.some((label) => (label.name as string).includes(LABELS.UNAVAILABLE)) && issue.state === "closed";
-    const isOpen = issue.state === "open";
-    const priceLabel = labels.find((label) => (label.name as string).includes("Pricing"));
-    const price = priceLabel ? parseInt((priceLabel.name as string).split(":")[1].trim(), 10) : 0;
+    let price = calculatePrice(task.labels as GitHubLabel[]);
 
-    if (isOpen && !shouldExclude) {
-      rewards.notAssigned += !isNaN(price) ? price : 0;
+    if (isNaN(price) || price < 0) {
+      console.error(`Invalid price for task ${task.html_url} - ${devpoolIssue.html_url}`);
+      price = 0;
+    }
+
+    // open in both and not assigned
+    const isOpen = task.state === "open" && devpoolIssue.state === "open";
+    // open only in partner and is assigned
+    const isAssigned = task.state === "open" && devpoolIssue.state === "closed";
+    const isCompleted = task.state === "closed" && devpoolIssue.state === "closed" && task.state_reason && task.state_reason !== "not_planned";
+
+    // tally all totals
+    tasks.total++;
+    rewards.total += price;
+
+    // tally all others rewards and tasks from
+    // repos which are not excluded
+    if (isOpen) {
+      rewards.notAssigned += price;
       tasks.notAssigned++;
-      tasks.total++;
-      rewards.total += !isNaN(price) ? price : 0;
-    } else if (isAssigned && !shouldExclude) {
-      rewards.assigned += !isNaN(price) ? price : 0;
+    } else if (isAssigned) {
+      rewards.assigned += price;
       tasks.assigned++;
-      tasks.total++;
-      rewards.total += !isNaN(price) ? price : 0;
     } else if (isCompleted) {
-      rewards.completed += !isNaN(price) ? price : 0;
+      rewards.completed += price;
       tasks.completed++;
-      tasks.total++;
-      rewards.total += !isNaN(price) ? price : 0;
-    } else {
-      console.error(`Issue ${issue.number} is not assigned, not completed and not open`);
     }
   });
 
   return { rewards, tasks };
+}
+
+function calculatePrice(devpoolLabels: GitHubLabel[]): number {
+  const priceLabel = devpoolLabels.find(
+    (label) => (typeof label === "string" ? label : label.name).includes("Price:") || (typeof label === "string" ? label : label.name).includes("Pricing")
+  );
+  return priceLabel ? parseInt((priceLabel.name as string).split(" ")[1].trim(), 10) : 0;
 }
 
 export async function writeTotalRewardsToGithub(statistics: Statistics) {
