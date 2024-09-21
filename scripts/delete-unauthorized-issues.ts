@@ -2,6 +2,7 @@ import { Octokit, RestEndpointMethodTypes } from "@octokit/rest";
 import { App } from "octokit";
 import { execSync } from "child_process";
 import dotenv from "dotenv";
+import { getIssueLabelValue } from "../helpers/issue";
 dotenv.config();
 
 export class IssueRemover {
@@ -56,20 +57,19 @@ export class IssueRemover {
 
 
     const duplicateIssues = new Set<string>();
-    const uniqueIssues = issues.filter((issue) => {
-      if (duplicateIssues.has(issue.title)) {
-        return false;
+    issues.forEach((issue) => {
+      if (duplicateIssues.has(issue.body || getIssueLabelValue(issue, "id:") || issue.title)) {
+        return;
       }
-      duplicateIssues.add(issue.title);
-      return true;
+      duplicateIssues.add(issue.body || getIssueLabelValue(issue, "id:") || issue.title);
     })
 
-    if (uniqueIssues.length !== issues.length) {
-      console.log(`Found ${issues.length - uniqueIssues.length} duplicate issues. Deleting duplicates...`);
+    if (duplicateIssues.size > 0) {
+      console.log(`Found ${duplicateIssues.size} duplicate issues. Deleting duplicates...`);
       for (const issue of issues) {
-        if (duplicateIssues.has(issue.title)) {
+        if (duplicateIssues.has(issue.body || getIssueLabelValue(issue, "id:") || issue.title)) {
           await this.deleteIssue(issue.html_url);
-          duplicateIssues.delete(issue.title);
+          duplicateIssues.delete(issue.body || getIssueLabelValue(issue, "id:") || issue.title);
         }
       }
     }
