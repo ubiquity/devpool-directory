@@ -16,10 +16,14 @@ export async function handleDevPoolIssue(
   let idAndPartnerLabels = devpoolLabels.filter((label) => label.includes("id:") || label.includes("Partner:"));
   const idLabel = `id: ${projectIssue.node_id}`;
 
-  if (!idAndPartnerLabels.includes(idLabel)) {
-    const [owner, repo] = getRepoCredentials(projectIssue.html_url);
-    const partnerLabel = `Partner: ${owner}/${repo}`;
-    idAndPartnerLabels = [idLabel, partnerLabel];
+  try {
+    if (!idAndPartnerLabels.includes(idLabel)) {
+      const [owner, repo] = getRepoCredentials(projectIssue.html_url);
+      const partnerLabel = `Partner: ${owner}/${repo}`;
+      idAndPartnerLabels = [idLabel, partnerLabel];
+    }
+  } catch (err) {
+    console.error(err);
   }
 
   const hasPriceLabel = isTaskPriced(projectIssue);
