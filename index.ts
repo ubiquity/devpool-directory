@@ -89,6 +89,7 @@ async function main() {
 
   // Calculate total rewards from devpool issues
   const statistics: Statistics = await calculateStatistics(await getAllDevpoolIssues(projectUrls), projectMap);
+  console.log("Statistics: ", statistics);
 
   await writeTotalRewardsToGithub(statistics);
 }
