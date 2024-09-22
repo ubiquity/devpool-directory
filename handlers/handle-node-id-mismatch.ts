@@ -35,7 +35,7 @@ export async function handleNodeIdMismatches(
                 });
                 projectMap.set(taskViaRest.data.node_id, taskViaRest.data);
             } else {
-                await handleMissingTask(partnerTaskId, devpoolIssues, projectMap, missingPartnerTasks);
+                await handleMissingTask(partnerTaskId, devpoolIssues, projectMap, missingPartnerTasks, issueRemover);
             }
         } catch (error) {
             let message = "";
