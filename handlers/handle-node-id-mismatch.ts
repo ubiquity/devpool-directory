@@ -1,5 +1,7 @@
+import { DEVPOOL_TASK_BODY_REGEX } from "../helpers/constants";
 import { octokit, DEVPOOL_OWNER_NAME, DEVPOOL_REPO_NAME } from "../helpers/github";
 import { getIssueLabelValue, getIssueByLabel } from "../helpers/issue";
+import { IssueRemover } from "../scripts/delete-unauthorized-issues";
 import { GitHubIssue } from "../types/github";
 import { graphql } from "@octokit/graphql";
 
@@ -76,7 +78,7 @@ export async function handleMissingTask(
     const devpoolIssue = getIssueByLabel(devpoolIssues, `id: ${partnerTaskId}`);
     // this should always be true
     if (devpoolIssue) {
-        const match = devpoolIssue.body?.match(/https:\/\/github.com\/(?<owner>[^/]+)\/(?<repo>[^/]+)\/issues\/(?<number>\d+)/);
+        const match = devpoolIssue.body?.match(DEVPOOL_TASK_BODY_REGEX);
 
         if (match?.groups) {
             const { owner, repo, number } = match.groups;

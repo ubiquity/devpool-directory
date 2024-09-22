@@ -1,4 +1,5 @@
 import { GitHubIssue } from "../types/github";
+import { DEVPOOL_TASK_BODY_REGEX } from "./constants";
 import { DEVPOOL_OWNER_NAME, DEVPOOL_REPO_NAME } from "./github";
 import { getAllIssues } from "./issue";
 
@@ -15,7 +16,7 @@ export async function getAllDevpoolIssues(projectUrls: Set<string>) {
 
   return devpoolIssues
     .filter((issue) => {
-      const match = issue.body?.match(/https:\/\/(www\.)?github.com\/(?<owner>[^/]+)\/(?<repo>[^/]+)\/issues\/(?<number>\d+)/);
+      const match = issue.body?.match(DEVPOOL_TASK_BODY_REGEX);
       if (match?.groups) {
         const { owner, repo } = match.groups;
 
