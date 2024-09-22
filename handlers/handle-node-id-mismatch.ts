@@ -107,12 +107,14 @@ export async function handleMissingTask(
             // remove the task from the missing set
             missingPartnerTasks.delete(partnerTaskId);
 
-            console.log(`Found missing task with node ID ${partnerTaskId} and updated the project map with the new node ID ${node_id}`, {
+            console.log(`Found a mismatch with the task node ID, deleting the devpool issue...`, {
                 partnerTaskId,
                 node_id,
                 html_url,
                 title
             });
+
+            await issueRemover.deleteIssue(devpoolIssue.html_url);
         } else {
             console.log(`Attempted to locate issue after failing to find it in the project map, but also failed to find it in the devpool body`, {
                 partnerTaskId,
