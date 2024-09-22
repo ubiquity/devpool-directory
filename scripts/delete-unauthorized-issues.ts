@@ -4,7 +4,7 @@ dotenv.config();
 
 async function main() {
   const issueRemover = new IssueRemover();
-  issueRemover.deleteUnauthedIssues().catch(console.error);
+  await issueRemover.deleteUnauthedIssues()
 }
 
 main().catch(console.error);

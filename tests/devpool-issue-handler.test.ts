@@ -17,6 +17,12 @@ const DEVPOOL_OWNER_NAME = "ubiquity";
 const DEVPOOL_REPO_NAME = "devpool-directory";
 const UBIQUITY_TEST_REPO = "https://github.com/ubiquity/test-repo";
 
+jest.mock("../types/issue-remover", () => ({
+  IssueRemover: jest.fn().mockImplementation(() => ({
+    removeIssue: jest.fn(),
+  })),
+}));
+
 const server = setupServer(...handlers);
 
 beforeAll(() => server.listen());

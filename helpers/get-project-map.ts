@@ -11,7 +11,6 @@ export async function getProjectMap(devpoolIssues: GitHubIssue[], allProjectIssu
   console.log(`Found ${projectMap.size} project issues in total`);
   console.log(`Found ${devpoolIssues.length} devpool issues in total`);
 
-
   // a set of extracted node IDs from devpool issues that are not found in the project map
   const missingPartnerTasks = new Set<string>();
   const deletedPartnerTasks = new Set<string>();
@@ -24,17 +23,16 @@ export async function getProjectMap(devpoolIssues: GitHubIssue[], allProjectIssu
   if (missingPartnerTasks.size > 0) {
     console.log(`There are ${missingPartnerTasks.size} missing partner tasks`, {
       missingPartnerTasks: [...missingPartnerTasks],
-      missingPartnerUrls: [...missingPartnerTasks].map(partnerTaskId => getIssueByLabel(devpoolIssues, `id: ${partnerTaskId}`)?.html_url)
+      missingPartnerUrls: [...missingPartnerTasks].map((partnerTaskId) => getIssueByLabel(devpoolIssues, `id: ${partnerTaskId}`)?.html_url),
     });
   }
 
   if (deletedPartnerTasks.size > 0) {
     console.log(`There are ${deletedPartnerTasks.size} deleted partner tasks`, {
       deletedPartnerTasks: [...deletedPartnerTasks],
-      deletedPartnerUrls: [...deletedPartnerTasks].map(partnerTaskId => getIssueByLabel(devpoolIssues, `id: ${partnerTaskId}`)?.html_url)
+      deletedPartnerUrls: [...deletedPartnerTasks].map((partnerTaskId) => getIssueByLabel(devpoolIssues, `id: ${partnerTaskId}`)?.html_url),
     });
   }
-
 
   return projectMap;
 }
