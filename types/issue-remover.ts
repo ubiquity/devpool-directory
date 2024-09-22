@@ -2,6 +2,7 @@ import { RestEndpointMethodTypes, Octokit } from "@octokit/rest";
 import { execSync } from "child_process";
 import { App } from "octokit";
 import dotenv from "dotenv";
+import { DEVPOOL_TASK_BODY_REGEX } from "../helpers/constants";
 dotenv.config();
 
 export class IssueRemover {
@@ -85,6 +86,14 @@ export class IssueRemover {
             if (issue.pull_request || issue.state !== "open") {
                 continue;
             }
+
+            if (!issue.body?.match(DEVPOOL_TASK_BODY_REGEX)) {
+                console.log(`Deleting issue ${issue.html_url} as it does not match the devpool task body regex`);
+                await this.deleteIssue(issue.html_url);
+                didDelete = true;
+                continue;
+            }
+
             if (issue.user?.type === "Bot") {
                 if (!allowedBots.has(issue.user?.login.split("[bot]")[0])) {
                     console.log(`Deleting issue ${issue.html_url} created by bot ${issue.user?.login}`);
