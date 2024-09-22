@@ -113,21 +113,6 @@ export async function handleMissingTask(
                 html_url,
                 title
             });
-
-            // update the devpool issue with the new node ID
-            await octokit.rest.issues.deleteLabel({
-                owner: DEVPOOL_OWNER_NAME,
-                repo: DEVPOOL_REPO_NAME,
-                issue_number: devpoolIssue.number,
-                name: `id: ${partnerTaskId}`
-            });
-
-            await octokit.rest.issues.createLabel({
-                owner: DEVPOOL_OWNER_NAME,
-                repo: DEVPOOL_REPO_NAME,
-                issue_number: devpoolIssue.number,
-                name: `id: ${node_id}`
-            });
         } else {
             console.log(`Attempted to locate issue after failing to find it in the project map, but also failed to find it in the devpool body`, {
                 partnerTaskId,
