@@ -130,8 +130,7 @@ export async function handleMissingTask(
                 name: `id: ${node_id}`
             });
         } else {
-
-            console.log(`Attempted to locate issue after failing to find it in the project map, but failed to find it in the devpool body`, {
+            console.log(`Attempted to locate issue after failing to find it in the project map, but also failed to find it in the devpool body`, {
                 partnerTaskId,
                 devpoolIssueUrl: devpoolIssue.html_url,
                 devpoolIssueBody: devpoolIssue.body

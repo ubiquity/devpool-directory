@@ -58,11 +58,11 @@ export class IssueRemover {
     //  find duplicates and delete them
     const seen = new Set();
     const duplicates = issues.filter((issue) => {
-      const idLabel = getIssueLabelValue(issue, "id");
-      if (seen.has(idLabel)) {
+      const body = issue.body;
+      if (seen.has(body)) {
         return true;
       } else {
-        seen.add(idLabel);
+        seen.add(body);
         return false;
       }
     });
