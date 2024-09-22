@@ -41,6 +41,7 @@ jobs:
 
       - name: Sync Issues
         env:
+          GH_TOKEN: ${{ secrets.GH_TOKEN }}
           DEVPOOL_GITHUB_API_TOKEN: ${{ steps.get_installation_token.outputs.token }}
           TWITTER_API_KEY: ${{ secrets.TWITTER_API_KEY }}
           TWITTER_API_KEY_SECRET: ${{ secrets.TWITTER_API_KEY_SECRET }}

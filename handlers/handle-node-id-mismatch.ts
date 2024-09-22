@@ -17,6 +17,7 @@ export async function handleNodeIdMismatches(
         // we should delete these issues as they are most likely unofficial bots
         return;
     }
+    const issueRemover = new IssueRemover();
     /**
      * If the task is not in the project map, then we need to fetch it
      * although it should be because the map consists of only task
@@ -64,7 +65,7 @@ export async function handleNodeIdMismatches(
      * so we need to refetch the issue using the task URL from the devpool body
      */
     if (missingPartnerTasks.has(partnerTaskId)) {
-        await handleMissingTask(partnerTaskId, devpoolIssues, projectMap, missingPartnerTasks);
+        await handleMissingTask(partnerTaskId, devpoolIssues, projectMap, missingPartnerTasks, issueRemover);
     }
 }
 
@@ -72,7 +73,8 @@ export async function handleMissingTask(
     partnerTaskId: string,
     devpoolIssues: GitHubIssue[],
     projectMap: Map<string, GitHubIssue>,
-    missingPartnerTasks: Set<string>
+    missingPartnerTasks: Set<string>,
+    issueRemover: IssueRemover
 ) {
     // use the old partnerTaskId to find the issue amongst the devpool issues
     const devpoolIssue = getIssueByLabel(devpoolIssues, `id: ${partnerTaskId}`);
@@ -114,24 +116,33 @@ export async function handleMissingTask(
             });
 
             // update the devpool issue with the new node ID
-            await octokit.rest.issues.updateLabel({
+            await octokit.rest.issues.deleteLabel({
                 owner: DEVPOOL_OWNER_NAME,
                 repo: DEVPOOL_REPO_NAME,
                 issue_number: devpoolIssue.number,
-                current_name: `id: ${partnerTaskId}`,
-                name: `id: ${node_id}`,
+                name: `id: ${partnerTaskId}`
+            });
+
+            await octokit.rest.issues.createLabel({
+                owner: DEVPOOL_OWNER_NAME,
+                repo: DEVPOOL_REPO_NAME,
+                issue_number: devpoolIssue.number,
+                name: `id: ${node_id}`
             });
         } else {
+
             console.log(`Attempted to locate issue after failing to find it in the project map, but failed to find it in the devpool body`, {
                 partnerTaskId,
                 devpoolIssueUrl: devpoolIssue.html_url,
                 devpoolIssueBody: devpoolIssue.body
             });
+
+            console.log(`Deleting ${devpoolIssue.html_url}`);
+            await issueRemover.deleteIssue(devpoolIssue.html_url)
         }
     } else {
         console.log(`Found a task which has an incorrect partnerTaskId, but could not find the issue in the devpool issues`, {
             partnerTaskId,
-            devpoolIssue
         });
     }
 }
