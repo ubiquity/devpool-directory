@@ -1,8 +1,8 @@
 import { DEVPOOL_OWNER_NAME, DEVPOOL_REPO_NAME, DEVPOOL_TASK_BODY_REGEX, octokit } from "../helpers/constants";
 import { getIssueLabelValue, getIssueByLabel } from "../helpers/issue";
-import { IssueRemover } from "../scripts/delete-unauthorized-issues";
 import { GitHubIssue } from "../types/github";
 import { graphql } from "@octokit/graphql";
+import { IssueRemover } from "../types/issue-remover";
 
 export async function handleNodeIdMismatches(
     devpoolIssue: GitHubIssue,
