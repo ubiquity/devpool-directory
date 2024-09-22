@@ -1,4 +1,4 @@
-import { octokit, DEVPOOL_OWNER_NAME, DEVPOOL_REPO_NAME } from "../helpers/github";
+import { octokit, DEVPOOL_OWNER_NAME, DEVPOOL_REPO_NAME } from "../helpers/constants";
 import { GitHubIssue, StateChanges } from "../types/github";
 
 export async function applyMetaChanges(

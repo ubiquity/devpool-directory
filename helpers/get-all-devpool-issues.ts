@@ -1,6 +1,5 @@
 import { GitHubIssue } from "../types/github";
-import { DEVPOOL_TASK_BODY_REGEX } from "./constants";
-import { DEVPOOL_OWNER_NAME, DEVPOOL_REPO_NAME } from "./github";
+import { DEVPOOL_OWNER_NAME, DEVPOOL_REPO_NAME, DEVPOOL_TASK_BODY_REGEX } from "./constants";
 import { getAllIssues } from "./issue";
 
 /**

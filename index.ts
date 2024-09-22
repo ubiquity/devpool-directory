@@ -1,5 +1,4 @@
 import dotenv from "dotenv";
-import { DEVPOOL_OWNER_NAME } from "./helpers/github";
 import { readFile, writeFile } from "fs/promises";
 import { Statistics } from "./types/statistics";
 import { createDevPoolIssue } from "./handlers/create-devpool-issue";
@@ -11,6 +10,7 @@ import { checkIfForked } from "./helpers/utils";
 import { GitHubIssue } from "./types/github";
 import { getAllDevpoolIssues } from "./helpers/get-all-devpool-issues";
 import { getProjectMap } from "./helpers/get-project-map";
+import { DEVPOOL_OWNER_NAME } from "./helpers/constants";
 // init octokit
 dotenv.config();
 

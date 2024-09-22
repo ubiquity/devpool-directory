@@ -106,8 +106,6 @@ export class IssueRemover {
     if (!didDelete) {
       console.log("No unauthorized issues found. Exiting...");
     }
-
-    return await this.exitProgram();
   }
 
   async getInstallations() {

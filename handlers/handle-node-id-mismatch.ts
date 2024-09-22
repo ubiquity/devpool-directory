@@ -1,5 +1,4 @@
-import { DEVPOOL_TASK_BODY_REGEX } from "../helpers/constants";
-import { octokit, DEVPOOL_OWNER_NAME, DEVPOOL_REPO_NAME } from "../helpers/github";
+import { DEVPOOL_OWNER_NAME, DEVPOOL_REPO_NAME, DEVPOOL_TASK_BODY_REGEX, octokit } from "../helpers/constants";
 import { getIssueLabelValue, getIssueByLabel } from "../helpers/issue";
 import { IssueRemover } from "../scripts/delete-unauthorized-issues";
 import { GitHubIssue } from "../types/github";

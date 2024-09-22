@@ -3,11 +3,11 @@ import { server } from "../mocks/node";
 import cfg from "../mocks/issue-devpool-template.json";
 import { drop } from "@mswjs/data";
 import { db } from "../mocks/db";
-import { DEVPOOL_OWNER_NAME, DEVPOOL_REPO_NAME } from "../helpers/github";
 import { getIssuePriceLabel, getIssueLabelValue, getIssueByLabel, getDevpoolIssueLabels, getRepoUrls, getAllIssues } from "../helpers/issue";
 import { getRepoCredentials } from "../helpers/repos";
 import { getSocialMediaText } from "../helpers/twitter";
 import { GitHubIssue } from "../types/github";
+import { DEVPOOL_OWNER_NAME, DEVPOOL_REPO_NAME } from "../helpers/constants";
 
 beforeAll(() => server.listen());
 afterEach(() => server.resetHandlers());

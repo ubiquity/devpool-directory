@@ -1,5 +1,5 @@
 import { GitHubIssue, GitHubLabel } from "../types/github";
-import { octokit, projects } from "./github";
+import { octokit, projects } from "./constants";
 import { getRepoCredentials } from "./repos";
 
 /**

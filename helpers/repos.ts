@@ -1,6 +1,6 @@
 import optInOptOut from "../opt.json";
+import { projects } from "./constants";
 import { getRepoUrls } from "./issue";
-import { projects } from "./github";
 
 export async function getProjectUrls(opt: typeof optInOptOut = optInOptOut) {
   const projectUrls = new Set<string>(projects.urls);

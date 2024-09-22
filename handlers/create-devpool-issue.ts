@@ -2,8 +2,8 @@ import { writeFile } from "fs/promises";
 import { TwitterMap } from "..";
 import { getDevpoolIssueLabels } from "../helpers/issue";
 import twitter, { getSocialMediaText } from "../helpers/twitter";
-import { octokit, DEVPOOL_OWNER_NAME, DEVPOOL_REPO_NAME } from "../helpers/github";
 import { GitHubIssue, GitHubLabel, LABELS } from "../types/github";
+import { octokit, DEVPOOL_OWNER_NAME, DEVPOOL_REPO_NAME } from "../helpers/constants";
 
 export async function createDevPoolIssue(projectIssue: GitHubIssue, projectUrl: string, body: string, twitterMap: TwitterMap) {
   // if issue is "closed" then skip it, no need to copy/paste already "closed" issues

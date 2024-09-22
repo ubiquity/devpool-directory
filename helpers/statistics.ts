@@ -1,8 +1,8 @@
 import { Statistics } from "../types/statistics";
 import { GitHubIssue, GitHubLabel } from "../types/github";
-import { DEVPOOL_REPO_NAME, DEVPOOL_OWNER_NAME, octokit } from "./github";
 import { getIssueLabelValue } from "./issue";
 import { getProjectMap } from "./get-project-map";
+import { DEVPOOL_REPO_NAME, DEVPOOL_OWNER_NAME, octokit } from "./constants";
 
 // Function to calculate total rewards and tasks statistics
 export async function calculateStatistics(devpoolIssues: GitHubIssue[], projectMap: Awaited<ReturnType<typeof getProjectMap>>) {

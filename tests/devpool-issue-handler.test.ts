@@ -618,8 +618,8 @@ describe("handleDevPoolIssue", () => {
    */
 
   describe("Forked Devpool", () => {
-    jest.mock("../helpers/github", () => ({
-      ...jest.requireActual("../helpers/github"),
+    jest.mock("../helpers/constants", () => ({
+      ...jest.requireActual("../helpers/constants"),
       DEVPOOL_OWNER_NAME: "not-ubiquity",
     }));
 
@@ -645,7 +645,7 @@ describe("handleDevPoolIssue", () => {
     });
 
     afterAll(() => {
-      jest.unmock("../helpers/github");
+      jest.unmock("../helpers/constants");
     });
 
     test("updates issue title in devpool when project issue title changes in forked repo", async () => {

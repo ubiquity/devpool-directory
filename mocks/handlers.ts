@@ -3,8 +3,8 @@ import issueDevpoolTemplate from "./issue-devpool-template.json";
 import issueTemplate from "./issue-template.json";
 import totalRewards from "./issue-template.json";
 import { db } from "./db";
-import { DEVPOOL_OWNER_NAME, DEVPOOL_REPO_NAME } from "../helpers/github";
 import { GitHubIssue, GitHubLabel } from "../types/github";
+import { DEVPOOL_OWNER_NAME, DEVPOOL_REPO_NAME } from "../helpers/constants";
 
 /**
  * Contains all the handlers for intercepting the listed routes.
