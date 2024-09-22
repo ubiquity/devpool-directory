@@ -10,10 +10,16 @@ on:
 
 env:
   NODE_ENV: "test"
+  OWNER_REPO: ${{ github.repository }}
+
   TWITTER_API_KEY: "<twitter_api_key>"
   TWITTER_API_KEY_SECRET: "<twitter_api_secret>"
   TWITTER_ACCESS_TOKEN: "<twitter_access_token>"
   TWITTER_ACCESS_TOKEN_SECRET: "<twitter_access_token_secret>"
+  APP_ID: "<app_id>"
+  APP_PRIVATE_KEY: "<app_private_key>"
+  DEVPOOL_GITHUB_API_TOKEN: "<github_token>"
+  GH_TOKEN: "<github_token>"
 
 jobs:
   testing:
