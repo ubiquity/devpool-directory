@@ -335,36 +335,6 @@ describe("handleDevPoolIssue", () => {
       expect(logSpy).toHaveBeenCalledWith(`Updated state: (Closed (missing in partners))\n${updatedIssue.html_url} - (${partnerIssue.html_url})`);
     });
 
-    // cause: hasNoPriceLabels && devpoolIssue.state == "open"
-    // comment: "Closed (no price labels):"
-    test("closes devpool issue when project issue has no price labels", async () => {
-      const devpoolIssue = {
-        ...issueDevpoolTemplate,
-      } as GitHubIssue;
-
-      const partnerIssue = {
-        ...issueTemplate,
-        labels: [],
-      } as GitHubIssue;
-
-      const issueInDb = createIssues(devpoolIssue, partnerIssue);
-
-      await handleDevPoolIssue([partnerIssue], partnerIssue, UBIQUITY_TEST_REPO, issueInDb, false);
-
-      const updatedIssue = db.issue.findFirst({
-        where: {
-          id: {
-            equals: 1,
-          },
-        },
-      }) as GitHubIssue;
-
-      expect(updatedIssue).not.toBeNull();
-      expect(updatedIssue?.state).toEqual("closed");
-
-      expect(logSpy).toHaveBeenCalledWith(`Updated state: (Closed (no price labels))\n${updatedIssue.html_url} - (${partnerIssue.html_url})`);
-    });
-
     // cause: projectIssue.state == "closed" && devpoolIssue.state == "open" && !!projectIssue.pull_request?.merged_at,
     // comment: "Closed (merged):"
     test("closes devpool issue when project issue is merged", async () => {
@@ -498,7 +468,7 @@ describe("handleDevPoolIssue", () => {
       expect(logSpy).toHaveBeenCalledWith(`Updated state: (Closed (assigned-open))\n${updatedIssue.html_url} - (${partnerIssue.html_url})`);
     });
 
-    // cause: projectIssue.state == "open" && devpoolIssue.state == "closed" && !projectIssue.assignee?.login && !hasNoPriceLabels
+    // cause: projectIssue.state == "open" && devpoolIssue.state == "closed" && !projectIssue.assignee?.login
     // comment: "Reopened (unassigned):",
     test("reopens devpool issue when project issue is reopened", async () => {
       const devpoolIssue = {
@@ -529,7 +499,7 @@ describe("handleDevPoolIssue", () => {
       expect(logSpy).toHaveBeenCalledWith(`Updated state: (Reopened (unassigned))\n${updatedIssue.html_url} - (${partnerIssue.html_url})`);
     });
 
-    // cause: projectIssue.state == "open" && devpoolIssue.state == "closed" && !!projectIssue.pull_request?.merged_at && !hasNoPriceLabels,
+    // cause: projectIssue.state == "open" && devpoolIssue.state == "closed" && !!projectIssue.pull_request?.merged_at,
     // comment: "Reopened (merged):",
     test("reopens devpool issue when project issue is unassigned, reopened and merged", async () => {
       const devpoolIssue = {
@@ -1085,39 +1055,6 @@ describe("handleDevPoolIssue", () => {
       expect(logSpy).toHaveBeenCalledWith(`Updated state: (Closed (missing in partners))\n${updatedIssue.html_url} - (${partnerIssue.html_url})`);
     });
 
-    test("closes devpool issue when project issue has no price labels in forked repo", async () => {
-      const devpoolIssue = {
-        ...issueDevpoolTemplate,
-        id: 1,
-        html_url: HTML_URL,
-        repository_url: REPO_URL,
-        body: BODY,
-      } as GitHubIssue;
-
-      const partnerIssue = {
-        ...issueTemplate,
-        id: 2,
-        labels: [],
-      } as GitHubIssue;
-
-      const issueInDb = createIssues(devpoolIssue, partnerIssue);
-
-      await handleDevPoolIssue([partnerIssue], partnerIssue, PROJECT_URL, issueInDb, true);
-
-      const updatedIssue = db.issue.findFirst({
-        where: {
-          id: {
-            equals: 1,
-          },
-        },
-      }) as GitHubIssue;
-
-      expect(updatedIssue).not.toBeNull();
-      expect(updatedIssue?.state).toEqual("closed");
-
-      expect(logSpy).toHaveBeenCalledWith(`Updated state: (Closed (no price labels))\n${updatedIssue.html_url} - (${partnerIssue.html_url})`);
-    });
-
     test("closes devpool issue when project issue is merged in forked repo", async () => {
       const devpoolIssue = {
         ...issueDevpoolTemplate,
@@ -1371,7 +1308,7 @@ describe("createDevPoolIssue", () => {
       drop(db);
     });
 
-    test("only creates a new devpool issue if price labels are set, it's unassigned, opened and not already a devpool issue", async () => {
+    test("only creates a new devpool issue if it's unassigned, opened and not already a devpool issue", async () => {
       const partnerIssue = {
         ...issueTemplate,
         assignee: null,
@@ -1381,26 +1318,6 @@ describe("createDevPoolIssue", () => {
       await createDevPoolIssue(partnerIssue, partnerIssue.html_url, UBIQUITY_TEST_REPO, twitterMap);
 
       expect(logSpy).toHaveBeenCalledWith(expect.stringContaining("Created"));
-    });
-
-    test("does not create a new devpool issue if price labels are not set", async () => {
-      const partnerIssue = {
-        ...issueTemplate,
-        labels: [],
-      } as GitHubIssue;
-
-      await createDevPoolIssue(partnerIssue, partnerIssue.html_url, UBIQUITY_TEST_REPO, twitterMap);
-
-      const devpoolIssue = db.issue.findFirst({
-        where: {
-          title: {
-            equals: partnerIssue.title,
-          },
-        },
-      }) as GitHubIssue;
-
-      expect(devpoolIssue).toBeNull();
-      expect(logSpy).not.toHaveBeenCalled();
     });
 
     test("does not create a new devpool issue if it's already a devpool issue", async () => {

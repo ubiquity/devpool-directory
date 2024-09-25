@@ -7,6 +7,11 @@ import { writeFile } from "fs/promises";
 import twitter from "./twitter";
 import { TwitterMap } from "..";
 
+const PRICING_NOT_SET = "Pricing: not set"
+
+export const DEVPOOL_OWNER_NAME = process.env.DEVPOOL_OWNER_NAME!;
+export const DEVPOOL_REPO_NAME = process.env.DEVPOOL_REPO_NAME!;
+
 export type GitHubIssue = RestEndpointMethodTypes["issues"]["get"]["response"]["data"];
 export type GitHubLabel = RestEndpointMethodTypes["issues"]["listLabelsOnIssue"]["response"]["data"][0];
 
@@ -23,8 +28,6 @@ export const projects = _projects as {
   category?: Record<string, string>;
 };
 
-export const DEVPOOL_OWNER_NAME = "ubiquity";
-export const DEVPOOL_REPO_NAME = "devpool-directory";
 export enum LABELS {
   PRICE = "Price",
   UNAVAILABLE = "Unavailable",
@@ -129,12 +132,24 @@ export function getDevpoolIssueLabels(issue: GitHubIssue, projectUrl: string) {
   // get owner and repo name from issue's URL because the repo name could be updated
   const [ownerName, repoName] = getRepoCredentials(issue.html_url);
 
+  const pricing = getIssuePriceLabel(issue)
+
+  let devpoolIssueLabels: string[];
+
   // default labels
-  const devpoolIssueLabels = [
-    getIssuePriceLabel(issue), // price
-    `Partner: ${ownerName}/${repoName}`, // partner
-    `id: ${issue.node_id}`, // id
-  ];
+  if (pricing != PRICING_NOT_SET) {
+    devpoolIssueLabels = [
+      pricing,
+      `Partner: ${ownerName}/${repoName}`, // partner
+      `id: ${issue.node_id}`, // id
+    ];
+  }
+  else {
+    devpoolIssueLabels = [
+      `Partner: ${ownerName}/${repoName}`, // partner
+      `id: ${issue.node_id}`, // id
+    ];
+  }
 
   // if project is already assigned then add the "Unavailable" label
   if (issue.assignee?.login) devpoolIssueLabels.push(LABELS.UNAVAILABLE);
@@ -193,7 +208,7 @@ export function getIssueLabelValue(issue: GitHubIssue, labelPrefix: string) {
  * @returns price label
  */
 export function getIssuePriceLabel(issue: GitHubIssue) {
-  const defaultPriceLabel = "Pricing: not set";
+  const defaultPriceLabel = PRICING_NOT_SET;
   const labels = issue.labels as GitHubLabel[];
   const priceLabels = labels.filter((label) => label.name.includes("Price:") || label.name.includes("Pricing:"));
   // NOTICE: we rename "Price" to "Pricing" because the bot removes all manually added price labels starting with "Price:"
@@ -380,8 +395,8 @@ export async function createDevPoolIssue(projectIssue: GitHubIssue, projectUrl: 
   // if the project issue is assigned to someone, then skip it
   if (projectIssue.assignee) return;
 
-  // if issue doesn't have the "Price" label then skip it, no need to pollute repo with draft issues
-  if (!(projectIssue.labels as GitHubLabel[]).some((label) => label.name.includes(LABELS.PRICE))) return;
+  // check if the issue is the same type as it should be
+  const hasPriceLabel = (projectIssue.labels as GitHubLabel[]).some((label) => label.name.includes(LABELS.PRICE));
 
   // create a new issue
   try {
@@ -399,15 +414,17 @@ export async function createDevPoolIssue(projectIssue: GitHubIssue, projectUrl: 
       return;
     }
 
-    // post to social media
-    try {
-      const socialMediaText = getSocialMediaText(createdIssue.data);
-      const tweetId = await twitter.postTweet(socialMediaText);
-
-      twitterMap[createdIssue.data.node_id] = tweetId?.id ?? "";
-      await writeFile("./twitterMap.json", JSON.stringify(twitterMap));
-    } catch (err) {
-      console.error("Failed to post tweet: ", err);
+    // post to social media (only if it's not an RFC)
+    if (hasPriceLabel) {
+      try {
+        const socialMediaText = getSocialMediaText(createdIssue.data);
+        const tweetId = await twitter.postTweet(socialMediaText);
+  
+        twitterMap[createdIssue.data.node_id] = tweetId?.id ?? "";
+        await writeFile("./twitterMap.json", JSON.stringify(twitterMap));
+      } catch (err) {
+        console.error("Failed to post tweet: ", err);
+      }
     }
   } catch (err) {
     console.error("Failed to create new issue: ", err);
@@ -426,7 +443,7 @@ export async function handleDevPoolIssue(
   const labelRemoved = getDevpoolIssueLabels(projectIssue, projectUrl).filter((label) => label != LABELS.UNAVAILABLE);
   const originals = devpoolIssue.labels.map((label) => (label as GitHubLabel).name);
   const hasChanges = !areEqual(originals, labelRemoved);
-  const hasNoPriceLabels = !(projectIssue.labels as GitHubLabel[]).some((label) => label.name.includes(LABELS.PRICE));
+  const hasPriceLabel = (projectIssue.labels as GitHubLabel[]).some((label) => label.name.includes(LABELS.PRICE));
 
   let shouldUpdateBody = false;
 
@@ -449,7 +466,7 @@ export async function handleDevPoolIssue(
 
   await applyMetaChanges(metaChanges, devpoolIssue, projectIssue, isFork, labelRemoved, originals);
 
-  const newState = await applyStateChanges(projectIssues, projectIssue, devpoolIssue, hasNoPriceLabels);
+  const newState = await applyStateChanges(projectIssues, projectIssue, devpoolIssue, hasPriceLabel);
 
   await applyUnavailableLabelToDevpoolIssue(
     projectIssue,
@@ -497,19 +514,13 @@ async function applyMetaChanges(
   }
 }
 
-async function applyStateChanges(projectIssues: GitHubIssue[], projectIssue: GitHubIssue, devpoolIssue: GitHubIssue, hasNoPriceLabels: boolean) {
+async function applyStateChanges(projectIssues: GitHubIssue[], projectIssue: GitHubIssue, devpoolIssue: GitHubIssue, hasPriceLabel: boolean) {
   const stateChanges: StateChanges = {
     // missing in the partners
     forceMissing_Close: {
       cause: !projectIssues.some((projectIssue) => projectIssue.node_id === getIssueLabelValue(devpoolIssue, "id:")),
       effect: "closed",
       comment: "Closed (missing in partners)",
-    },
-    // no price labels set and open in the devpool
-    noPriceLabels_Close: {
-      cause: hasNoPriceLabels && devpoolIssue.state === "open",
-      effect: "closed",
-      comment: "Closed (no price labels)",
     },
     // it's closed, been merged and still open in the devpool
     issueComplete_Close: {
@@ -535,20 +546,19 @@ async function applyStateChanges(projectIssues: GitHubIssue[], projectIssue: Git
       effect: "closed",
       comment: "Closed (assigned-open)",
     },
-    // it's open, merged, unassigned, has price labels and is closed in the devpool
+    // it's open, merged, unassigned and is closed in the devpool
     issueReopenedMerged_Open: {
       cause:
         projectIssue.state === "open" &&
         devpoolIssue.state === "closed" &&
         !!projectIssue.pull_request?.merged_at &&
-        !hasNoPriceLabels &&
         !projectIssue.assignee?.login,
       effect: "open",
       comment: "Reopened (merged)",
     },
-    // it's open, unassigned, has price labels and is closed in the devpool
+    // it's open, unassigned and is closed in the devpool
     issueUnassigned_Open: {
-      cause: projectIssue.state === "open" && devpoolIssue.state === "closed" && !projectIssue.assignee?.login && !hasNoPriceLabels,
+      cause: projectIssue.state === "open" && devpoolIssue.state === "closed" && !projectIssue.assignee?.login,
       effect: "open",
       comment: "Reopened (unassigned)",
     },

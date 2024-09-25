@@ -14,6 +14,8 @@ env:
   TWITTER_API_KEY_SECRET: "<twitter_api_secret>"
   TWITTER_ACCESS_TOKEN: "<twitter_access_token>"
   TWITTER_ACCESS_TOKEN_SECRET: "<twitter_access_token_secret>"
+  DEVPOOL_OWNER_NAME: "ubiquity"
+  DEVPOOL_REPO_NAME: "devpool-directory"
 
 jobs:
   testing:
