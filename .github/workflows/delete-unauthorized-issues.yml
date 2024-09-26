@@ -1,0 +1,28 @@
+name: Delete Unauthorized Issues
+
+on:
+  issues:
+    types: [opened]
+
+jobs:
+  delete-unauthorized-issues:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      - name: Setup Node
+        uses: actions/setup-node@v3
+        with:
+          node-version: "20.10.0"
+
+      - name: Install dependencies
+        run: yarn install --frozen-lockfile
+
+      - name: Delete Unauthorized Issues
+        run: npx tsx ./scripts/delete-unauthorized-issues.ts
+        env:
+          GH_TOKEN: ${{ secrets.GH_TOKEN }}
+          OWNER_REPO: ${{ github.repository }}
+          APP_ID: ${{ secrets.APP_ID }}
+          APP_PRIVATE_KEY: ${{ secrets.APP_PRIVATE_KEY }}
