@@ -83,7 +83,21 @@ async function main() {
   await commitRewards(statistics);
 }
 
-void (async () => {
-  await main().catch((error) => console.error(error));
-  await gitPush();
-})();
+async function runMainAndPush() {
+  try {
+    await main();
+  } catch (error) {
+    console.error("Error in main execution:", error);
+  }
+
+  try {
+    await gitPush();
+  } catch (error) {
+    console.error("Error during git push:", error);
+  }
+}
+
+runMainAndPush().catch((error) => {
+  console.error("Unhandled error in runMainAndPush:", error);
+  process.exit(1);
+});
