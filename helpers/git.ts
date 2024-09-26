@@ -16,14 +16,11 @@ export async function getDefaultBranch(owner: string, repo: string): Promise<str
   }
 }
 
-import { stringify } from "flatted";
-
 async function gitCommit(data: unknown, fileName: string) {
   try {
-    const content = stringify(data, undefined, 2);
     gitChanges.push({
-      path: `${fileName}.json`,
-      content: content,
+      path: fileName,
+      content: JSON.stringify(data),
     });
   } catch (error) {
     console.error(`Error stringifying data for ${fileName}:`, error);
@@ -98,7 +95,7 @@ async function commitBatch(octokit: Octokit, owner: string, repo: string, branch
   const { data: commitData } = await octokit.rest.git.createCommit({
     owner,
     repo,
-    message: "chore: update files (batch)",
+    message: "chore: update files",
     tree: treeData.sha,
     parents: [baseSha],
   });
@@ -116,7 +113,7 @@ async function commitBatch(octokit: Octokit, owner: string, repo: string, branch
 
 export async function commitRewards(statistics: Statistics) {
   try {
-    await gitCommit(statistics, "total-rewards");
+    await gitCommit(statistics, "total-rewards.json");
   } catch (error) {
     console.error(`Error preparing total rewards for github file: ${error}`);
   }
@@ -124,7 +121,7 @@ export async function commitRewards(statistics: Statistics) {
 
 export async function commitTasks(tasks: GitHubIssue[]) {
   try {
-    await gitCommit(tasks, "total-tasks");
+    await gitCommit(tasks, "total-tasks.json");
   } catch (error) {
     console.error(`Error preparing total tasks for github file: ${error}`);
   }
@@ -132,7 +129,7 @@ export async function commitTasks(tasks: GitHubIssue[]) {
 
 export async function commitTwitterMap(twitterMap: TwitterMap) {
   try {
-    await gitCommit(twitterMap, "twitter-map");
+    await gitCommit(twitterMap, "twitter-map.json");
   } catch (error) {
     console.error(`Error preparing twitter map for github file: ${error}`);
   }
