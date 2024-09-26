@@ -120,17 +120,17 @@ async function commitChanges(
 
 export async function commitRewards(statistics: Statistics) {
   try {
-    await gitCommit(statistics, "total-rewards.json");
+    await gitCommit(statistics, "devpool-rewards.json");
   } catch (error) {
-    console.error(`Error preparing total rewards for github file: ${error}`);
+    console.error(`Error preparing devpool rewards for github file: ${error}`);
   }
 }
 
 export async function commitTasks(tasks: GitHubIssue[]) {
   try {
-    await gitCommit(tasks, "total-tasks.json");
+    await gitCommit(tasks, "devpool-issues.json");
   } catch (error) {
-    console.error(`Error preparing total tasks for github file: ${error}`);
+    console.error(`Error preparing devpool issues for github file: ${error}`);
   }
 }
 
