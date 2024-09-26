@@ -45,7 +45,7 @@ export async function gitPush() {
     if (!process.env.GH_TOKEN) {
       throw new Error("GH_TOKEN environment variable is not set");
     }
-    const octokit = new Octokit({ auth: process.env.GH_TOKEN });
+
     const owner = DEVPOOL_OWNER_NAME;
     const repo = DEVPOOL_REPO_NAME;
     const branch = await getDefaultBranch(owner, repo);
