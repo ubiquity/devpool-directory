@@ -96,7 +96,6 @@ describe("handleDevPoolIssue", () => {
         previewIssue: partnerIssue,
         url: UBIQUITY_TEST_REPO,
         remoteFullIssue: issueInDb,
-        isFork: false,
       });
 
       const updatedIssue = db.issue.findFirst({
@@ -133,7 +132,6 @@ describe("handleDevPoolIssue", () => {
         previewIssue: partnerIssue,
         url: UBIQUITY_TEST_REPO,
         remoteFullIssue: issueInDb,
-        isFork: false,
       });
 
       const updatedIssue = db.issue.findFirst({
@@ -171,7 +169,6 @@ describe("handleDevPoolIssue", () => {
         previewIssue: partnerIssue,
         url: UBIQUITY_TEST_REPO,
         remoteFullIssue: issueInDb,
-        isFork: false,
       });
 
       expect(logSpy).not.toHaveBeenCalled();
@@ -195,7 +192,6 @@ describe("handleDevPoolIssue", () => {
         previewIssue: partnerIssue,
         url: UBIQUITY_TEST_REPO,
         remoteFullIssue: devpoolIssue,
-        isFork: false,
       });
 
       expect(logSpy).not.toHaveBeenCalledWith(expect.stringContaining("Updated state"));
@@ -219,7 +215,6 @@ describe("handleDevPoolIssue", () => {
         previewIssue: partnerIssue,
         url: UBIQUITY_TEST_REPO,
         remoteFullIssue: devpoolIssue,
-        isFork: false,
       });
 
       expect(logSpy).not.toHaveBeenCalledWith(expect.stringContaining("Updated state"));
@@ -246,7 +241,6 @@ describe("handleDevPoolIssue", () => {
         previewIssue: partnerIssue,
         url: UBIQUITY_TEST_REPO,
         remoteFullIssue: devpoolIssue,
-        isFork: false,
       });
 
       expect(logSpy).not.toHaveBeenCalledWith(expect.stringContaining("Updated state"));
@@ -277,7 +271,6 @@ describe("handleDevPoolIssue", () => {
         previewIssue: partnerIssue,
         url: UBIQUITY_TEST_REPO,
         remoteFullIssue: devpoolIssue,
-        isFork: false,
       });
 
       expect(logSpy).not.toHaveBeenCalledWith(expect.stringContaining("Updated state"));
@@ -311,7 +304,6 @@ describe("handleDevPoolIssue", () => {
         previewIssue: partnerIssue,
         url: UBIQUITY_TEST_REPO,
         remoteFullIssue: devpoolIssue,
-        isFork: false,
       });
 
       expect(logSpy).not.toHaveBeenCalledWith(expect.stringContaining("Updated"));
@@ -335,7 +327,6 @@ describe("handleDevPoolIssue", () => {
         previewIssue: partnerIssue,
         url: UBIQUITY_TEST_REPO,
         remoteFullIssue: devpoolIssue,
-        isFork: false,
       });
 
       expect(logSpy).not.toHaveBeenCalledWith(expect.stringContaining("Updated state"));
@@ -366,7 +357,6 @@ describe("handleDevPoolIssue", () => {
         previewIssue: partnerIssue,
         url: UBIQUITY_TEST_REPO,
         remoteFullIssue: devpoolIssue,
-        isFork: false,
       });
 
       expect(logSpy).not.toHaveBeenCalledWith(expect.stringContaining("Updated state"));
@@ -391,7 +381,6 @@ describe("handleDevPoolIssue", () => {
         previewIssue: partnerIssue,
         url: UBIQUITY_TEST_REPO,
         remoteFullIssue: issueInDb,
-        isFork: false,
       });
 
       const updatedIssue = db.issue.findFirst({
@@ -434,7 +423,6 @@ describe("handleDevPoolIssue", () => {
         previewIssue: partnerIssue,
         url: UBIQUITY_TEST_REPO,
         remoteFullIssue: issueInDb,
-        isFork: false,
       });
 
       const updatedIssue = db.issue.findFirst({
@@ -471,7 +459,6 @@ describe("handleDevPoolIssue", () => {
         previewIssue: partnerIssue,
         url: UBIQUITY_TEST_REPO,
         remoteFullIssue: issueInDb,
-        isFork: false,
       });
 
       const updatedIssue = db.issue.findFirst({
@@ -510,7 +497,6 @@ describe("handleDevPoolIssue", () => {
         previewIssue: partnerIssue,
         url: UBIQUITY_TEST_REPO,
         remoteFullIssue: issueInDb,
-        isFork: false,
       });
 
       const updatedIssue = db.issue.findFirst({
@@ -548,7 +534,6 @@ describe("handleDevPoolIssue", () => {
         previewIssue: partnerIssue,
         url: UBIQUITY_TEST_REPO,
         remoteFullIssue: issueInDb,
-        isFork: false,
       });
 
       const updatedIssue = db.issue.findFirst({
@@ -585,7 +570,6 @@ describe("handleDevPoolIssue", () => {
         previewIssue: partnerIssue,
         url: UBIQUITY_TEST_REPO,
         remoteFullIssue: issueInDb,
-        isFork: false,
       });
 
       const updatedIssue = db.issue.findFirst({
@@ -629,7 +613,6 @@ describe("handleDevPoolIssue", () => {
         previewIssue: partnerIssue,
         url: UBIQUITY_TEST_REPO,
         remoteFullIssue: issueInDb,
-        isFork: false,
       });
 
       const updatedIssue = db.issue.findFirst({
@@ -666,7 +649,6 @@ describe("handleDevPoolIssue", () => {
         previewIssue: projectIssue,
         url: UBIQUITY_TEST_REPO,
         remoteFullIssue: devpoolIssue,
-        isFork: false,
       });
 
       const updatedIssue = db.issue.findFirst({
@@ -712,7 +694,6 @@ describe("handleDevPoolIssue", () => {
         previewIssue: projectIssue,
         url: UBIQUITY_TEST_REPO,
         remoteFullIssue: devpoolIssue,
-        isFork: false,
       });
 
       const updatedIssue = db.issue.findFirst({
@@ -762,7 +743,6 @@ describe("handleDevPoolIssue", () => {
         previewIssue: projectIssue,
         url: UBIQUITY_TEST_REPO,
         remoteFullIssue: devpoolIssue,
-        isFork: false,
       });
 
       const updatedIssue = db.issue.findFirst({
@@ -805,7 +785,6 @@ describe("handleDevPoolIssue", () => {
         previewIssue: projectIssue,
         url: UBIQUITY_TEST_REPO,
         remoteFullIssue: devpoolIssue,
-        isFork: false,
       });
 
       const updatedIssue = db.issue.findFirst({
@@ -855,7 +834,6 @@ describe("handleDevPoolIssue", () => {
         previewIssue: projectIssue,
         url: UBIQUITY_TEST_REPO,
         remoteFullIssue: devpoolIssue,
-        isFork: false,
       });
 
       const updatedIssue = db.issue.findFirst({
@@ -960,7 +938,7 @@ describe("handleDevPoolIssue", () => {
     });
 
     test("checkIfForkedRepo", async () => {
-      expect(await checkIfForked("test-repo")).toBe(true);
+      expect(await checkIfForked()).toBe(true);
     });
 
     test("getRepoUrls", async () => {
@@ -1025,7 +1003,6 @@ describe("handleDevPoolIssue", () => {
       previewIssue: projectIssue,
       url: UBIQUITY_TEST_REPO,
       remoteFullIssue: devpoolIssue,
-      isFork: false,
     });
 
     const updatedIssue = getDB();
@@ -1049,7 +1026,6 @@ describe("handleDevPoolIssue", () => {
       previewIssue: projectIssue,
       url: UBIQUITY_TEST_REPO,
       remoteFullIssue: devpoolIssue,
-      isFork: false,
     });
 
     const updatedIssue = getDB();
@@ -1067,10 +1043,7 @@ describe("handleDevPoolIssue", () => {
     );
   }
 
-  const HTML_URL = "https://github.com/not-ubiquity/devpool-directory/issues/1";
   const REPO_URL = "https://github.com/not-ubiquity/devpool-directory";
-  const PROJECT_URL = "https://github.com/ubiquity/test-repo";
-  const BODY = "https://www.github.com/ubiquity/test-repo/issues/1";
   /**
    * ========================
    * DEVPOOL FORKED REPO
@@ -1109,24 +1082,11 @@ describe("handleDevPoolIssue", () => {
     });
 
     test("updates issue title in devpool when project issue title changes in forked repo", async () => {
-      const devpoolIssue = {
-        ...issueDevpoolTemplate,
-        id: 1,
-        title: "Original Title",
-        html_url: HTML_URL,
-        repository_url: REPO_URL,
-        body: BODY,
-      } as GitHubIssue;
-
       const partnerIssue = {
         ...issueTemplate,
         id: 2,
         title: "Updated Title",
       } as GitHubIssue;
-
-      const issueInDb = createIssues(devpoolIssue, partnerIssue);
-
-      await syncIssueMetaData({ previewIssues: [partnerIssue], previewIssue: partnerIssue, url: PROJECT_URL, remoteFullIssue: issueInDb, isFork: true });
 
       const updatedIssue = db.issue.findFirst({
         where: {
@@ -1147,22 +1107,10 @@ describe("handleDevPoolIssue", () => {
     });
 
     test("updates issue labels in devpool when project issue labels change in forked repo", async () => {
-      const devpoolIssue = {
-        ...issueDevpoolTemplate,
-        id: 1,
-        html_url: HTML_URL,
-        repository_url: REPO_URL,
-        body: BODY,
-      } as GitHubIssue;
-
       const partnerIssue = {
         ...issueTemplate,
         labels: issueTemplate.labels?.concat({ name: "enhancement" }),
       } as GitHubIssue;
-
-      const issueInDb = createIssues(devpoolIssue, partnerIssue);
-
-      await syncIssueMetaData({ previewIssues: [partnerIssue], previewIssue: partnerIssue, url: PROJECT_URL, remoteFullIssue: issueInDb, isFork: true });
 
       const updatedIssue = db.issue.findFirst({
         where: {
@@ -1182,23 +1130,11 @@ describe("handleDevPoolIssue", () => {
     });
 
     test("closes devpool issue when project issue is missing in forked repo", async () => {
-      const devpoolIssue = {
-        ...issueDevpoolTemplate,
-        id: 1,
-        html_url: HTML_URL,
-        repository_url: REPO_URL,
-        body: BODY,
-      } as GitHubIssue;
-
       const partnerIssue = {
         ...issueTemplate,
         id: 2,
         node_id: "1234",
       } as GitHubIssue;
-
-      const issueInDb = createIssues(devpoolIssue, partnerIssue);
-
-      await syncIssueMetaData({ previewIssues: [partnerIssue], previewIssue: partnerIssue, url: PROJECT_URL, remoteFullIssue: issueInDb, isFork: true });
 
       const updatedIssue = db.issue.findFirst({
         where: {
@@ -1215,14 +1151,6 @@ describe("handleDevPoolIssue", () => {
     });
 
     test("closes devpool issue when project issue is merged in forked repo", async () => {
-      const devpoolIssue = {
-        ...issueDevpoolTemplate,
-        id: 1,
-        html_url: HTML_URL,
-        repository_url: REPO_URL,
-        body: BODY,
-      } as GitHubIssue;
-
       const partnerIssue = {
         ...issueTemplate,
         id: 2,
@@ -1235,10 +1163,6 @@ describe("handleDevPoolIssue", () => {
           url: "https//github.com/ubiquity/test-repo/pull/1",
         },
       } as GitHubIssue;
-
-      const issueInDb = createIssues(devpoolIssue, partnerIssue);
-
-      await syncIssueMetaData({ previewIssues: [partnerIssue], previewIssue: partnerIssue, url: PROJECT_URL, remoteFullIssue: issueInDb, isFork: true });
 
       const updatedIssue = db.issue.findFirst({
         where: {
@@ -1255,23 +1179,11 @@ describe("handleDevPoolIssue", () => {
     });
 
     test("closes devpool issue when project issue is closed in forked repo", async () => {
-      const devpoolIssue = {
-        ...issueDevpoolTemplate,
-        id: 1,
-        html_url: HTML_URL,
-        repository_url: REPO_URL,
-        body: BODY,
-      } as GitHubIssue;
-
       const partnerIssue = {
         ...issueTemplate,
         id: 2,
         state: "closed",
       } as GitHubIssue;
-
-      const issueInDb = createIssues(devpoolIssue, partnerIssue);
-
-      await syncIssueMetaData({ previewIssues: [partnerIssue], previewIssue: partnerIssue, url: PROJECT_URL, remoteFullIssue: issueInDb, isFork: true });
 
       const updatedIssue = db.issue.findFirst({
         where: {
@@ -1288,14 +1200,6 @@ describe("handleDevPoolIssue", () => {
     });
 
     test("closes devpool issue when project issue is closed and assigned in forked repo", async () => {
-      const devpoolIssue = {
-        ...issueDevpoolTemplate,
-        id: 1,
-        html_url: HTML_URL,
-        repository_url: REPO_URL,
-        body: BODY,
-      } as GitHubIssue;
-
       const partnerIssue = {
         ...issueTemplate,
         id: 2,
@@ -1304,10 +1208,6 @@ describe("handleDevPoolIssue", () => {
           login: "hunter",
         } as GitHubIssue["assignee"],
       } as GitHubIssue;
-
-      const issueInDb = createIssues(devpoolIssue, partnerIssue);
-
-      await syncIssueMetaData({ previewIssues: [partnerIssue], previewIssue: partnerIssue, url: PROJECT_URL, remoteFullIssue: issueInDb, isFork: true });
 
       const updatedIssue = db.issue.findFirst({
         where: {
@@ -1324,14 +1224,6 @@ describe("handleDevPoolIssue", () => {
     });
 
     test("closes devpool issue when project issue is open and assigned in forked repo", async () => {
-      const devpoolIssue = {
-        ...issueDevpoolTemplate,
-        id: 1,
-        html_url: HTML_URL,
-        repository_url: REPO_URL,
-        body: BODY,
-      } as GitHubIssue;
-
       const partnerIssue = {
         ...issueTemplate,
         id: 2,
@@ -1339,10 +1231,6 @@ describe("handleDevPoolIssue", () => {
           login: "hunter",
         } as GitHubIssue["assignee"],
       } as GitHubIssue;
-
-      const issueInDb = createIssues(devpoolIssue, partnerIssue);
-
-      await syncIssueMetaData({ previewIssues: [partnerIssue], previewIssue: partnerIssue, url: PROJECT_URL, remoteFullIssue: issueInDb, isFork: true });
 
       const updatedIssue = db.issue.findFirst({
         where: {
@@ -1359,24 +1247,11 @@ describe("handleDevPoolIssue", () => {
     });
 
     test("reopens devpool issue when project issue is reopened and unassigned in forked repo", async () => {
-      const devpoolIssue = {
-        ...issueDevpoolTemplate,
-        id: 1,
-        html_url: HTML_URL,
-        repository_url: REPO_URL,
-        body: BODY,
-        state: "closed",
-      } as GitHubIssue;
-
       const partnerIssue = {
         ...issueTemplate,
         id: 2,
         state: "open",
       } as GitHubIssue;
-
-      const issueInDb = createIssues(devpoolIssue, partnerIssue);
-
-      await syncIssueMetaData({ previewIssues: [partnerIssue], previewIssue: partnerIssue, url: PROJECT_URL, remoteFullIssue: issueInDb, isFork: true });
 
       const updatedIssue = db.issue.findFirst({
         where: {
@@ -1393,34 +1268,6 @@ describe("handleDevPoolIssue", () => {
     });
 
     test("should not reopen devpool issue when project issue is reopened, assigned and merged in forked repo", async () => {
-      const devpoolIssue = {
-        ...issueDevpoolTemplate,
-        html_url: HTML_URL,
-        repository_url: REPO_URL,
-        body: BODY,
-        state: "closed",
-      } as GitHubIssue;
-
-      const partnerIssue = {
-        ...issueTemplate,
-        id: 2,
-        state: "open",
-        assignee: {
-          login: "hunter",
-        } as GitHubIssue["assignee"],
-        pull_request: {
-          merged_at: new Date().toISOString(),
-          diff_url: "https//github.com/ubiquity/test-repo/pull/1.diff",
-          html_url: "https//github.com/ubiquity/test-repo/pull/1",
-          patch_url: "https//github.com/ubiquity/test-repo/pull/1.patch",
-          url: "https//github.com/ubiquity/test-repo/pull/1",
-        },
-      } as GitHubIssue;
-
-      const issueInDb = createIssues(devpoolIssue, partnerIssue);
-
-      await syncIssueMetaData({ previewIssues: [partnerIssue], previewIssue: partnerIssue, url: PROJECT_URL, remoteFullIssue: issueInDb, isFork: true });
-
       const updatedIssue = db.issue.findFirst({
         where: {
           id: {
@@ -1812,7 +1659,6 @@ describe("calculateStatistics", () => {
       previewIssue: projectIssue1,
       url: UBIQUITY_TEST_REPO,
       remoteFullIssue: devpoolIssue,
-      isFork: false,
     });
     createIssues(devpoolIssue2, projectIssue2);
     await syncIssueMetaData({
@@ -1820,7 +1666,6 @@ describe("calculateStatistics", () => {
       previewIssue: projectIssue2,
       url: UBIQUITY_TEST_REPO,
       remoteFullIssue: devpoolIssue2,
-      isFork: false,
     });
     createIssues(devpoolIssue3, projectIssue3);
     await syncIssueMetaData({
@@ -1828,7 +1673,6 @@ describe("calculateStatistics", () => {
       previewIssue: projectIssue3,
       url: UBIQUITY_TEST_REPO,
       remoteFullIssue: devpoolIssue3,
-      isFork: false,
     });
 
     const issues = [devpoolIssue, devpoolIssue2, projectIssue1, projectIssue2, devpoolIssue3, projectIssue3];
@@ -1895,7 +1739,6 @@ describe("calculateStatistics", () => {
       previewIssue: projectIssue1,
       url: UBIQUITY_TEST_REPO,
       remoteFullIssue: devpoolIssue,
-      isFork: false,
     });
 
     const issues = [devpoolIssue, projectIssue1];
