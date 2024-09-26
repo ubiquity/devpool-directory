@@ -16,14 +16,19 @@ export async function getDefaultBranch(owner: string, repo: string): Promise<str
   }
 }
 
-async function gitCommit(data: unknown, fileName: string) {
-  const filePath = `${fileName}.json`;
-  const content = JSON.stringify(data, null, 2);
+import { stringify } from "flatted";
 
-  gitChanges.push({
-    path: filePath,
-    content: content,
-  });
+async function gitCommit(data: unknown, fileName: string) {
+  try {
+    const content = stringify(data, undefined, 2);
+    gitChanges.push({
+      path: `${fileName}.json`,
+      content: content,
+    });
+  } catch (error) {
+    console.error(`Error stringifying data for ${fileName}:`, error);
+    throw error;
+  }
 }
 
 export async function gitPush() {
