@@ -87,8 +87,3 @@ void (async () => {
   await main().catch((error) => console.error(error));
   await gitPush();
 })();
-
-// Expose the main only for testing purposes
-if (process.env.NODE_ENV === "test") {
-  exports.main = main;
-}
