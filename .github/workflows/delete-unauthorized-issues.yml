@@ -9,10 +9,10 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Setup Node
-        uses: actions/setup-node@v3
+        uses: actions/setup-node@v4
         with:
           node-version: "20.10.0"
 
@@ -20,7 +20,7 @@ jobs:
         run: yarn install --frozen-lockfile
 
       - name: Delete Unauthorized Issues
-        run: npx tsx ./scripts/delete-unauthorized-issues.ts
+        run: npx tsx ./scripts/delete-unauthorized-issues.ts '${{ toJson(github.event.issue) }}'
         env:
           GH_TOKEN: ${{ secrets.GH_TOKEN }}
           OWNER_REPO: ${{ github.repository }}

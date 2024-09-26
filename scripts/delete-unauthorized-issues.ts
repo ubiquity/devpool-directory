@@ -30,60 +30,33 @@ export class IssueRemover {
   }
 
   /**
-   * All issues that are created by bots/users which do not belong
-   * to an installation will be deleted.
+   * Check if the newly posted issue is unauthorized and delete it if so.
    */
-  async deleteUnauthedIssues() {
+  async deleteUnauthorizedIssue() {
+    const newIssue = returnNewlyPostedIssue();
     const installations = await this.getInstallations();
     if (!installations || installations.length === 0) {
       console.log("No installations found. Exiting...");
       return;
     }
-    // passed in via the workflow file
-    const OWNER_REPO = process.env.OWNER_REPO;
-    if (!OWNER_REPO) {
-      throw new Error("OWNER_REPO not passed in env");
-    }
-
-    const [owner, repo] = OWNER_REPO.split("/");
-
-    // get all open devpool issues
-    const issues = (await this.runnerOctokit.paginate(this.runnerOctokit.rest.issues.listForRepo, {
-      owner,
-      repo,
-      state: "open",
-    })) as RestEndpointMethodTypes["issues"]["listForRepo"]["response"]["data"];
 
     // how we map the bot installs to their org
     const allowedBots = new Set(installations.map((install) => install.app_slug));
     // incase the install is to a user account
     const allowedUsers = new Set(installations.map((install) => install.account.id));
 
-    let didDelete = false;
-
-    for (const issue of issues) {
-      if (issue.pull_request || issue.state !== "open") {
-        continue;
+    if (newIssue.user?.type === "Bot") {
+      if (!allowedBots.has(newIssue.user?.login.split("[bot]")[0])) {
+        console.log(`Deleting issue ${newIssue.html_url} created by bot ${newIssue.user?.login}`);
+        await this.deleteIssue(newIssue.html_url);
       }
-      if (issue.user?.type === "Bot") {
-        if (!allowedBots.has(issue.user?.login.split("[bot]")[0])) {
-          console.log(`Deleting issue ${issue.html_url} created by bot ${issue.user?.login}`);
-          await this.deleteIssue(issue.html_url);
-          didDelete = true;
-        }
-      } else if (issue.user?.type === "User") {
-        if (!allowedUsers.has(issue.user?.id)) {
-          console.log(`Deleting issue ${issue.html_url} created by user ${issue.user?.login}`);
-          await this.deleteIssue(issue.html_url);
-          didDelete = true;
-        }
-      } else {
-        console.log(`Issue ${issue.html_url} was not created by a bot or user`);
+    } else if (newIssue.user?.type === "User") {
+      if (!allowedUsers.has(newIssue.user?.id)) {
+        console.log(`Deleting issue ${newIssue.html_url} created by user ${newIssue.user?.login}`);
+        await this.deleteIssue(newIssue.html_url);
       }
-    }
-
-    if (!didDelete) {
-      console.log("No unauthorized issues found. Exiting...");
+    } else {
+      console.log(`Issue ${newIssue.html_url} was not created by a bot or user`);
     }
 
     return await this.exitProgram();
@@ -121,5 +94,15 @@ export class IssueRemover {
   }
 }
 
+function returnNewlyPostedIssue() {
+  const issueData = JSON.parse(process.argv[2]);
+
+  // Declare a variable for the issue
+  const issue: RestEndpointMethodTypes["issues"]["get"]["response"]["data"] = issueData;
+
+  console.log(`Processing issue #${issue.number}: ${issue.title}`);
+  return issue;
+}
+
 const issueRemover = new IssueRemover();
-issueRemover.deleteUnauthedIssues().catch(console.error);
+issueRemover.deleteUnauthorizedIssue().catch(console.error);
