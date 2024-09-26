@@ -1,16 +1,22 @@
 import { RestEndpointMethodTypes } from "@octokit/plugin-rest-endpoint-methods";
 import { Octokit } from "@octokit/rest";
-import _projects from "../projects.json";
 import optInOptOut from "../opt.json";
-import { Statistics } from "../types/statistics";
-import { writeFile } from "fs/promises";
+import _projects from "../projects.json";
+import { commitTwitterMap } from "./git";
+import { TwitterMap } from "./initialize-twitter-map";
 import twitter from "./twitter";
-import { TwitterMap } from "..";
 
-const PRICING_NOT_SET = "Pricing: not set"
+const PRICING_NOT_SET = "Pricing: not set";
 
-export const DEVPOOL_OWNER_NAME = process.env.DEVPOOL_OWNER_NAME!;
-export const DEVPOOL_REPO_NAME = process.env.DEVPOOL_REPO_NAME!;
+export const DEVPOOL_OWNER_NAME = process.env.DEVPOOL_OWNER_NAME as string;
+export const DEVPOOL_REPO_NAME = process.env.DEVPOOL_REPO_NAME as string;
+
+if (!DEVPOOL_OWNER_NAME || !DEVPOOL_REPO_NAME) {
+  throw new Error("DEVPOOL_OWNER_NAME or DEVPOOL_REPO_NAME not set");
+}
+if (typeof DEVPOOL_OWNER_NAME !== "string" || typeof DEVPOOL_REPO_NAME !== "string") {
+  throw new Error("DEVPOOL_OWNER_NAME or DEVPOOL_REPO_NAME is not a string");
+}
 
 export type GitHubIssue = RestEndpointMethodTypes["issues"]["get"]["response"]["data"];
 export type GitHubLabel = RestEndpointMethodTypes["issues"]["listLabelsOnIssue"]["response"]["data"][0];
@@ -43,8 +49,9 @@ export const octokit = new Octokit({ auth: process.env.DEVPOOL_GITHUB_API_TOKEN 
  * Stops forks from spamming real Ubiquity issues with links to their forks
  * @returns true if the authenticated user is Ubiquity
  */
-export async function checkIfForked(user: string) {
-  return user !== "ubiquity";
+export async function checkIfForked() {
+  // derived from `${{ github.repository_owner }}` from the yml workflow, which reads the owner of the repository
+  return DEVPOOL_OWNER_NAME !== "ubiquity";
 }
 
 /**
@@ -128,11 +135,11 @@ export async function getRepoUrls(orgOrRepo: string) {
  * @param issue issue object
  * @param projectUrl url of the project
  */
-export function getDevpoolIssueLabels(issue: GitHubIssue, projectUrl: string) {
+export function getDirectoryIssueLabels(issue: GitHubIssue, projectUrl: string) {
   // get owner and repo name from issue's URL because the repo name could be updated
   const [ownerName, repoName] = getRepoCredentials(issue.html_url);
 
-  const pricing = getIssuePriceLabel(issue)
+  const pricing = getIssuePriceLabel(issue);
 
   let devpoolIssueLabels: string[];
 
@@ -143,8 +150,7 @@ export function getDevpoolIssueLabels(issue: GitHubIssue, projectUrl: string) {
       `Partner: ${ownerName}/${repoName}`, // partner
       `id: ${issue.node_id}`, // id
     ];
-  }
-  else {
+  } else {
     devpoolIssueLabels = [
       `Partner: ${ownerName}/${repoName}`, // partner
       `id: ${issue.node_id}`, // id
@@ -251,12 +257,12 @@ export function getSocialMediaText(issue: GitHubIssue): string {
   return `${priceLabel} for ${timeLabel}\n\n${issue.body}`;
 }
 
-export async function getProjectUrls(opt: typeof optInOptOut = optInOptOut) {
-  const projectUrls = new Set<string>(projects.urls);
+export async function getPartnerUrls(opt: typeof optInOptOut = optInOptOut) {
+  const partnerUrls = new Set<string>(projects.urls);
 
   for (const orgOrRepo of opt.in) {
     const urls: string[] = await getRepoUrls(orgOrRepo);
-    urls.forEach((url) => projectUrls.add(url));
+    urls.forEach((url) => partnerUrls.add(url));
   }
 
   for (const orgOrRepo of opt.out) {
@@ -264,22 +270,22 @@ export async function getProjectUrls(opt: typeof optInOptOut = optInOptOut) {
 
     if (len === 1) {
       // it's an org, delete all org repos in the list
-      projectUrls.forEach((url) => {
+      partnerUrls.forEach((url) => {
         if (url.includes(orgOrRepo)) {
           const [owner, repo] = getRepoCredentials(url);
           if (opt.in.includes(`${owner}/${repo}`)) {
             return;
           }
-          projectUrls.delete(url);
+          partnerUrls.delete(url);
         }
       });
     } else {
       // it's a repo, delete the repo from the list
-      projectUrls.forEach((url) => url === `https://github.com/${orgOrRepo}` && projectUrls.delete(url));
+      partnerUrls.forEach((url) => url === `https://github.com/${orgOrRepo}` && partnerUrls.delete(url));
     }
   }
 
-  return projectUrls;
+  return partnerUrls;
 }
 
 // Function to calculate total rewards and tasks statistics
@@ -304,10 +310,10 @@ export async function calculateStatistics(devpoolIssues: GitHubIssue[]) {
     if ("repo" in issue && issue.repo != DEVPOOL_REPO_NAME) return;
 
     const linkedRepoFromBody = issue.body?.match(/https:\/\/github.com\/[^/]+\/[^/]+/);
-    const linkedRepoFromBodyAlt = issue.body?.match(/https:\/\/www.github.com\/[^/]+\/[^/]+/);
+    const linkedRepoFromBodyForked = issue.body?.match(/https:\/\/www.github.com\/[^/]+\/[^/]+/);
 
     let shouldExclude = optInOptOut.out.some((orgOrRepo) => linkedRepoFromBody?.[0].includes(orgOrRepo));
-    shouldExclude = shouldExclude || optInOptOut.out.some((orgOrRepo) => linkedRepoFromBodyAlt?.[0].includes(orgOrRepo));
+    shouldExclude = shouldExclude || optInOptOut.out.some((orgOrRepo) => linkedRepoFromBodyForked?.[0].includes(orgOrRepo));
 
     const labels = issue.labels as GitHubLabel[];
     // devpool issue has unavailable label because it's assigned and so it's closed
@@ -341,54 +347,7 @@ export async function calculateStatistics(devpoolIssues: GitHubIssue[]) {
   return { rewards, tasks };
 }
 
-export async function writeTotalRewardsToGithub(statistics: Statistics) {
-  try {
-    const owner = DEVPOOL_OWNER_NAME;
-    const repo = DEVPOOL_REPO_NAME;
-    const filePath = "total-rewards.json";
-    const content = JSON.stringify(statistics, null, 2);
-
-    let sha: string | undefined; // Initialize sha to undefined
-
-    // Get the SHA of the existing file, if it exists
-    try {
-      const { data } = await octokit.rest.repos.getContent({
-        owner,
-        repo,
-        path: filePath,
-      });
-
-      if (!Array.isArray(data)) {
-        // File exists
-        sha = data.sha;
-      }
-    } catch (error) {
-      // File doesn't exist yet
-      console.log(`File ${filePath} doesn't exist yet.`);
-    }
-
-    // Update or create the file
-    await octokit.rest.repos
-      .createOrUpdateFileContents({
-        owner,
-        repo,
-        path: filePath,
-        message: "Update total rewards",
-        content: Buffer.from(content).toString("base64"),
-        sha, // Pass the SHA if the file exists, to update it
-      })
-      .catch((error) => {
-        console.error(`Error updating total rewards: ${error}`);
-      });
-
-    console.log(`Total rewards written to ${filePath}`);
-  } catch (error) {
-    console.error(`Error writing total rewards to github file: ${error}`);
-    throw error;
-  }
-}
-
-export async function createDevPoolIssue(projectIssue: GitHubIssue, projectUrl: string, body: string, twitterMap: TwitterMap) {
+export async function newDirectoryIssue(projectIssue: GitHubIssue, projectUrl: string, body: string, twitterMap: TwitterMap) {
   // if issue is "closed" then skip it, no need to copy/paste already "closed" issues
   if (projectIssue.state === "closed") return;
 
@@ -405,7 +364,7 @@ export async function createDevPoolIssue(projectIssue: GitHubIssue, projectUrl: 
       repo: DEVPOOL_REPO_NAME,
       title: projectIssue.title,
       body,
-      labels: getDevpoolIssueLabels(projectIssue, projectUrl),
+      labels: getDirectoryIssueLabels(projectIssue, projectUrl),
     });
     console.log(`Created: ${createdIssue.data.html_url} (${projectIssue.html_url})`);
 
@@ -419,9 +378,11 @@ export async function createDevPoolIssue(projectIssue: GitHubIssue, projectUrl: 
       try {
         const socialMediaText = getSocialMediaText(createdIssue.data);
         const tweetId = await twitter.postTweet(socialMediaText);
-  
-        twitterMap[createdIssue.data.node_id] = tweetId?.id ?? "";
-        await writeFile("./twitterMap.json", JSON.stringify(twitterMap));
+
+        if (tweetId) {
+          twitterMap[createdIssue.data.node_id] = tweetId?.id ?? "";
+          await commitTwitterMap(twitterMap);
+        }
       } catch (err) {
         console.error("Failed to post tweet: ", err);
       }
@@ -432,89 +393,81 @@ export async function createDevPoolIssue(projectIssue: GitHubIssue, projectUrl: 
   }
 }
 
-export async function handleDevPoolIssue(
-  projectIssues: GitHubIssue[],
-  projectIssue: GitHubIssue,
-  projectUrl: string,
-  devpoolIssue: GitHubIssue,
-  isFork: boolean
-) {
-  // remove the unavailable label as getDevpoolIssueLabels() adds it and statitics rely on it
-  const labelRemoved = getDevpoolIssueLabels(projectIssue, projectUrl).filter((label) => label != LABELS.UNAVAILABLE);
-  const originals = devpoolIssue.labels.map((label) => (label as GitHubLabel).name);
-  const hasChanges = !areEqual(originals, labelRemoved);
-  const hasPriceLabel = (projectIssue.labels as GitHubLabel[]).some((label) => label.name.includes(LABELS.PRICE));
-
-  let shouldUpdateBody = false;
-
-  if (!isFork && devpoolIssue.body != projectIssue.html_url) {
-    // not a fork, so body uses https://github.com
-    shouldUpdateBody = true;
-  } else if (isFork && devpoolIssue.body != projectIssue.html_url.replace("https://", "https://www.")) {
-    // it's a fork, so body uses https://www.github.com
-    shouldUpdateBody = true;
-  }
-
+export async function syncIssueMetaData({
+  previewIssues,
+  previewIssue,
+  url,
+  remoteFullIssue,
+}: {
+  previewIssues: GitHubIssue[];
+  previewIssue: GitHubIssue;
+  url: string;
+  remoteFullIssue: GitHubIssue;
+}) {
+  // remove the unavailable label as getDevpoolIssueLabels() adds it and statistics rely on it
+  const labelRemoved = getDirectoryIssueLabels(previewIssue, url).filter((label) => label != LABELS.UNAVAILABLE);
+  const originalLabels = remoteFullIssue.labels.map((label) => (label as GitHubLabel).name);
+  const hasChanges = !areEqual(originalLabels, labelRemoved);
   const metaChanges = {
-    // the title of the issue has changed
-    title: devpoolIssue.title != projectIssue.title,
-    // the issue url has updated
-    body: shouldUpdateBody,
-    // the price/priority labels have changed
-    labels: hasChanges,
+    title: previewIssue.title !== remoteFullIssue.title,
+    body: previewIssue.body !== remoteFullIssue.body,
+    labels: !areEqual(originalLabels, labelRemoved),
   };
 
-  await applyMetaChanges(metaChanges, devpoolIssue, projectIssue, isFork, labelRemoved, originals);
+  if (hasChanges) {
+    await setMetaChanges({ metaChanges, remoteFullIssue, previewIssue, labelRemoved, originalLabels });
+  }
 
-  const newState = await applyStateChanges(projectIssues, projectIssue, devpoolIssue, hasPriceLabel);
+  const newState = await setStateChanges(previewIssues, previewIssue, remoteFullIssue);
 
-  await applyUnavailableLabelToDevpoolIssue(
-    projectIssue,
-    devpoolIssue,
+  await setUnavailableLabelToIssue(
+    previewIssue,
+    remoteFullIssue,
     metaChanges,
     labelRemoved,
-    originals,
-    newState ?? (devpoolIssue.state as "open" | "closed")
+    originalLabels,
+    newState ?? (remoteFullIssue.state as "open" | "closed")
   );
 }
 
-async function applyMetaChanges(
-  metaChanges: { title: boolean; body: boolean; labels: boolean },
-  devpoolIssue: GitHubIssue,
-  projectIssue: GitHubIssue,
-  isFork: boolean,
-  labelRemoved: string[],
-  originals: string[]
-) {
+async function setMetaChanges({
+  metaChanges,
+  remoteFullIssue,
+  previewIssue,
+  labelRemoved,
+  originalLabels,
+}: {
+  metaChanges: { title: boolean; body: boolean; labels: boolean };
+  remoteFullIssue: GitHubIssue;
+  previewIssue: GitHubIssue;
+  labelRemoved: string[];
+  originalLabels: string[];
+}) {
   const shouldUpdate = metaChanges.title || metaChanges.body || metaChanges.labels;
 
   if (shouldUpdate) {
-    let newBody = devpoolIssue.body;
+    let newBody = remoteFullIssue.body;
 
-    if (metaChanges.body && !isFork) {
-      newBody = projectIssue.html_url;
-    } else {
-      newBody = projectIssue.html_url.replace("https://", "https://www.");
-    }
+    newBody = previewIssue.html_url;
 
     try {
       await octokit.rest.issues.update({
         owner: DEVPOOL_OWNER_NAME,
         repo: DEVPOOL_REPO_NAME,
-        issue_number: devpoolIssue.number,
-        title: metaChanges.title ? projectIssue.title : devpoolIssue.title,
+        issue_number: remoteFullIssue.number,
+        title: metaChanges.title ? previewIssue.title : remoteFullIssue.title,
         body: newBody,
-        labels: metaChanges.labels ? labelRemoved : originals,
+        labels: metaChanges.labels ? labelRemoved : originalLabels,
       });
     } catch (err) {
       console.error(err);
     }
 
-    console.log(`Updated metadata: ${devpoolIssue.html_url} - (${projectIssue.html_url})`, metaChanges);
+    console.log(`Updated metadata: ${remoteFullIssue.html_url} - (${previewIssue.html_url})`, metaChanges);
   }
 }
 
-async function applyStateChanges(projectIssues: GitHubIssue[], projectIssue: GitHubIssue, devpoolIssue: GitHubIssue, hasPriceLabel: boolean) {
+async function setStateChanges(projectIssues: GitHubIssue[], projectIssue: GitHubIssue, devpoolIssue: GitHubIssue) {
   const stateChanges: StateChanges = {
     // missing in the partners
     forceMissing_Close: {
@@ -548,11 +501,7 @@ async function applyStateChanges(projectIssues: GitHubIssue[], projectIssue: Git
     },
     // it's open, merged, unassigned and is closed in the devpool
     issueReopenedMerged_Open: {
-      cause:
-        projectIssue.state === "open" &&
-        devpoolIssue.state === "closed" &&
-        !!projectIssue.pull_request?.merged_at &&
-        !projectIssue.assignee?.login,
+      cause: projectIssue.state === "open" && devpoolIssue.state === "closed" && !!projectIssue.pull_request?.merged_at && !projectIssue.assignee?.login,
       effect: "open",
       comment: "Reopened (merged)",
     },
@@ -592,7 +541,7 @@ async function applyStateChanges(projectIssues: GitHubIssue[], projectIssue: Git
   return newState;
 }
 
-async function applyUnavailableLabelToDevpoolIssue(
+async function setUnavailableLabelToIssue(
   projectIssue: GitHubIssue,
   devpoolIssue: GitHubIssue,
   metaChanges: { labels: boolean },

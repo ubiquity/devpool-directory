@@ -1,12 +1,11 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
+import { drop } from "@mswjs/data";
 import { setupServer } from "msw/node";
-import { GitHubIssue, calculateStatistics, checkIfForked, getProjectUrls, getRepoUrls, writeTotalRewardsToGithub } from "../helpers/github";
+import { calculateStatistics, checkIfForked, getPartnerUrls, getRepoUrls, GitHubIssue, newDirectoryIssue, syncIssueMetaData } from "../helpers/directory";
 import { db } from "../mocks/db";
 import { handlers } from "../mocks/handlers";
-import { drop } from "@mswjs/data";
 import issueDevpoolTemplate from "../mocks/issue-devpool-template.json";
 import issueTemplate from "../mocks/issue-template.json";
-import { handleDevPoolIssue, createDevPoolIssue } from "../helpers/github";
 
 const DEVPOOL_OWNER_NAME = "ubiquity";
 const DEVPOOL_REPO_NAME = "devpool-directory";
@@ -92,7 +91,13 @@ describe("handleDevPoolIssue", () => {
 
       const issueInDb = createIssues(devpoolIssue, partnerIssue);
 
-      await handleDevPoolIssue([partnerIssue], partnerIssue, UBIQUITY_TEST_REPO, issueInDb, false);
+      await syncIssueMetaData({
+        previewIssues: [partnerIssue],
+        previewIssue: partnerIssue,
+        url: UBIQUITY_TEST_REPO,
+        remoteFullIssue: issueInDb,
+        isFork: false,
+      });
 
       const updatedIssue = db.issue.findFirst({
         where: {
@@ -103,7 +108,11 @@ describe("handleDevPoolIssue", () => {
       }) as GitHubIssue;
 
       expect(updatedIssue).not.toBeNull();
-      expect(logSpy).toHaveBeenCalledWith(`Updated metadata: ${updatedIssue.html_url} - (${partnerIssue.html_url})`, { body: false, "labels": true, title: true });
+      expect(logSpy).toHaveBeenCalledWith(`Updated metadata: ${updatedIssue.html_url} - (${partnerIssue.html_url})`, {
+        body: false,
+        labels: true,
+        title: true,
+      });
     });
 
     test("updates issue labels in devpool when project issue labels change", async () => {
@@ -119,7 +128,13 @@ describe("handleDevPoolIssue", () => {
 
       const issueInDb = createIssues(devpoolIssue, partnerIssue);
 
-      await handleDevPoolIssue([partnerIssue], partnerIssue, UBIQUITY_TEST_REPO, issueInDb, false);
+      await syncIssueMetaData({
+        previewIssues: [partnerIssue],
+        previewIssue: partnerIssue,
+        url: UBIQUITY_TEST_REPO,
+        remoteFullIssue: issueInDb,
+        isFork: false,
+      });
 
       const updatedIssue = db.issue.findFirst({
         where: {
@@ -132,7 +147,11 @@ describe("handleDevPoolIssue", () => {
       expect(updatedIssue).not.toBeNull();
       expect(updatedIssue?.labels).toEqual(expect.arrayContaining([{ name: "enhancement" }]));
 
-      expect(logSpy).toHaveBeenCalledWith(`Updated metadata: ${updatedIssue.html_url} - (${partnerIssue.html_url})`, { body: false, "labels": true, title: false });
+      expect(logSpy).toHaveBeenCalledWith(`Updated metadata: ${updatedIssue.html_url} - (${partnerIssue.html_url})`, {
+        body: false,
+        labels: true,
+        title: false,
+      });
     });
 
     test("does not update issue when no metadata changes are detected", async () => {
@@ -147,7 +166,13 @@ describe("handleDevPoolIssue", () => {
 
       const issueInDb = createIssues(devpoolIssue, partnerIssue);
 
-      await handleDevPoolIssue([partnerIssue], partnerIssue, UBIQUITY_TEST_REPO, issueInDb, false);
+      await syncIssueMetaData({
+        previewIssues: [partnerIssue],
+        previewIssue: partnerIssue,
+        url: UBIQUITY_TEST_REPO,
+        remoteFullIssue: issueInDb,
+        isFork: false,
+      });
 
       expect(logSpy).not.toHaveBeenCalled();
     });
@@ -165,7 +190,13 @@ describe("handleDevPoolIssue", () => {
 
       createIssues(devpoolIssue, partnerIssue);
 
-      await handleDevPoolIssue([partnerIssue], partnerIssue, UBIQUITY_TEST_REPO, devpoolIssue, false);
+      await syncIssueMetaData({
+        previewIssues: [partnerIssue],
+        previewIssue: partnerIssue,
+        url: UBIQUITY_TEST_REPO,
+        remoteFullIssue: devpoolIssue,
+        isFork: false,
+      });
 
       expect(logSpy).not.toHaveBeenCalledWith(expect.stringContaining("Updated state"));
     });
@@ -183,7 +214,13 @@ describe("handleDevPoolIssue", () => {
 
       createIssues(devpoolIssue, partnerIssue);
 
-      await handleDevPoolIssue([partnerIssue], partnerIssue, UBIQUITY_TEST_REPO, devpoolIssue, false);
+      await syncIssueMetaData({
+        previewIssues: [partnerIssue],
+        previewIssue: partnerIssue,
+        url: UBIQUITY_TEST_REPO,
+        remoteFullIssue: devpoolIssue,
+        isFork: false,
+      });
 
       expect(logSpy).not.toHaveBeenCalledWith(expect.stringContaining("Updated state"));
     });
@@ -204,7 +241,13 @@ describe("handleDevPoolIssue", () => {
 
       createIssues(devpoolIssue, partnerIssue);
 
-      await handleDevPoolIssue([partnerIssue], partnerIssue, UBIQUITY_TEST_REPO, devpoolIssue, false);
+      await syncIssueMetaData({
+        previewIssues: [partnerIssue],
+        previewIssue: partnerIssue,
+        url: UBIQUITY_TEST_REPO,
+        remoteFullIssue: devpoolIssue,
+        isFork: false,
+      });
 
       expect(logSpy).not.toHaveBeenCalledWith(expect.stringContaining("Updated state"));
     });
@@ -229,7 +272,13 @@ describe("handleDevPoolIssue", () => {
 
       createIssues(devpoolIssue, partnerIssue);
 
-      await handleDevPoolIssue([partnerIssue], partnerIssue, UBIQUITY_TEST_REPO, devpoolIssue, false);
+      await syncIssueMetaData({
+        previewIssues: [partnerIssue],
+        previewIssue: partnerIssue,
+        url: UBIQUITY_TEST_REPO,
+        remoteFullIssue: devpoolIssue,
+        isFork: false,
+      });
 
       expect(logSpy).not.toHaveBeenCalledWith(expect.stringContaining("Updated state"));
     });
@@ -257,7 +306,13 @@ describe("handleDevPoolIssue", () => {
 
       createIssues(devpoolIssue, partnerIssue);
 
-      await handleDevPoolIssue([partnerIssue], partnerIssue, UBIQUITY_TEST_REPO, devpoolIssue, false);
+      await syncIssueMetaData({
+        previewIssues: [partnerIssue],
+        previewIssue: partnerIssue,
+        url: UBIQUITY_TEST_REPO,
+        remoteFullIssue: devpoolIssue,
+        isFork: false,
+      });
 
       expect(logSpy).not.toHaveBeenCalledWith(expect.stringContaining("Updated"));
     });
@@ -275,7 +330,13 @@ describe("handleDevPoolIssue", () => {
 
       createIssues(devpoolIssue, partnerIssue);
 
-      await handleDevPoolIssue([partnerIssue], partnerIssue, UBIQUITY_TEST_REPO, devpoolIssue, false);
+      await syncIssueMetaData({
+        previewIssues: [partnerIssue],
+        previewIssue: partnerIssue,
+        url: UBIQUITY_TEST_REPO,
+        remoteFullIssue: devpoolIssue,
+        isFork: false,
+      });
 
       expect(logSpy).not.toHaveBeenCalledWith(expect.stringContaining("Updated state"));
     });
@@ -300,7 +361,13 @@ describe("handleDevPoolIssue", () => {
 
       createIssues(devpoolIssue, partnerIssue);
 
-      await handleDevPoolIssue([partnerIssue], partnerIssue, UBIQUITY_TEST_REPO, devpoolIssue, false);
+      await syncIssueMetaData({
+        previewIssues: [partnerIssue],
+        previewIssue: partnerIssue,
+        url: UBIQUITY_TEST_REPO,
+        remoteFullIssue: devpoolIssue,
+        isFork: false,
+      });
 
       expect(logSpy).not.toHaveBeenCalledWith(expect.stringContaining("Updated state"));
     });
@@ -319,7 +386,13 @@ describe("handleDevPoolIssue", () => {
 
       const issueInDb = createIssues(devpoolIssue, partnerIssue);
 
-      await handleDevPoolIssue([partnerIssue], partnerIssue, UBIQUITY_TEST_REPO, issueInDb, false);
+      await syncIssueMetaData({
+        previewIssues: [partnerIssue],
+        previewIssue: partnerIssue,
+        url: UBIQUITY_TEST_REPO,
+        remoteFullIssue: issueInDb,
+        isFork: false,
+      });
 
       const updatedIssue = db.issue.findFirst({
         where: {
@@ -356,7 +429,13 @@ describe("handleDevPoolIssue", () => {
 
       const issueInDb = createIssues(devpoolIssue, partnerIssue);
 
-      await handleDevPoolIssue([partnerIssue], partnerIssue, UBIQUITY_TEST_REPO, issueInDb, false);
+      await syncIssueMetaData({
+        previewIssues: [partnerIssue],
+        previewIssue: partnerIssue,
+        url: UBIQUITY_TEST_REPO,
+        remoteFullIssue: issueInDb,
+        isFork: false,
+      });
 
       const updatedIssue = db.issue.findFirst({
         where: {
@@ -387,7 +466,13 @@ describe("handleDevPoolIssue", () => {
 
       const issueInDb = createIssues(devpoolIssue, partnerIssue);
 
-      await handleDevPoolIssue([partnerIssue], partnerIssue, UBIQUITY_TEST_REPO, issueInDb, false);
+      await syncIssueMetaData({
+        previewIssues: [partnerIssue],
+        previewIssue: partnerIssue,
+        url: UBIQUITY_TEST_REPO,
+        remoteFullIssue: issueInDb,
+        isFork: false,
+      });
 
       const updatedIssue = db.issue.findFirst({
         where: {
@@ -420,7 +505,13 @@ describe("handleDevPoolIssue", () => {
 
       const issueInDb = createIssues(devpoolIssue, partnerIssue);
 
-      await handleDevPoolIssue([partnerIssue], partnerIssue, UBIQUITY_TEST_REPO, issueInDb, false);
+      await syncIssueMetaData({
+        previewIssues: [partnerIssue],
+        previewIssue: partnerIssue,
+        url: UBIQUITY_TEST_REPO,
+        remoteFullIssue: issueInDb,
+        isFork: false,
+      });
 
       const updatedIssue = db.issue.findFirst({
         where: {
@@ -452,7 +543,13 @@ describe("handleDevPoolIssue", () => {
 
       const issueInDb = createIssues(devpoolIssue, partnerIssue);
 
-      await handleDevPoolIssue([partnerIssue], partnerIssue, UBIQUITY_TEST_REPO, issueInDb, false);
+      await syncIssueMetaData({
+        previewIssues: [partnerIssue],
+        previewIssue: partnerIssue,
+        url: UBIQUITY_TEST_REPO,
+        remoteFullIssue: issueInDb,
+        isFork: false,
+      });
 
       const updatedIssue = db.issue.findFirst({
         where: {
@@ -483,7 +580,13 @@ describe("handleDevPoolIssue", () => {
 
       const issueInDb = createIssues(devpoolIssue, partnerIssue);
 
-      await handleDevPoolIssue([partnerIssue], partnerIssue, UBIQUITY_TEST_REPO, issueInDb, false);
+      await syncIssueMetaData({
+        previewIssues: [partnerIssue],
+        previewIssue: partnerIssue,
+        url: UBIQUITY_TEST_REPO,
+        remoteFullIssue: issueInDb,
+        isFork: false,
+      });
 
       const updatedIssue = db.issue.findFirst({
         where: {
@@ -521,7 +624,13 @@ describe("handleDevPoolIssue", () => {
 
       const issueInDb = createIssues(devpoolIssue, partnerIssue);
 
-      await handleDevPoolIssue([partnerIssue], partnerIssue, UBIQUITY_TEST_REPO, issueInDb, false);
+      await syncIssueMetaData({
+        previewIssues: [partnerIssue],
+        previewIssue: partnerIssue,
+        url: UBIQUITY_TEST_REPO,
+        remoteFullIssue: issueInDb,
+        isFork: false,
+      });
 
       const updatedIssue = db.issue.findFirst({
         where: {
@@ -552,7 +661,13 @@ describe("handleDevPoolIssue", () => {
 
       createIssues(devpoolIssue, projectIssue);
 
-      await handleDevPoolIssue([projectIssue], projectIssue, UBIQUITY_TEST_REPO, devpoolIssue, false);
+      await syncIssueMetaData({
+        previewIssues: [projectIssue],
+        previewIssue: projectIssue,
+        url: UBIQUITY_TEST_REPO,
+        remoteFullIssue: devpoolIssue,
+        isFork: false,
+      });
 
       const updatedIssue = db.issue.findFirst({
         where: {
@@ -592,7 +707,13 @@ describe("handleDevPoolIssue", () => {
 
       createIssues(devpoolIssue, projectIssue);
 
-      await handleDevPoolIssue([projectIssue], projectIssue, UBIQUITY_TEST_REPO, devpoolIssue, false);
+      await syncIssueMetaData({
+        previewIssues: [projectIssue],
+        previewIssue: projectIssue,
+        url: UBIQUITY_TEST_REPO,
+        remoteFullIssue: devpoolIssue,
+        isFork: false,
+      });
 
       const updatedIssue = db.issue.findFirst({
         where: {
@@ -636,7 +757,13 @@ describe("handleDevPoolIssue", () => {
 
       createIssues(devpoolIssue, projectIssue);
 
-      await handleDevPoolIssue([projectIssue], projectIssue, UBIQUITY_TEST_REPO, devpoolIssue, false);
+      await syncIssueMetaData({
+        previewIssues: [projectIssue],
+        previewIssue: projectIssue,
+        url: UBIQUITY_TEST_REPO,
+        remoteFullIssue: devpoolIssue,
+        isFork: false,
+      });
 
       const updatedIssue = db.issue.findFirst({
         where: {
@@ -673,7 +800,13 @@ describe("handleDevPoolIssue", () => {
 
       createIssues(devpoolIssue, projectIssue);
 
-      await handleDevPoolIssue([projectIssue], projectIssue, UBIQUITY_TEST_REPO, devpoolIssue, false);
+      await syncIssueMetaData({
+        previewIssues: [projectIssue],
+        previewIssue: projectIssue,
+        url: UBIQUITY_TEST_REPO,
+        remoteFullIssue: devpoolIssue,
+        isFork: false,
+      });
 
       const updatedIssue = db.issue.findFirst({
         where: {
@@ -717,7 +850,13 @@ describe("handleDevPoolIssue", () => {
 
       createIssues(devpoolIssue, projectIssue);
 
-      await handleDevPoolIssue([projectIssue], projectIssue, UBIQUITY_TEST_REPO, devpoolIssue, false);
+      await syncIssueMetaData({
+        previewIssues: [projectIssue],
+        previewIssue: projectIssue,
+        url: UBIQUITY_TEST_REPO,
+        remoteFullIssue: devpoolIssue,
+        isFork: false,
+      });
 
       const updatedIssue = db.issue.findFirst({
         where: {
@@ -881,7 +1020,13 @@ describe("handleDevPoolIssue", () => {
   }
 
   async function validateClosed(projectIssue: GitHubIssue, devpoolIssue: GitHubIssue) {
-    await handleDevPoolIssue([projectIssue], projectIssue, UBIQUITY_TEST_REPO, devpoolIssue, false);
+    await syncIssueMetaData({
+      previewIssues: [projectIssue],
+      previewIssue: projectIssue,
+      url: UBIQUITY_TEST_REPO,
+      remoteFullIssue: devpoolIssue,
+      isFork: false,
+    });
 
     const updatedIssue = getDB();
     if (updatedIssue === null) {
@@ -899,7 +1044,13 @@ describe("handleDevPoolIssue", () => {
   }
 
   async function validateOpen(projectIssue: GitHubIssue, devpoolIssue: GitHubIssue) {
-    await handleDevPoolIssue([projectIssue], projectIssue, UBIQUITY_TEST_REPO, devpoolIssue, false);
+    await syncIssueMetaData({
+      previewIssues: [projectIssue],
+      previewIssue: projectIssue,
+      url: UBIQUITY_TEST_REPO,
+      remoteFullIssue: devpoolIssue,
+      isFork: false,
+    });
 
     const updatedIssue = getDB();
     if (updatedIssue === null) {
@@ -975,7 +1126,7 @@ describe("handleDevPoolIssue", () => {
 
       const issueInDb = createIssues(devpoolIssue, partnerIssue);
 
-      await handleDevPoolIssue([partnerIssue], partnerIssue, PROJECT_URL, issueInDb, true);
+      await syncIssueMetaData({ previewIssues: [partnerIssue], previewIssue: partnerIssue, url: PROJECT_URL, remoteFullIssue: issueInDb, isFork: true });
 
       const updatedIssue = db.issue.findFirst({
         where: {
@@ -988,7 +1139,11 @@ describe("handleDevPoolIssue", () => {
       expect(updatedIssue).not.toBeNull();
       expect(updatedIssue?.title).toEqual("Updated Title");
 
-      expect(logSpy).toHaveBeenCalledWith(`Updated metadata: ${updatedIssue.html_url} - (${partnerIssue.html_url})`, { body: false, "labels": true, title: true });
+      expect(logSpy).toHaveBeenCalledWith(`Updated metadata: ${updatedIssue.html_url} - (${partnerIssue.html_url})`, {
+        body: false,
+        labels: true,
+        title: true,
+      });
     });
 
     test("updates issue labels in devpool when project issue labels change in forked repo", async () => {
@@ -1007,7 +1162,7 @@ describe("handleDevPoolIssue", () => {
 
       const issueInDb = createIssues(devpoolIssue, partnerIssue);
 
-      await handleDevPoolIssue([partnerIssue], partnerIssue, PROJECT_URL, issueInDb, true);
+      await syncIssueMetaData({ previewIssues: [partnerIssue], previewIssue: partnerIssue, url: PROJECT_URL, remoteFullIssue: issueInDb, isFork: true });
 
       const updatedIssue = db.issue.findFirst({
         where: {
@@ -1019,7 +1174,11 @@ describe("handleDevPoolIssue", () => {
 
       expect(updatedIssue).not.toBeNull();
 
-      expect(logSpy).toHaveBeenCalledWith(`Updated metadata: ${updatedIssue.html_url} - (${partnerIssue.html_url})`, { body: false, "labels": true, title: false });
+      expect(logSpy).toHaveBeenCalledWith(`Updated metadata: ${updatedIssue.html_url} - (${partnerIssue.html_url})`, {
+        body: false,
+        labels: true,
+        title: false,
+      });
     });
 
     test("closes devpool issue when project issue is missing in forked repo", async () => {
@@ -1039,7 +1198,7 @@ describe("handleDevPoolIssue", () => {
 
       const issueInDb = createIssues(devpoolIssue, partnerIssue);
 
-      await handleDevPoolIssue([partnerIssue], partnerIssue, PROJECT_URL, issueInDb, true);
+      await syncIssueMetaData({ previewIssues: [partnerIssue], previewIssue: partnerIssue, url: PROJECT_URL, remoteFullIssue: issueInDb, isFork: true });
 
       const updatedIssue = db.issue.findFirst({
         where: {
@@ -1079,7 +1238,7 @@ describe("handleDevPoolIssue", () => {
 
       const issueInDb = createIssues(devpoolIssue, partnerIssue);
 
-      await handleDevPoolIssue([partnerIssue], partnerIssue, PROJECT_URL, issueInDb, true);
+      await syncIssueMetaData({ previewIssues: [partnerIssue], previewIssue: partnerIssue, url: PROJECT_URL, remoteFullIssue: issueInDb, isFork: true });
 
       const updatedIssue = db.issue.findFirst({
         where: {
@@ -1112,7 +1271,7 @@ describe("handleDevPoolIssue", () => {
 
       const issueInDb = createIssues(devpoolIssue, partnerIssue);
 
-      await handleDevPoolIssue([partnerIssue], partnerIssue, PROJECT_URL, issueInDb, true);
+      await syncIssueMetaData({ previewIssues: [partnerIssue], previewIssue: partnerIssue, url: PROJECT_URL, remoteFullIssue: issueInDb, isFork: true });
 
       const updatedIssue = db.issue.findFirst({
         where: {
@@ -1148,7 +1307,7 @@ describe("handleDevPoolIssue", () => {
 
       const issueInDb = createIssues(devpoolIssue, partnerIssue);
 
-      await handleDevPoolIssue([partnerIssue], partnerIssue, PROJECT_URL, issueInDb, true);
+      await syncIssueMetaData({ previewIssues: [partnerIssue], previewIssue: partnerIssue, url: PROJECT_URL, remoteFullIssue: issueInDb, isFork: true });
 
       const updatedIssue = db.issue.findFirst({
         where: {
@@ -1183,7 +1342,7 @@ describe("handleDevPoolIssue", () => {
 
       const issueInDb = createIssues(devpoolIssue, partnerIssue);
 
-      await handleDevPoolIssue([partnerIssue], partnerIssue, PROJECT_URL, issueInDb, true);
+      await syncIssueMetaData({ previewIssues: [partnerIssue], previewIssue: partnerIssue, url: PROJECT_URL, remoteFullIssue: issueInDb, isFork: true });
 
       const updatedIssue = db.issue.findFirst({
         where: {
@@ -1217,7 +1376,7 @@ describe("handleDevPoolIssue", () => {
 
       const issueInDb = createIssues(devpoolIssue, partnerIssue);
 
-      await handleDevPoolIssue([partnerIssue], partnerIssue, PROJECT_URL, issueInDb, true);
+      await syncIssueMetaData({ previewIssues: [partnerIssue], previewIssue: partnerIssue, url: PROJECT_URL, remoteFullIssue: issueInDb, isFork: true });
 
       const updatedIssue = db.issue.findFirst({
         where: {
@@ -1260,7 +1419,7 @@ describe("handleDevPoolIssue", () => {
 
       const issueInDb = createIssues(devpoolIssue, partnerIssue);
 
-      await handleDevPoolIssue([partnerIssue], partnerIssue, PROJECT_URL, issueInDb, true);
+      await syncIssueMetaData({ previewIssues: [partnerIssue], previewIssue: partnerIssue, url: PROJECT_URL, remoteFullIssue: issueInDb, isFork: true });
 
       const updatedIssue = db.issue.findFirst({
         where: {
@@ -1315,7 +1474,7 @@ describe("createDevPoolIssue", () => {
       } as GitHubIssue;
 
       logSpy.mockClear();
-      await createDevPoolIssue(partnerIssue, partnerIssue.html_url, UBIQUITY_TEST_REPO, twitterMap);
+      await newDirectoryIssue(partnerIssue, partnerIssue.html_url, UBIQUITY_TEST_REPO, twitterMap);
 
       expect(logSpy).toHaveBeenCalledWith(expect.stringContaining("Created"));
     });
@@ -1331,7 +1490,7 @@ describe("createDevPoolIssue", () => {
       });
       logSpy.mockClear();
 
-      await createDevPoolIssue(partnerIssue, partnerIssue.html_url, UBIQUITY_TEST_REPO, twitterMap);
+      await newDirectoryIssue(partnerIssue, partnerIssue.html_url, UBIQUITY_TEST_REPO, twitterMap);
 
       const devpoolIssue = db.issue.findFirst({
         where: {
@@ -1360,7 +1519,7 @@ describe("createDevPoolIssue", () => {
         repository_url: UBIQUITY_TEST_REPO,
       });
 
-      await createDevPoolIssue(partnerIssue, partnerIssue.html_url, UBIQUITY_TEST_REPO, twitterMap);
+      await newDirectoryIssue(partnerIssue, partnerIssue.html_url, UBIQUITY_TEST_REPO, twitterMap);
 
       const devpoolIssue = db.issue.findFirst({
         where: {
@@ -1381,7 +1540,7 @@ describe("createDevPoolIssue", () => {
         state: "closed",
       } as GitHubIssue;
 
-      await createDevPoolIssue(partnerIssue, partnerIssue.html_url, UBIQUITY_TEST_REPO, twitterMap);
+      await newDirectoryIssue(partnerIssue, partnerIssue.html_url, UBIQUITY_TEST_REPO, twitterMap);
 
       const devpoolIssue = db.issue.findFirst({
         where: {
@@ -1492,7 +1651,7 @@ describe("getProjectUrls", () => {
   });
 
   test("returns projects not included in Opt.out", async () => {
-    const urls = Array.from(await getProjectUrls(opt));
+    const urls = Array.from(await getPartnerUrls(opt));
 
     opt.out.forEach((url) => {
       expect(urls).not.toContain("https://github.com/" + url);
@@ -1648,11 +1807,29 @@ describe("calculateStatistics", () => {
     } as GitHubIssue;
 
     createIssues(devpoolIssue, projectIssue1);
-    await handleDevPoolIssue([projectIssue1], projectIssue1, UBIQUITY_TEST_REPO, devpoolIssue, false);
+    await syncIssueMetaData({
+      previewIssues: [projectIssue1],
+      previewIssue: projectIssue1,
+      url: UBIQUITY_TEST_REPO,
+      remoteFullIssue: devpoolIssue,
+      isFork: false,
+    });
     createIssues(devpoolIssue2, projectIssue2);
-    await handleDevPoolIssue([projectIssue1, projectIssue2], projectIssue2, UBIQUITY_TEST_REPO, devpoolIssue2, false);
+    await syncIssueMetaData({
+      previewIssues: [projectIssue1, projectIssue2],
+      previewIssue: projectIssue2,
+      url: UBIQUITY_TEST_REPO,
+      remoteFullIssue: devpoolIssue2,
+      isFork: false,
+    });
     createIssues(devpoolIssue3, projectIssue3);
-    await handleDevPoolIssue([projectIssue1, projectIssue2, projectIssue3], projectIssue3, UBIQUITY_TEST_REPO, devpoolIssue3, false);
+    await syncIssueMetaData({
+      previewIssues: [projectIssue1, projectIssue2, projectIssue3],
+      previewIssue: projectIssue3,
+      url: UBIQUITY_TEST_REPO,
+      remoteFullIssue: devpoolIssue3,
+      isFork: false,
+    });
 
     const issues = [devpoolIssue, devpoolIssue2, projectIssue1, projectIssue2, devpoolIssue3, projectIssue3];
 
@@ -1713,7 +1890,13 @@ describe("calculateStatistics", () => {
     } as GitHubIssue;
 
     createIssues(devpoolIssue, projectIssue1);
-    await handleDevPoolIssue([projectIssue1], projectIssue1, UBIQUITY_TEST_REPO, devpoolIssue, false);
+    await syncIssueMetaData({
+      previewIssues: [projectIssue1],
+      previewIssue: projectIssue1,
+      url: UBIQUITY_TEST_REPO,
+      remoteFullIssue: devpoolIssue,
+      isFork: false,
+    });
 
     const issues = [devpoolIssue, projectIssue1];
 
@@ -1734,43 +1917,5 @@ describe("calculateStatistics", () => {
     });
 
     consoleErrorSpy.mockRestore();
-  });
-});
-
-describe("writeTotalRewardsToGithub", () => {
-  const mockStatistics = {
-    rewards: {
-      notAssigned: 1000,
-      assigned: 500,
-      completed: 200,
-      total: 1700,
-    },
-    tasks: {
-      notAssigned: 1,
-      assigned: 1,
-      completed: 1,
-      total: 3,
-    },
-  };
-
-  const errorSpy = jest.spyOn(console, "error").mockImplementation();
-  const logSpy = jest.spyOn(console, "log").mockImplementation();
-
-  beforeEach(() => {
-    jest.clearAllMocks();
-  });
-
-  afterAll(() => {
-    jest.restoreAllMocks();
-  });
-
-  test("should update existing file if it exists", async () => {
-    await writeTotalRewardsToGithub(mockStatistics);
-
-    expect(logSpy).toHaveBeenCalledWith("Total rewards written to total-rewards.json");
-    expect(logSpy).not.toHaveBeenCalledWith(`File total-rewards.json doesn't exist yet.`);
-    expect(errorSpy).not.toHaveBeenCalled();
-
-    jest.clearAllMocks();
   });
 });

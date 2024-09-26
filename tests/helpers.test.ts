@@ -1,10 +1,10 @@
 import { describe, test } from "@jest/globals";
-import { server } from "../mocks/node";
+import { drop } from "@mswjs/data";
 import {
   DEVPOOL_OWNER_NAME,
   DEVPOOL_REPO_NAME,
   getAllIssues,
-  getDevpoolIssueLabels,
+  getDirectoryIssueLabels,
   getIssueByLabel,
   getIssueLabelValue,
   getIssuePriceLabel,
@@ -12,10 +12,10 @@ import {
   getRepoUrls,
   getSocialMediaText,
   GitHubIssue,
-} from "../helpers/github";
-import cfg from "../mocks/issue-devpool-template.json";
-import { drop } from "@mswjs/data";
+} from "../helpers/directory";
 import { db } from "../mocks/db";
+import cfg from "../mocks/issue-devpool-template.json";
+import { server } from "../mocks/node";
 
 beforeAll(() => server.listen());
 afterEach(() => server.resetHandlers());
@@ -70,7 +70,7 @@ describe("GitHub items", () => {
   });
 
   test("Get DevPool labels", () => {
-    const res = getDevpoolIssueLabels(
+    const res = getDirectoryIssueLabels(
       {
         ...githubDevpoolIssueTemplate,
         html_url: "https://github.com/owner/repo",
