@@ -42,10 +42,6 @@ export async function gitPush() {
   }
 
   try {
-    if (!process.env.GH_TOKEN) {
-      throw new Error("GH_TOKEN environment variable is not set");
-    }
-
     const owner = DEVPOOL_OWNER_NAME;
     const repo = DEVPOOL_REPO_NAME;
     const branch = await getDefaultBranch(owner, repo);
