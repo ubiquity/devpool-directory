@@ -1,5 +1,10 @@
 import dotenv from "dotenv";
+import { readFile } from "fs/promises";
+import { commitRewards, commitTasks, commitTwitterMap, gitPush } from "./helpers/git";
 import {
+  calculateStatistics,
+  checkIfForked,
+  createDevPoolIssue,
   DEVPOOL_OWNER_NAME,
   DEVPOOL_REPO_NAME,
   getAllIssues,
@@ -7,13 +12,8 @@ import {
   getProjectUrls,
   getRepoCredentials,
   GitHubIssue,
-  checkIfForked,
-  calculateStatistics,
-  writeTotalRewardsToGithub,
   handleDevPoolIssue,
-  createDevPoolIssue,
 } from "./helpers/github";
-import { readFile, writeFile } from "fs/promises";
 import { Statistics } from "./types/statistics";
 // init octokit
 dotenv.config();
@@ -28,10 +28,10 @@ export type TwitterMap = Record<string, string>;
 async function main() {
   let twitterMap: TwitterMap = {};
   try {
-    twitterMap = JSON.parse(await readFile("./twitterMap.json", "utf8"));
+    twitterMap = JSON.parse(await readFile("./twitter-map.json", "utf8"));
   } catch (error) {
-    console.log("Couldnt find twitter map artifact, creating a new one");
-    await writeFile("./twitterMap.json", JSON.stringify({}));
+    console.log("Couldn't find twitter map artifact, creating a new one");
+    await commitTwitterMap(twitterMap);
   }
 
   // get devpool issues
@@ -70,6 +70,9 @@ async function main() {
         // if it doesn't exist in the devpool, then create it
         await createDevPoolIssue(projectIssue, projectUrl, body, twitterMap);
       }
+
+      // precompile all issues into a single json file
+      await commitTasks(allProjectIssues);
     }
   }
 
@@ -77,9 +80,24 @@ async function main() {
   const { rewards, tasks } = await calculateStatistics(await getAllIssues(DEVPOOL_OWNER_NAME, DEVPOOL_REPO_NAME));
   const statistics: Statistics = { rewards, tasks };
 
-  await writeTotalRewardsToGithub(statistics);
+  await commitRewards(statistics);
 }
 
-void (async () => {
-  await main();
-})();
+async function runMainAndPush() {
+  try {
+    await main();
+  } catch (error) {
+    console.error("Error in main execution:", error);
+  }
+
+  try {
+    await gitPush();
+  } catch (error) {
+    console.error("Error during git push:", error);
+  }
+}
+
+runMainAndPush().catch((error) => {
+  console.error("Unhandled error in runMainAndPush:", error);
+  process.exit(1);
+});
