@@ -380,7 +380,6 @@ export async function createDevPoolIssue(projectIssue: GitHubIssue, projectUrl: 
 
         if (tweetId) {
           twitterMap[createdIssue.data.node_id] = tweetId?.id ?? "";
-          // await writeFile("./twitter-map.json", JSON.stringify(twitterMap));
           await commitTwitterMap(twitterMap);
         }
       } catch (err) {

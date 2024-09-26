@@ -1,11 +1,9 @@
 import { TwitterMap } from "..";
 import { Statistics } from "../types/statistics";
 import { DEVPOOL_OWNER_NAME, DEVPOOL_REPO_NAME, GitHubIssue, octokit } from "./github";
-// Add these new variables and modify batchedChanges if not already present
 let gitChanges: { path: string; content: string }[] = [];
 
 export async function getDefaultBranch(owner: string, repo: string): Promise<string> {
-  // Function to get the default branch of the repository
   try {
     const { data } = await octokit.rest.repos.get({
       owner,
@@ -18,7 +16,6 @@ export async function getDefaultBranch(owner: string, repo: string): Promise<str
   }
 }
 
-// Replace the existing writeJsonToGithub function with this:
 async function gitCommit(data: unknown, fileName: string) {
   const filePath = `${fileName}.json`;
   const content = JSON.stringify(data, null, 2);
@@ -29,7 +26,6 @@ async function gitCommit(data: unknown, fileName: string) {
   });
 }
 
-// Add this new function to perform the batched commit:
 export async function gitPush() {
   if (gitChanges.length === 0) {
     console.log("No changes to commit");
