@@ -1,4 +1,4 @@
-import { getAllIssues, getIssueByLabel, getRepoCredentials, GitHubIssue, newDirectoryIssue, syncIssueMetaData as syncDirectoryIssue } from "./github";
+import { getAllIssues, getIssueByLabel, getRepoCredentials, GitHubIssue, newDirectoryIssue, syncIssueMetaData as syncDirectoryIssue } from "./directory";
 import { TwitterMap } from "./initialize-twitter-map";
 
 export async function syncPartnerRepoIssues({

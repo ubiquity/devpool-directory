@@ -1,5 +1,4 @@
 import { Statistics } from "../types/statistics";
-import { commitRewards, commitTasks } from "./git";
 import {
   calculateStatistics,
   checkIfForked,
@@ -8,7 +7,8 @@ import {
   getAllIssues,
   getPartnerUrls as getPartnerRepoUrls,
   GitHubIssue,
-} from "./github";
+} from "./directory";
+import { commitRewards, commitTasks } from "./git";
 import { initializeTwitterMap, TwitterMap } from "./initialize-twitter-map";
 import { syncPartnerRepoIssues } from "./sync-partner-repo-issues";
 

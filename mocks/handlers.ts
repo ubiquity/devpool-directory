@@ -1,9 +1,8 @@
 import { http, HttpResponse } from "msw";
-import { DEVPOOL_OWNER_NAME, DEVPOOL_REPO_NAME, GitHubIssue, GitHubLabel } from "../helpers/github";
-import issueDevpoolTemplate from "./issue-devpool-template.json";
-import issueTemplate from "./issue-template.json";
-import totalRewards from "./issue-template.json";
+import { DEVPOOL_OWNER_NAME, DEVPOOL_REPO_NAME, GitHubIssue, GitHubLabel } from "../helpers/directory";
 import { db } from "./db";
+import issueDevpoolTemplate from "./issue-devpool-template.json";
+import { default as issueTemplate, default as totalRewards } from "./issue-template.json";
 
 /**
  * Contains all the handlers for intercepting the listed routes.

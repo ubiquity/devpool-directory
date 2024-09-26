@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { drop } from "@mswjs/data";
 import { setupServer } from "msw/node";
-import { calculateStatistics, checkIfForked, getPartnerUrls, getRepoUrls, GitHubIssue, newDirectoryIssue, syncIssueMetaData } from "../helpers/github";
+import { calculateStatistics, checkIfForked, getPartnerUrls, getRepoUrls, GitHubIssue, newDirectoryIssue, syncIssueMetaData } from "../helpers/directory";
 import { db } from "../mocks/db";
 import { handlers } from "../mocks/handlers";
 import issueDevpoolTemplate from "../mocks/issue-devpool-template.json";

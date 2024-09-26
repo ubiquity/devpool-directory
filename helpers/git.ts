@@ -1,6 +1,5 @@
-import { TwitterMap } from "..";
 import { Statistics } from "../types/statistics";
-import { DEVPOOL_OWNER_NAME, DEVPOOL_REPO_NAME, GitHubIssue, octokit } from "./github";
+import { DEVPOOL_OWNER_NAME, DEVPOOL_REPO_NAME, GitHubIssue, octokit } from "./directory";
 let gitChanges: Array<{ path: string; content: string }> = [];
 
 export async function getDefaultBranch(owner: string, repo: string): Promise<string> {
@@ -29,6 +28,7 @@ async function gitCommit(data: unknown, fileName: string) {
 }
 
 import { Octokit } from "@octokit/rest";
+import { TwitterMap } from "./initialize-twitter-map";
 
 const MAX_PAYLOAD_SIZE = 100000000; // 100MB per commit, adjust as needed
 

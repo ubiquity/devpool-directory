@@ -134,7 +134,7 @@ export async function getRepoUrls(orgOrRepo: string) {
  * @param issue issue object
  * @param projectUrl url of the project
  */
-export function getDevpoolIssueLabels(issue: GitHubIssue, projectUrl: string) {
+export function getDirectoryIssueLabels(issue: GitHubIssue, projectUrl: string) {
   // get owner and repo name from issue's URL because the repo name could be updated
   const [ownerName, repoName] = getRepoCredentials(issue.html_url);
 
@@ -363,7 +363,7 @@ export async function newDirectoryIssue(projectIssue: GitHubIssue, projectUrl: s
       repo: DEVPOOL_REPO_NAME,
       title: projectIssue.title,
       body,
-      labels: getDevpoolIssueLabels(projectIssue, projectUrl),
+      labels: getDirectoryIssueLabels(projectIssue, projectUrl),
     });
     console.log(`Created: ${createdIssue.data.html_url} (${projectIssue.html_url})`);
 
@@ -406,7 +406,7 @@ export async function syncIssueMetaData({
   isFork: boolean;
 }) {
   // remove the unavailable label as getDevpoolIssueLabels() adds it and statistics rely on it
-  const labelRemoved = getDevpoolIssueLabels(previewIssue, url).filter((label) => label != LABELS.UNAVAILABLE);
+  const labelRemoved = getDirectoryIssueLabels(previewIssue, url).filter((label) => label != LABELS.UNAVAILABLE);
   const originalLabels = remoteFullIssue.labels.map((label) => (label as GitHubLabel).name);
   const hasChanges = !areEqual(originalLabels, labelRemoved);
   const metaChanges = {
@@ -416,12 +416,12 @@ export async function syncIssueMetaData({
   };
 
   if (hasChanges) {
-    await applyMetaChanges(metaChanges, remoteFullIssue, previewIssue, isFork, labelRemoved, originalLabels);
+    await setMetaChanges(metaChanges, remoteFullIssue, previewIssue, isFork, labelRemoved, originalLabels);
   }
 
-  const newState = await applyStateChanges(previewIssues, previewIssue, remoteFullIssue);
+  const newState = await setStateChanges(previewIssues, previewIssue, remoteFullIssue);
 
-  await applyUnavailableLabelToIssue(
+  await setUnavailableLabelToIssue(
     previewIssue,
     remoteFullIssue,
     metaChanges,
@@ -431,7 +431,7 @@ export async function syncIssueMetaData({
   );
 }
 
-async function applyMetaChanges(
+async function setMetaChanges(
   metaChanges: { title: boolean; body: boolean; labels: boolean },
   devpoolIssue: GitHubIssue,
   projectIssue: GitHubIssue,
@@ -463,7 +463,7 @@ async function applyMetaChanges(
   }
 }
 
-async function applyStateChanges(projectIssues: GitHubIssue[], projectIssue: GitHubIssue, devpoolIssue: GitHubIssue) {
+async function setStateChanges(projectIssues: GitHubIssue[], projectIssue: GitHubIssue, devpoolIssue: GitHubIssue) {
   const stateChanges: StateChanges = {
     // missing in the partners
     forceMissing_Close: {
@@ -537,7 +537,7 @@ async function applyStateChanges(projectIssues: GitHubIssue[], projectIssue: Git
   return newState;
 }
 
-async function applyUnavailableLabelToIssue(
+async function setUnavailableLabelToIssue(
   projectIssue: GitHubIssue,
   devpoolIssue: GitHubIssue,
   metaChanges: { labels: boolean },
