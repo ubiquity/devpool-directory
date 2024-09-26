@@ -49,41 +49,48 @@ export async function gitPush() {
     });
     const latestCommitSha = refData.object.sha;
 
-    let currentBatch: Array<{ path: string; content: string }> = [];
+    let currentChanges: Array<{ path: string; content: string }> = [];
     let currentSize = 0;
 
     for (const change of gitChanges) {
       const changeSize = Buffer.byteLength(change.content, "utf8");
       if (currentSize + changeSize > MAX_PAYLOAD_SIZE) {
-        await commitBatch(octokit, owner, repo, branch, latestCommitSha, currentBatch);
-        currentBatch = [];
+        await commitChanges(octokit, owner, repo, branch, latestCommitSha, currentChanges);
+        currentChanges = [];
         currentSize = 0;
       }
-      currentBatch.push(change);
+      currentChanges.push(change);
       currentSize += changeSize;
     }
 
-    if (currentBatch.length > 0) {
-      await commitBatch(octokit, owner, repo, branch, latestCommitSha, currentBatch);
+    if (currentChanges.length > 0) {
+      await commitChanges(octokit, owner, repo, branch, latestCommitSha, currentChanges);
     }
 
-    // Clear the batched changes after successful push
+    // Clear the changes after successful push
     gitChanges = [];
   } catch (error) {
-    console.error("Error committing batched changes:", error);
+    console.error("Error committing changes:", error);
     throw error;
   }
 }
 
-async function commitBatch(octokit: Octokit, owner: string, repo: string, branch: string, baseSha: string, batch: Array<{ path: string; content: string }>) {
-  if (batch.length === 0) return;
+async function commitChanges(
+  octokit: Octokit,
+  owner: string,
+  repo: string,
+  branch: string,
+  baseSha: string,
+  changes: Array<{ path: string; content: string }>
+) {
+  if (changes.length === 0) return;
 
-  // Create tree for the batch
+  // Create tree for the changes
   const { data: treeData } = await octokit.rest.git.createTree({
     owner,
     repo,
     base_tree: baseSha,
-    tree: batch.map((change) => ({
+    tree: changes.map((change) => ({
       path: change.path,
       mode: "100644",
       type: "blob",
@@ -91,7 +98,7 @@ async function commitBatch(octokit: Octokit, owner: string, repo: string, branch
     })),
   });
 
-  // Create commit for the batch
+  // Create commit
   const { data: commitData } = await octokit.rest.git.createCommit({
     owner,
     repo,
@@ -108,7 +115,7 @@ async function commitBatch(octokit: Octokit, owner: string, repo: string, branch
     sha: commitData.sha,
   });
 
-  console.log(`Committed batch to ${branch}: ${commitData.sha}`);
+  console.log(`Committed to ${branch}: ${commitData.sha}`);
 }
 
 export async function commitRewards(statistics: Statistics) {
