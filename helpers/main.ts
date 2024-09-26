@@ -13,7 +13,7 @@ import { initializeTwitterMap, TwitterMap } from "./initialize-twitter-map";
 import { syncPartnerRepoIssues } from "./sync-partner-repo-issues";
 
 export async function main() {
-  const allFullIssues: GitHubIssue[] = [];
+  const results: GitHubIssue[] = [];
   const isFork = await checkIfForked(DEVPOOL_OWNER_NAME);
   const twitterMap: TwitterMap = await initializeTwitterMap();
 
@@ -23,11 +23,12 @@ export async function main() {
   // for each project URL
   for (const partnerRepoUrl of partnerRepoUrls) {
     // get owner and repository names from project URL
-    await syncPartnerRepoIssues({ partnerRepoUrl, isFork, directoryPreviewIssues, allFullIssues, twitterMap });
+    const result: GitHubIssue[] = await syncPartnerRepoIssues({ partnerRepoUrl, isFork, directoryPreviewIssues, twitterMap });
+    results.push(...result);
   }
 
-  console.trace(allFullIssues);
-  await commitTasks(allFullIssues);
+  console.trace(results);
+  await commitTasks(results);
 
   // Calculate total rewards from devpool issues
   const { rewards, tasks } = await calculateStatistics(await getAllIssues(DEVPOOL_OWNER_NAME, DEVPOOL_REPO_NAME));

@@ -5,23 +5,23 @@ export async function syncPartnerRepoIssues({
   partnerRepoUrl,
   isFork,
   directoryPreviewIssues,
-  allFullIssues,
   twitterMap,
 }: {
   partnerRepoUrl: string;
   isFork: boolean;
   directoryPreviewIssues: GitHubIssue[];
-  allFullIssues: GitHubIssue[];
   twitterMap: TwitterMap;
-}) {
+}): Promise<GitHubIssue[]> {
   const [ownerName, repoName] = getRepoCredentials(partnerRepoUrl);
   const previewIssuesPerPartnerRepo: GitHubIssue[] = await getAllIssues(ownerName, repoName);
+  const buffer: (GitHubIssue | null)[] = [];
   for (const previewIssuePerPartnerRepo of previewIssuesPerPartnerRepo) {
-    await createOrSync(previewIssuePerPartnerRepo);
+    buffer.push(await createOrSync(previewIssuePerPartnerRepo));
   }
+  return buffer.filter((issue) => issue !== null) as GitHubIssue[];
 
   async function createOrSync(partnerPreviewIssue: GitHubIssue) {
-    const partnerIdMatchIssue = getIssueByLabel(directoryPreviewIssues, `id: ${partnerPreviewIssue.node_id}`);
+    const partnerIdMatchIssue: GitHubIssue | null = getIssueByLabel(directoryPreviewIssues, `id: ${partnerPreviewIssue.node_id}`);
 
     // adding www creates a link to an issue that does not count as a mention
     // helps with preventing a mention in partner's repo especially during testing
@@ -36,10 +36,12 @@ export async function syncPartnerRepoIssues({
         remoteFullIssue: partnerIdMatchIssue,
         isFork,
       });
-      allFullIssues.push(partnerIdMatchIssue);
+      // allFullIssues.push(partnerIdMatchIssue);
     } else {
       // if it doesn't exist in the devpool, then create it
       await newDirectoryIssue(partnerPreviewIssue, partnerRepoUrl, body, twitterMap);
     }
+
+    return partnerIdMatchIssue;
   }
 }
