@@ -49,8 +49,9 @@ export const octokit = new Octokit({ auth: process.env.DEVPOOL_GITHUB_API_TOKEN 
  * Stops forks from spamming real Ubiquity issues with links to their forks
  * @returns true if the authenticated user is Ubiquity
  */
-export async function checkIfForked(user: string) {
-  return user !== "ubiquity";
+export async function checkIfForked() {
+  // derived from `${{ github.repository_owner }}` from the yml workflow, which reads the owner of the repository
+  return DEVPOOL_OWNER_NAME !== "ubiquity";
 }
 
 /**
@@ -309,10 +310,10 @@ export async function calculateStatistics(devpoolIssues: GitHubIssue[]) {
     if ("repo" in issue && issue.repo != DEVPOOL_REPO_NAME) return;
 
     const linkedRepoFromBody = issue.body?.match(/https:\/\/github.com\/[^/]+\/[^/]+/);
-    const linkedRepoFromBodyAlt = issue.body?.match(/https:\/\/www.github.com\/[^/]+\/[^/]+/);
+    const linkedRepoFromBodyForked = issue.body?.match(/https:\/\/www.github.com\/[^/]+\/[^/]+/);
 
     let shouldExclude = optInOptOut.out.some((orgOrRepo) => linkedRepoFromBody?.[0].includes(orgOrRepo));
-    shouldExclude = shouldExclude || optInOptOut.out.some((orgOrRepo) => linkedRepoFromBodyAlt?.[0].includes(orgOrRepo));
+    shouldExclude = shouldExclude || optInOptOut.out.some((orgOrRepo) => linkedRepoFromBodyForked?.[0].includes(orgOrRepo));
 
     const labels = issue.labels as GitHubLabel[];
     // devpool issue has unavailable label because it's assigned and so it's closed
@@ -397,13 +398,11 @@ export async function syncIssueMetaData({
   previewIssue,
   url,
   remoteFullIssue,
-  isFork,
 }: {
   previewIssues: GitHubIssue[];
   previewIssue: GitHubIssue;
   url: string;
   remoteFullIssue: GitHubIssue;
-  isFork: boolean;
 }) {
   // remove the unavailable label as getDevpoolIssueLabels() adds it and statistics rely on it
   const labelRemoved = getDirectoryIssueLabels(previewIssue, url).filter((label) => label != LABELS.UNAVAILABLE);
@@ -416,7 +415,7 @@ export async function syncIssueMetaData({
   };
 
   if (hasChanges) {
-    await setMetaChanges(metaChanges, remoteFullIssue, previewIssue, isFork, labelRemoved, originalLabels);
+    await setMetaChanges({ metaChanges, remoteFullIssue, previewIssue, labelRemoved, originalLabels });
   }
 
   const newState = await setStateChanges(previewIssues, previewIssue, remoteFullIssue);
@@ -431,35 +430,40 @@ export async function syncIssueMetaData({
   );
 }
 
-async function setMetaChanges(
-  metaChanges: { title: boolean; body: boolean; labels: boolean },
-  devpoolIssue: GitHubIssue,
-  projectIssue: GitHubIssue,
-  isFork: boolean,
-  labelRemoved: string[],
-  originals: string[]
-) {
+async function setMetaChanges({
+  metaChanges,
+  remoteFullIssue,
+  previewIssue,
+  labelRemoved,
+  originalLabels,
+}: {
+  metaChanges: { title: boolean; body: boolean; labels: boolean };
+  remoteFullIssue: GitHubIssue;
+  previewIssue: GitHubIssue;
+  labelRemoved: string[];
+  originalLabels: string[];
+}) {
   const shouldUpdate = metaChanges.title || metaChanges.body || metaChanges.labels;
 
   if (shouldUpdate) {
-    let newBody = devpoolIssue.body;
+    let newBody = remoteFullIssue.body;
 
-    newBody = projectIssue.html_url;
+    newBody = previewIssue.html_url;
 
     try {
       await octokit.rest.issues.update({
         owner: DEVPOOL_OWNER_NAME,
         repo: DEVPOOL_REPO_NAME,
-        issue_number: devpoolIssue.number,
-        title: metaChanges.title ? projectIssue.title : devpoolIssue.title,
+        issue_number: remoteFullIssue.number,
+        title: metaChanges.title ? previewIssue.title : remoteFullIssue.title,
         body: newBody,
-        labels: metaChanges.labels ? labelRemoved : originals,
+        labels: metaChanges.labels ? labelRemoved : originalLabels,
       });
     } catch (err) {
       console.error(err);
     }
 
-    console.log(`Updated metadata: ${devpoolIssue.html_url} - (${projectIssue.html_url})`, metaChanges);
+    console.log(`Updated metadata: ${remoteFullIssue.html_url} - (${previewIssue.html_url})`, metaChanges);
   }
 }
 

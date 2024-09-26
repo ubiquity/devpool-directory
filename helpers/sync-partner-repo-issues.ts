@@ -1,14 +1,20 @@
-import { getAllIssues, getIssueByLabel, getRepoCredentials, GitHubIssue, newDirectoryIssue, syncIssueMetaData as syncDirectoryIssue } from "./directory";
+import {
+  checkIfForked,
+  getAllIssues,
+  getIssueByLabel,
+  getRepoCredentials,
+  GitHubIssue,
+  newDirectoryIssue,
+  syncIssueMetaData as syncDirectoryIssue,
+} from "./directory";
 import { TwitterMap } from "./initialize-twitter-map";
 
 export async function syncPartnerRepoIssues({
   partnerRepoUrl,
-  isFork,
   directoryPreviewIssues,
   twitterMap,
 }: {
   partnerRepoUrl: string;
-  isFork: boolean;
   directoryPreviewIssues: GitHubIssue[];
   twitterMap: TwitterMap;
 }): Promise<GitHubIssue[]> {
@@ -30,7 +36,7 @@ export async function syncPartnerRepoIssues({
 
     // adding www creates a link to an issue that does not count as a mention
     // helps with preventing a mention in partner's repo especially during testing
-    const body = isFork ? fullIssue.html_url.replace("https://github.com", "https://www.github.com") : fullIssue.html_url;
+    const body = (await checkIfForked()) ? fullIssue.html_url.replace("https://github.com", "https://www.github.com") : fullIssue.html_url;
 
     if (partnerIdMatchIssue) {
       // if it exists in the devpool, then update it
@@ -39,7 +45,6 @@ export async function syncPartnerRepoIssues({
         previewIssue: fullIssue,
         url: partnerRepoUrl,
         remoteFullIssue: partnerIdMatchIssue,
-        isFork,
       });
       // allFullIssues.push(partnerIdMatchIssue);
     } else {

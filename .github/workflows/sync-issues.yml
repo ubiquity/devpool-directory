@@ -36,12 +36,8 @@ jobs:
           app_id: ${{ secrets.APP_ID }}
           private_key: ${{ secrets.APP_PRIVATE_KEY }}
 
-      - name: Check Memory Usage Before
-        run: free -m
-
       - name: Sync Issues
         env:
-          NODE_OPTIONS: "--max-old-space-size=14336" # 14 GB
           DEVPOOL_GITHUB_API_TOKEN: ${{ steps.get_installation_token.outputs.token }}
           TWITTER_API_KEY: ${{ secrets.TWITTER_API_KEY }}
           TWITTER_API_KEY_SECRET: ${{ secrets.TWITTER_API_KEY_SECRET }}
@@ -54,11 +50,7 @@ jobs:
       - name: Delete Unauthorized Issues
         run: npx tsx ./scripts/delete-unauthorized-issues.ts
         env:
-          NODE_OPTIONS: "--max-old-space-size=4096"
           GH_TOKEN: ${{ secrets.GH_TOKEN }}
           OWNER_REPO: ${{ github.repository }}
           APP_ID: ${{ secrets.APP_ID }}
           APP_PRIVATE_KEY: ${{ secrets.APP_PRIVATE_KEY }}
-
-      - name: Check Memory Usage After
-        run: free -m
