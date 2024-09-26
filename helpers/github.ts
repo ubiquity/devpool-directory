@@ -396,44 +396,44 @@ export async function handleDevPoolIssue(
   projectIssues: GitHubIssue[],
   projectIssue: GitHubIssue,
   projectUrl: string,
-  devpoolIssue: GitHubIssue,
+  remoteFullIssue: GitHubIssue,
   isFork: boolean
 ) {
   // remove the unavailable label as getDevpoolIssueLabels() adds it and statistics rely on it
   const labelRemoved = getDevpoolIssueLabels(projectIssue, projectUrl).filter((label) => label != LABELS.UNAVAILABLE);
-  const originals = devpoolIssue.labels.map((label) => (label as GitHubLabel).name);
+  const originals = remoteFullIssue.labels.map((label) => (label as GitHubLabel).name);
   const hasChanges = !areEqual(originals, labelRemoved);
 
   let shouldUpdateBody = false;
 
-  if (!isFork && devpoolIssue.body != projectIssue.html_url) {
+  if (!isFork && remoteFullIssue.body != projectIssue.html_url) {
     // not a fork, so body uses https://github.com
     shouldUpdateBody = true;
-  } else if (isFork && devpoolIssue.body != projectIssue.html_url.replace("https://", "https://www.")) {
+  } else if (isFork && remoteFullIssue.body != projectIssue.html_url.replace("https://", "https://www.")) {
     // it's a fork, so body uses https://www.github.com
     shouldUpdateBody = true;
   }
 
   const metaChanges = {
     // the title of the issue has changed
-    title: devpoolIssue.title != projectIssue.title,
+    title: remoteFullIssue.title != projectIssue.title,
     // the issue url has updated
     body: shouldUpdateBody,
     // the price/priority labels have changed
     labels: hasChanges,
   };
 
-  await applyMetaChanges(metaChanges, devpoolIssue, projectIssue, isFork, labelRemoved, originals);
+  await applyMetaChanges(metaChanges, remoteFullIssue, projectIssue, isFork, labelRemoved, originals);
 
-  const newState = await applyStateChanges(projectIssues, projectIssue, devpoolIssue);
+  const newState = await applyStateChanges(projectIssues, projectIssue, remoteFullIssue);
 
   await applyUnavailableLabelToDevpoolIssue(
     projectIssue,
-    devpoolIssue,
+    remoteFullIssue,
     metaChanges,
     labelRemoved,
     originals,
-    newState ?? (devpoolIssue.state as "open" | "closed")
+    newState ?? (remoteFullIssue.state as "open" | "closed")
   );
 }
 
