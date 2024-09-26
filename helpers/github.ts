@@ -3,8 +3,8 @@ import { Octokit } from "@octokit/rest";
 import optInOptOut from "../opt.json";
 import _projects from "../projects.json";
 import { commitTwitterMap } from "./git";
+import { TwitterMap } from "./initialize-twitter-map";
 import twitter from "./twitter";
-import { TwitterMap } from "..";
 
 const PRICING_NOT_SET = "Pricing: not set";
 
@@ -256,12 +256,12 @@ export function getSocialMediaText(issue: GitHubIssue): string {
   return `${priceLabel} for ${timeLabel}\n\n${issue.body}`;
 }
 
-export async function getProjectUrls(opt: typeof optInOptOut = optInOptOut) {
-  const projectUrls = new Set<string>(projects.urls);
+export async function getPartnerUrls(opt: typeof optInOptOut = optInOptOut) {
+  const partnerUrls = new Set<string>(projects.urls);
 
   for (const orgOrRepo of opt.in) {
     const urls: string[] = await getRepoUrls(orgOrRepo);
-    urls.forEach((url) => projectUrls.add(url));
+    urls.forEach((url) => partnerUrls.add(url));
   }
 
   for (const orgOrRepo of opt.out) {
@@ -269,22 +269,22 @@ export async function getProjectUrls(opt: typeof optInOptOut = optInOptOut) {
 
     if (len === 1) {
       // it's an org, delete all org repos in the list
-      projectUrls.forEach((url) => {
+      partnerUrls.forEach((url) => {
         if (url.includes(orgOrRepo)) {
           const [owner, repo] = getRepoCredentials(url);
           if (opt.in.includes(`${owner}/${repo}`)) {
             return;
           }
-          projectUrls.delete(url);
+          partnerUrls.delete(url);
         }
       });
     } else {
       // it's a repo, delete the repo from the list
-      projectUrls.forEach((url) => url === `https://github.com/${orgOrRepo}` && projectUrls.delete(url));
+      partnerUrls.forEach((url) => url === `https://github.com/${orgOrRepo}` && partnerUrls.delete(url));
     }
   }
 
-  return projectUrls;
+  return partnerUrls;
 }
 
 // Function to calculate total rewards and tasks statistics
@@ -346,7 +346,7 @@ export async function calculateStatistics(devpoolIssues: GitHubIssue[]) {
   return { rewards, tasks };
 }
 
-export async function createDevPoolIssue(projectIssue: GitHubIssue, projectUrl: string, body: string, twitterMap: TwitterMap) {
+export async function newDirectoryIssue(projectIssue: GitHubIssue, projectUrl: string, body: string, twitterMap: TwitterMap) {
   // if issue is "closed" then skip it, no need to copy/paste already "closed" issues
   if (projectIssue.state === "closed") return;
 
@@ -392,47 +392,41 @@ export async function createDevPoolIssue(projectIssue: GitHubIssue, projectUrl: 
   }
 }
 
-export async function handleDevPoolIssue(
-  projectIssues: GitHubIssue[],
-  projectIssue: GitHubIssue,
-  projectUrl: string,
-  remoteFullIssue: GitHubIssue,
-  isFork: boolean
-) {
+export async function syncIssueMetaData({
+  previewIssues,
+  previewIssue,
+  url,
+  remoteFullIssue,
+  isFork,
+}: {
+  previewIssues: GitHubIssue[];
+  previewIssue: GitHubIssue;
+  url: string;
+  remoteFullIssue: GitHubIssue;
+  isFork: boolean;
+}) {
   // remove the unavailable label as getDevpoolIssueLabels() adds it and statistics rely on it
-  const labelRemoved = getDevpoolIssueLabels(projectIssue, projectUrl).filter((label) => label != LABELS.UNAVAILABLE);
-  const originals = remoteFullIssue.labels.map((label) => (label as GitHubLabel).name);
-  const hasChanges = !areEqual(originals, labelRemoved);
-
-  let shouldUpdateBody = false;
-
-  if (!isFork && remoteFullIssue.body != projectIssue.html_url) {
-    // not a fork, so body uses https://github.com
-    shouldUpdateBody = true;
-  } else if (isFork && remoteFullIssue.body != projectIssue.html_url.replace("https://", "https://www.")) {
-    // it's a fork, so body uses https://www.github.com
-    shouldUpdateBody = true;
-  }
-
+  const labelRemoved = getDevpoolIssueLabels(previewIssue, url).filter((label) => label != LABELS.UNAVAILABLE);
+  const originalLabels = remoteFullIssue.labels.map((label) => (label as GitHubLabel).name);
+  const hasChanges = !areEqual(originalLabels, labelRemoved);
   const metaChanges = {
-    // the title of the issue has changed
-    title: remoteFullIssue.title != projectIssue.title,
-    // the issue url has updated
-    body: shouldUpdateBody,
-    // the price/priority labels have changed
-    labels: hasChanges,
+    title: previewIssue.title !== remoteFullIssue.title,
+    body: previewIssue.body !== remoteFullIssue.body,
+    labels: !areEqual(originalLabels, labelRemoved),
   };
 
-  await applyMetaChanges(metaChanges, remoteFullIssue, projectIssue, isFork, labelRemoved, originals);
+  if (hasChanges) {
+    await applyMetaChanges(metaChanges, remoteFullIssue, previewIssue, isFork, labelRemoved, originalLabels);
+  }
 
-  const newState = await applyStateChanges(projectIssues, projectIssue, remoteFullIssue);
+  const newState = await applyStateChanges(previewIssues, previewIssue, remoteFullIssue);
 
-  await applyUnavailableLabelToDevpoolIssue(
-    projectIssue,
+  await applyUnavailableLabelToIssue(
+    previewIssue,
     remoteFullIssue,
     metaChanges,
     labelRemoved,
-    originals,
+    originalLabels,
     newState ?? (remoteFullIssue.state as "open" | "closed")
   );
 }
@@ -450,11 +444,7 @@ async function applyMetaChanges(
   if (shouldUpdate) {
     let newBody = devpoolIssue.body;
 
-    if (metaChanges.body && !isFork) {
-      newBody = projectIssue.html_url;
-    } else {
-      newBody = projectIssue.html_url.replace("https://", "https://www.");
-    }
+    newBody = projectIssue.html_url;
 
     try {
       await octokit.rest.issues.update({
@@ -547,7 +537,7 @@ async function applyStateChanges(projectIssues: GitHubIssue[], projectIssue: Git
   return newState;
 }
 
-async function applyUnavailableLabelToDevpoolIssue(
+async function applyUnavailableLabelToIssue(
   projectIssue: GitHubIssue,
   devpoolIssue: GitHubIssue,
   metaChanges: { labels: boolean },
