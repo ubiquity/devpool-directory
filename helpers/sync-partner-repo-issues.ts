@@ -16,7 +16,9 @@ export async function syncPartnerRepoIssues({
   const previewIssuesPerPartnerRepo: GitHubIssue[] = await getAllIssues(ownerName, repoName);
   const buffer: (GitHubIssue | null)[] = [];
   for (const previewIssuePerPartnerRepo of previewIssuesPerPartnerRepo) {
-    buffer.push(await createOrSync(previewIssuePerPartnerRepo));
+    console.trace({ previewIssuePerPartnerRepo });
+    buffer.push(previewIssuePerPartnerRepo);
+    await createOrSync(previewIssuePerPartnerRepo);
   }
   return buffer.filter((issue) => issue !== null) as GitHubIssue[];
 
