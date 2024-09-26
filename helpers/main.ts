@@ -1,6 +1,6 @@
 import { Statistics } from "../types/statistics";
 import { calculateStatistics, DEVPOOL_OWNER_NAME, DEVPOOL_REPO_NAME, getAllIssues, getPartnerUrls as getPartnerRepoUrls, GitHubIssue } from "./directory";
-import { commitRewards, commitTasks } from "./git";
+import { commitStatistics, commitTasks } from "./git";
 import { initializeTwitterMap, TwitterMap } from "./initialize-twitter-map";
 import { syncPartnerRepoIssues } from "./sync-partner-repo-issues";
 
@@ -25,5 +25,5 @@ export async function main() {
   const { rewards, tasks } = await calculateStatistics(await getAllIssues(DEVPOOL_OWNER_NAME, DEVPOOL_REPO_NAME));
   const statistics: Statistics = { rewards, tasks };
 
-  await commitRewards(statistics);
+  await commitStatistics(statistics);
 }

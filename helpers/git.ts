@@ -118,11 +118,11 @@ async function commitChanges(
   console.log(`Committed to ${branch}: ${commitData.sha}`);
 }
 
-export async function commitRewards(statistics: Statistics) {
+export async function commitStatistics(statistics: Statistics) {
   try {
-    await gitCommit(statistics, "devpool-rewards.json");
+    await gitCommit(statistics, "devpool-statistics.json");
   } catch (error) {
-    console.error(`Error preparing devpool rewards for github file: ${error}`);
+    console.error(`Error preparing devpool statistics for github file: ${error}`);
   }
 }
 
