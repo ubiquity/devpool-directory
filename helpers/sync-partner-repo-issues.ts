@@ -16,7 +16,11 @@ export async function syncPartnerRepoIssues({
   const fullIssuesPerPartnerRepo: GitHubIssue[] = await getAllIssues(ownerName, repoName);
   const buffer: (GitHubIssue | null)[] = [];
   for (const fullIssuePerPartnerRepo of fullIssuesPerPartnerRepo) {
-    buffer.push(fullIssuePerPartnerRepo);
+    // if the issue is available and unassigned, then add it to the buffer
+    if (fullIssuePerPartnerRepo.state === "open" && fullIssuePerPartnerRepo.assignee === null) {
+      buffer.push(fullIssuePerPartnerRepo);
+    }
+
     await createOrSync(fullIssuePerPartnerRepo);
   }
   return buffer.filter((issue) => issue !== null) as GitHubIssue[];
