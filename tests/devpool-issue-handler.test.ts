@@ -6,7 +6,6 @@ import { db } from "../mocks/db";
 import { handlers } from "../mocks/handlers";
 import issueDevpoolTemplate from "../mocks/issue-devpool-template.json";
 import issueTemplate from "../mocks/issue-template.json";
-import { commitRewards } from "../helpers/git";
 
 const DEVPOOL_OWNER_NAME = "ubiquity";
 const DEVPOOL_REPO_NAME = "devpool-directory";
@@ -1750,43 +1749,5 @@ describe("calculateStatistics", () => {
     });
 
     consoleErrorSpy.mockRestore();
-  });
-});
-
-describe("writeTotalRewardsToGithub", () => {
-  const mockStatistics = {
-    rewards: {
-      notAssigned: 1000,
-      assigned: 500,
-      completed: 200,
-      total: 1700,
-    },
-    tasks: {
-      notAssigned: 1,
-      assigned: 1,
-      completed: 1,
-      total: 3,
-    },
-  };
-
-  const errorSpy = jest.spyOn(console, "error").mockImplementation();
-  const logSpy = jest.spyOn(console, "log").mockImplementation();
-
-  beforeEach(() => {
-    jest.clearAllMocks();
-  });
-
-  afterAll(() => {
-    jest.restoreAllMocks();
-  });
-
-  test("should update existing file if it exists", async () => {
-    await commitRewards(mockStatistics);
-
-    expect(logSpy).toHaveBeenCalledWith("Total rewards written to total-rewards.json");
-    expect(logSpy).not.toHaveBeenCalledWith(`File total-rewards.json doesn't exist yet.`);
-    expect(errorSpy).not.toHaveBeenCalled();
-
-    jest.clearAllMocks();
   });
 });
