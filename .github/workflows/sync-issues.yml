@@ -46,11 +46,3 @@ jobs:
           DEVPOOL_OWNER_NAME: ${{ github.repository_owner }}
           DEVPOOL_REPO_NAME: "devpool-directory"
         run: npx tsx index.ts
-
-      - name: Delete Unauthorized Issues
-        run: npx tsx ./scripts/delete-unauthorized-issues.ts
-        env:
-          GH_TOKEN: ${{ secrets.GH_TOKEN }}
-          OWNER_REPO: ${{ github.repository }}
-          APP_ID: ${{ secrets.APP_ID }}
-          APP_PRIVATE_KEY: ${{ secrets.APP_PRIVATE_KEY }}
