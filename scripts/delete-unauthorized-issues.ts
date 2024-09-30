@@ -45,18 +45,15 @@ export class IssueRemover {
     // incase the install is to a user account
     const allowedUsers = new Set(installations.map((install) => install.account.id));
 
-    if (newIssue.user?.type === "Bot") {
-      if (!allowedBots.has(newIssue.user?.login.split("[bot]")[0])) {
-        console.log(`Deleting issue ${newIssue.html_url} created by bot ${newIssue.user?.login}`);
-        await this.deleteIssue(newIssue.html_url);
-      }
-    } else if (newIssue.user?.type === "User") {
-      if (!allowedUsers.has(newIssue.user?.id)) {
-        console.log(`Deleting issue ${newIssue.html_url} created by user ${newIssue.user?.login}`);
+    if (newIssue.user) {
+      const isAuthorized = newIssue.user.type === "Bot" ? allowedBots.has(newIssue.user.login.split("[bot]")[0]) : allowedUsers.has(newIssue.user.id);
+
+      if (!isAuthorized) {
+        console.log(`Deleting issue ${newIssue.html_url} created by ${newIssue.user.type.toLowerCase()} ${newIssue.user.login}`);
         await this.deleteIssue(newIssue.html_url);
       }
     } else {
-      console.log(`Issue ${newIssue.html_url} was not created by a bot or user`);
+      console.log(`Issue ${newIssue.html_url} has no associated user`);
     }
 
     return await this.exitProgram();
