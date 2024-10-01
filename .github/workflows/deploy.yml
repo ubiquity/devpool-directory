@@ -25,4 +25,4 @@ jobs:
           commit_sha: ${{ github.event.workflow_run.head_sha }}
           workflow_run_id: ${{ github.event.workflow_run.id }}
           app_id: ${{ secrets.APP_ID }}
-          private_key: ${{ secrets.APP_PRIVATE_KEY }}
+          app_private_key: ${{ secrets.APP_PRIVATE_KEY }}
