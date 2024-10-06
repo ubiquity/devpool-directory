@@ -10,11 +10,6 @@
     "ubiquity/business-development",
     "ubiquity/ubiquibar",
     "ubiquity/ubiquibot",
-    "ubiquity/ubiquibot-telegram",
-    "ubiquibot/configuration",
-    "ubiquibot/production",
-    "ubiquibot/sandbox",
-    "ubiquibot/e2e-tests",
-    "ubiquibot/staging"
+    "ubiquity/ubiquibot-telegram"
   ]
 }
