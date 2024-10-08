@@ -20,7 +20,7 @@ async function main() {
     const { data: pullRequest } = await octokit.pulls.get({
       owner,
       repo,
-      pull_number: parseInt(pullNumber),
+      pull_number: parseInt(pullNumber, 10),
     });
 
     const baseSha = pullRequest.base.sha;
@@ -37,10 +37,11 @@ async function main() {
       violations.forEach(({ file, line, content }) => {
         core.warning(`Empty string found: ${content}`, {
           file,
-          startLine: parseInt(line.toString()),
+          startLine: line,
         });
       });
-      // core.setFailed(`${emptyStrings.length} empty string${emptyStrings.length > 1 ? "s" : ""} detected in the code.`);
+
+      // core.setFailed(`${violations.length} empty string${violations.length > 1 ? "s" : ""} detected in the code.`);
 
       await octokit.rest.checks.create({
         owner,
@@ -51,7 +52,7 @@ async function main() {
         conclusion: violations.length > 0 ? "failure" : "success",
         output: {
           title: "Empty String Check Results",
-          summary: `Found ${violations.length} violations`,
+          summary: `Found ${violations.length} violation${violations.length !== 1 ? "s" : ""}`,
           annotations: violations.map((v) => ({
             path: v.file,
             start_line: v.line,
@@ -75,22 +76,37 @@ function parseDiffForEmptyStrings(diff: string) {
   const diffLines = diff.split("\n");
 
   let currentFile = "";
-  let lineNumber = 0;
+  let headLine = 0;
+  let inHunk = false;
 
   diffLines.forEach((line) => {
-    if (line.startsWith("+++ b/")) {
-      currentFile = line.replace("+++ b/", "");
-      lineNumber = 0;
-    } else if (line.startsWith("+") && !line.startsWith("+++")) {
-      if (line.includes('""')) {
-        violations.push({
-          file: currentFile,
-          line: lineNumber++,
-          content: line.substring(1),
-        });
+    const hunkHeaderMatch = /^@@ -\d+(?:,\d+)? \+(\d+)(?:,\d+)? @@/.exec(line);
+    if (hunkHeaderMatch) {
+      headLine = parseInt(hunkHeaderMatch[1], 10);
+      inHunk = true;
+      return;
+    }
+
+    if (inHunk) {
+      if (line.startsWith("+++ b/")) {
+        currentFile = line.replace("+++ b/", "");
+        return;
       }
-    } else if (!line.startsWith("-")) {
-      lineNumber++;
+
+      if (line.startsWith("+") && !line.startsWith("+++")) {
+        if (line.includes('""')) {
+          violations.push({
+            file: currentFile,
+            line: headLine,
+            content: line.substring(1),
+          });
+        }
+        headLine++;
+      } else if (line.startsWith("-")) {
+        // Removed line; do not increment headLine
+      } else {
+        headLine++;
+      }
     }
   });
 
