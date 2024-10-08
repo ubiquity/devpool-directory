@@ -93,20 +93,25 @@ function parseDiffForEmptyStrings(diff: string) {
       return;
     }
 
-    if (inHunk && line.startsWith("+")) {
-      // Ignore package.json version numbers and ternary expressions
-      if (currentFile.endsWith("package.json") || /\? .+ : .+/.test(line)) {
-        headLine++;
-        return;
-      }
+    // Only process TypeScript files
+    if (!currentFile.endsWith(".ts")) {
+      return;
+    }
 
-      // Check for various forms of empty strings, excluding version numbers and valid use cases
-      if (/^\+.*?(?:=\s*["'`]{2}(?!\s*[,;])|["'`]\s*:\s*["'`](?!\s*[,;])|:\s*["'`]{2}(?!\s*[,;]))/.test(line)) {
-        violations.push({
-          file: currentFile,
-          line: headLine,
-          content: line.substring(1).trim(),
-        });
+    if (inHunk && line.startsWith("+")) {
+      // Check for empty strings in TypeScript syntax
+      if (/^\+.*?(?:=\s*["'`]{2}(?!\s*[,;])|:\s*["'`]{2}(?!\s*[,;]))/.test(line)) {
+        // Ignore empty strings in comments
+        if (!line.trim().startsWith("//") && !line.trim().startsWith("*")) {
+          // Ignore empty strings in template literals
+          if (!/`[^`]*\$\{[^}]*\}[^`]*`/.test(line)) {
+            violations.push({
+              file: currentFile,
+              line: headLine,
+              content: line.substring(1).trim(),
+            });
+          }
+        }
       }
       headLine++;
     } else if (!line.startsWith("-")) {
