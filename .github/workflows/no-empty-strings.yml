@@ -33,11 +33,20 @@ jobs:
       - name: Find empty strings
         id: find-empty-strings
         run: |
+          # Set PR number as an environment variable
+          PR_NUMBER="${{ github.event.pull_request.number }}"
+
+          # Check if PR_NUMBER is set
+          if [ -z "$PR_NUMBER" ]; then
+            echo "Error: PR number is not set"
+            exit 1
+          fi
+
           # Get the base branch (usually main or master)
-          BASE_BRANCH=$(gh pr view ${{ github.event.pull_request.number }} --json baseRefName --jq .baseRefName)
+          BASE_BRANCH=$(gh pr view "$PR_NUMBER" --json baseRefName --jq .baseRefName)
 
           # Get the list of changed files in the PR
-          CHANGED_FILES=$(gh pr diff ${{ github.event.pull_request.number }} --name-only)
+          CHANGED_FILES=$(gh pr diff "$PR_NUMBER" --name-only)
 
           # Initialize empty string for results
           EMPTY_STRINGS=""
@@ -46,7 +55,7 @@ jobs:
           for file in $CHANGED_FILES; do
             if [[ $file =~ \.(ts|tsx)$ ]]; then
               # Get the diff for this file
-              DIFF=$(gh pr diff ${{ github.event.pull_request.number }} --color never -- $file)
+              DIFF=$(gh pr diff "$PR_NUMBER" --color never -- "$file")
 
               # Find added lines with empty strings
               ADDED_EMPTY=$(echo "$DIFF" | grep -n "^+" | grep -E "(''{2}|\"\"{2})" | sed "s/^+//g" | sed "s/^/${file}:/")
