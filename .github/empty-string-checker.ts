@@ -35,7 +35,7 @@ async function main() {
 
     if (violations.length > 0) {
       violations.forEach(({ file, line, content }) => {
-        core.warning(`Empty string found: ${content}`, {
+        core.warning("⚠️ EMPTY STRING DETECTED ⚠️", {
           file,
           startLine: line,
         });
@@ -75,7 +75,7 @@ function parseDiffForEmptyStrings(diff: string) {
   const violations: Array<{ file: string; line: number; content: string }> = [];
   const diffLines = diff.split("\n");
 
-  let currentFile = "";
+  let currentFile: string;
   let headLine = 0;
   let inHunk = false;
 
