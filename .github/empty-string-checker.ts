@@ -27,10 +27,10 @@ async function run() {
     const headSha = pullRequest.head.sha;
 
     // Fetch all remote branches and tags
-    await git.fetch(["--all"]);
+    await git.fetch(["origin", baseSha, headSha]);
 
     // Get the diff of the pull request using the SHAs
-    const diff = await git.diff([`origin/${baseRef}...${headSha}`]);
+    const diff = await git.diff([`${baseSha}...${headSha}`]);
 
     const violations = parseDiffForEmptyStrings(diff);
 
