@@ -4,8 +4,9 @@ import simpleGit from "simple-git";
 const token = process.env.GITHUB_TOKEN;
 const [owner, repo] = process.env.GITHUB_REPOSITORY?.split("/") || [];
 const pullNumber = process.env.GITHUB_PR_NUMBER || process.env.PULL_REQUEST_NUMBER || "0";
+const baseRef = process.env.GITHUB_BASE_REF;
 
-if (!token || !owner || !repo || pullNumber === "0") {
+if (!token || !owner || !repo || pullNumber === "0" || !baseRef) {
   console.error("Missing required environment variables.");
   process.exit(1);
 }
@@ -25,8 +26,11 @@ async function run() {
     const baseSha = pullRequest.base.sha;
     const headSha = pullRequest.head.sha;
 
+    // Fetch the base branch
+    await git.fetch(["origin", baseRef]);
+
     // Get the diff of the pull request using the SHAs
-    const diff = await git.diff([`${baseSha}...${headSha}`]);
+    const diff = await git.diff([`origin/${baseRef}...${headSha}`]);
 
     const violations = parseDiffForEmptyStrings(diff);
 
