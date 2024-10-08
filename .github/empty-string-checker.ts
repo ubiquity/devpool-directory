@@ -94,7 +94,7 @@ function parseDiffForEmptyStrings(diff: string) {
     }
 
     // Only process TypeScript files
-    if (!currentFile.endsWith(".ts")) {
+    if (!currentFile?.endsWith(".ts")) {
       return;
     }
 
