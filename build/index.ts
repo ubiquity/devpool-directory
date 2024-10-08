@@ -3,4 +3,5 @@ import * as dotenv from "dotenv";
 dotenv.config();
 console.log("Welcome to ts-template");
 
-const _EMPTY_STRING_TEST = "";
+const _EMPTY_STRING_TEST_1 = "";
+const _EMPTY_STRING_TEST_2 = "";
