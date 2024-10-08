@@ -83,7 +83,7 @@ async function createReview(violations: Array<{ file: string; line: number; cont
   const reviewComments = violations.map((v) => ({
     path: v.file,
     line: v.line,
-    body: `> [!WARNING]\n> Empty string found, consider another approach. [Read more](https://github.com/ubiquity/ts-template/issues/31).`,
+    body: `> [!WARNING]\n> Empty string found, consider another approach. [Read more](https://www.github.com/ubiquity/ts-template/issues/31).`,
   }));
 
   await octokit.pulls.createReview({
