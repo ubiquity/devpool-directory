@@ -92,7 +92,7 @@ async function createReview(violations: Array<{ file: string; line: number; cont
     pull_number: parseInt(pullNumber),
     event: "COMMENT",
     comments: reviewComments,
-    body: "Empty strings detected in the code. Please review.",
+    body: "> [!WARNING]\n> Empty strings detected in the code. Please review.",
   });
 }
 
