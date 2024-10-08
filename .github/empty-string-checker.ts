@@ -31,16 +31,37 @@ async function main() {
     const diff = await git.diff([`${baseSha}...${headSha}`]);
 
     core.info("Checking for empty strings...");
-    const emptyStrings = parseDiffForEmptyStrings(diff);
+    const violations = parseDiffForEmptyStrings(diff);
 
-    if (emptyStrings.length > 0) {
-      emptyStrings.forEach(({ file, line, content }) => {
+    if (violations.length > 0) {
+      violations.forEach(({ file, line, content }) => {
         core.warning(`Empty string found: ${content}`, {
           file,
           startLine: parseInt(line.toString()),
         });
       });
-      core.setFailed(`${emptyStrings.length} empty string${emptyStrings.length > 1 ? "s" : ""} detected in the code.`);
+      // core.setFailed(`${emptyStrings.length} empty string${emptyStrings.length > 1 ? "s" : ""} detected in the code.`);
+
+      await octokit.rest.checks.create({
+        owner,
+        repo,
+        name: "Empty String Check",
+        head_sha: headSha,
+        status: "completed",
+        conclusion: violations.length > 0 ? "failure" : "success",
+        output: {
+          title: "Empty String Check Results",
+          summary: `Found ${violations.length} violations`,
+          annotations: violations.map((v) => ({
+            path: v.file,
+            start_line: v.line,
+            end_line: v.line,
+            annotation_level: "warning",
+            message: "Empty string found",
+            raw_details: v.content,
+          })),
+        },
+      });
     } else {
       core.info("No empty strings found.");
     }
@@ -61,11 +82,10 @@ function parseDiffForEmptyStrings(diff: string) {
       currentFile = line.replace("+++ b/", "");
       lineNumber = 0;
     } else if (line.startsWith("+") && !line.startsWith("+++")) {
-      lineNumber++;
       if (line.includes('""')) {
         violations.push({
           file: currentFile,
-          line: lineNumber,
+          line: lineNumber++,
           content: line.substring(1),
         });
       }
