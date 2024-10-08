@@ -30,17 +30,19 @@ jobs:
           app_id: ${{ secrets.APP_ID }}
           private_key: ${{ secrets.APP_PRIVATE_KEY }}
 
-      - name: Find empty strings
+      - name: Check for empty strings in PR
         id: find-empty-strings
         run: |
-          # Set PR number as an environment variable
-          PR_NUMBER="${{ github.event.pull_request.number }}"
+          # Get PR number from GitHub event
+          PR_NUMBER=$(jq --raw-output .pull_request.number "$GITHUB_EVENT_PATH")
 
-          # Check if PR_NUMBER is set
-          if [ -z "$PR_NUMBER" ]; then
-            echo "Error: PR number is not set"
+          # Check if PR_NUMBER is set and valid
+          if [ -z "$PR_NUMBER" ] || [ "$PR_NUMBER" = "null" ]; then
+            echo "Error: PR number is not set or invalid"
             exit 1
           fi
+
+          echo "Checking PR #$PR_NUMBER"
 
           # Get the base branch (usually main or master)
           BASE_BRANCH=$(gh pr view "$PR_NUMBER" --json baseRefName --jq .baseRefName)
@@ -55,7 +57,7 @@ jobs:
           for file in $CHANGED_FILES; do
             if [[ $file =~ \.(ts|tsx)$ ]]; then
               # Get the diff for this file
-              DIFF=$(gh pr diff "$PR_NUMBER" --color never -- "$file")
+               DIFF=$(gh pr diff "$PR_NUMBER" --color never "$file")
 
               # Find added lines with empty strings
               ADDED_EMPTY=$(echo "$DIFF" | grep -n "^+" | grep -E "(''{2}|\"\"{2})" | sed "s/^+//g" | sed "s/^/${file}:/")
@@ -73,6 +75,7 @@ jobs:
           echo "EOF" >> $GITHUB_OUTPUT
         env:
           GH_TOKEN: ${{ steps.get_installation_token.outputs.token }}
+        shell: bash
 
       - name: Comment on PR
         uses: actions/github-script@v6
