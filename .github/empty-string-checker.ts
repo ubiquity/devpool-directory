@@ -14,7 +14,7 @@ if (!token || !owner || !repo || pullNumber === "0" || !baseRef) {
 const octokit = new Octokit({ auth: token });
 const git = simpleGit();
 
-async function run() {
+async function main() {
   try {
     // Get the base and head SHAs for the pull request
     const { data: pullRequest } = await octokit.pulls.get({
@@ -32,17 +32,22 @@ async function run() {
     // Get the diff of the pull request using the SHAs
     const diff = await git.diff([`${baseSha}...${headSha}`]);
 
-    const violations = parseDiffForEmptyStrings(diff);
+    console.log("Checking for empty strings...");
+    const emptyStrings = parseDiffForEmptyStrings(diff);
 
-    if (violations.length > 0) {
-      await createReview(violations);
-      process.exit(1); // Exit with error to indicate failure
+    if (emptyStrings.length > 0) {
+      console.error("Empty strings found:");
+      emptyStrings.forEach(({ file, line }) => {
+        console.error(`${file}:${line}`);
+      });
+      await createReview(emptyStrings);
+      process.exit(1); // This line is causing the non-zero exit code
     } else {
       console.log("No empty strings found.");
     }
   } catch (error) {
-    console.error("Error running empty string check:", error);
-    process.exit(1);
+    console.error("An error occurred:", error);
+    process.exit(1); // This could also be causing the non-zero exit code
   }
 }
 
@@ -91,7 +96,7 @@ async function createReview(violations: Array<{ file: string; line: number; cont
   });
 }
 
-run().catch((error) => {
+main().catch((error) => {
   console.error("Error running empty string check:", error);
   process.exit(1);
 });
