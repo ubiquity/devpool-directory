@@ -87,32 +87,29 @@ function parseDiffForEmptyStrings(diff: string) {
       return;
     }
 
-    if (inHunk) {
-      if (line.startsWith("+++ b/")) {
-        currentFile = line.replace("+++ b/", "");
-        return;
-      }
+    if (line.startsWith("--- a/") || line.startsWith("+++ b/")) {
+      currentFile = line.slice(6);
+      inHunk = false;
+      return;
+    }
 
-      if (line.startsWith("+") && !line.startsWith("+++")) {
-        if (line.includes('""')) {
-          violations.push({
-            file: currentFile,
-            line: headLine,
-            content: line.substring(1),
-          });
-        }
-        headLine++;
-      } else if (line.startsWith("-")) {
-        // Removed line; do not increment headLine
-      } else {
-        headLine++;
+    if (inHunk && line.startsWith("+")) {
+      // Check for various forms of empty strings, including at the start of the line
+      if (/^\+.*?(?:=\s*["'`]{2}|["'`]\s*:\s*["'`]|:\s*["'`]{2})/.test(line)) {
+        violations.push({
+          file: currentFile,
+          line: headLine,
+          content: line.substring(1).trim(),
+        });
       }
+      headLine++;
+    } else if (!line.startsWith("-")) {
+      headLine++;
     }
   });
 
   return violations;
 }
-
 main().catch((error) => {
   core.setFailed(`Error running empty string check: ${error instanceof Error ? error.message : String(error)}`);
 });
