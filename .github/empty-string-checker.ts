@@ -1,5 +1,6 @@
 import { Octokit } from "@octokit/rest";
 import simpleGit from "simple-git";
+import * as core from "@actions/core";
 
 const token = process.env.GITHUB_TOKEN;
 const [owner, repo] = process.env.GITHUB_REPOSITORY?.split("/") || [];
@@ -7,7 +8,7 @@ const pullNumber = process.env.GITHUB_PR_NUMBER || process.env.PULL_REQUEST_NUMB
 const baseRef = process.env.GITHUB_BASE_REF;
 
 if (!token || !owner || !repo || pullNumber === "0" || !baseRef) {
-  console.error("Missing required environment variables.");
+  core.setFailed("Missing required environment variables.");
   process.exit(1);
 }
 
@@ -16,7 +17,6 @@ const git = simpleGit();
 
 async function main() {
   try {
-    // Get the base and head SHAs for the pull request
     const { data: pullRequest } = await octokit.pulls.get({
       owner,
       repo,
@@ -26,28 +26,26 @@ async function main() {
     const baseSha = pullRequest.base.sha;
     const headSha = pullRequest.head.sha;
 
-    // Fetch all remote branches and tags
     await git.fetch(["origin", baseSha, headSha]);
 
-    // Get the diff of the pull request using the SHAs
     const diff = await git.diff([`${baseSha}...${headSha}`]);
 
-    console.log("Checking for empty strings...");
+    core.info("Checking for empty strings...");
     const emptyStrings = parseDiffForEmptyStrings(diff);
 
     if (emptyStrings.length > 0) {
-      console.error("Empty strings found:");
-      emptyStrings.forEach(({ file, line }) => {
-        console.error(`${file}:${line}`);
+      emptyStrings.forEach(({ file, line, content }) => {
+        core.warning(`Empty string found: ${content}`, {
+          file,
+          startLine: parseInt(line.toString()),
+        });
       });
-      await createReview(emptyStrings);
-      process.exit(1); // This line is causing the non-zero exit code
+      core.setFailed(`${emptyStrings.length} empty string${emptyStrings.length > 1 ? "s" : ""} detected in the code.`);
     } else {
-      console.log("No empty strings found.");
+      core.info("No empty strings found.");
     }
   } catch (error) {
-    console.error("An error occurred:", error);
-    process.exit(1); // This could also be causing the non-zero exit code
+    core.setFailed(`An error occurred: ${error instanceof Error ? error.message : String(error)}`);
   }
 }
 
@@ -79,21 +77,6 @@ function parseDiffForEmptyStrings(diff: string) {
   return violations;
 }
 
-async function createReview(violations: Array<{ file: string; line: number; content: string }>) {
-  const annotationsBody = violations
-    .map((v) => `${v.file}#L${v.line}\n\`\`\`suggestion\n${v.content.trim().replace('""', "/* TODO: Replace empty string */")}\n\`\`\``)
-    .join("\n\n");
-
-  await octokit.pulls.createReview({
-    owner,
-    repo,
-    pull_number: parseInt(pullNumber),
-    event: "COMMENT",
-    body: `> [!WARNING]\n> ${violations.length} empty string${violations.length > 1 ? "s" : ""} detected in the code.\n\n${annotationsBody}\n\n[Read more about empty string issues](https://www.github.com/ubiquity/ts-template/issues/31).`,
-  });
-}
-
 main().catch((error) => {
-  console.error("Error running empty string check:", error);
-  process.exit(1);
+  core.setFailed(`Error running empty string check: ${error instanceof Error ? error.message : String(error)}`);
 });

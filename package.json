@@ -33,6 +33,7 @@
     "dotenv": "^16.4.4"
   },
   "devDependencies": {
+    "@actions/core": "^1.11.1",
     "@commitlint/cli": "^18.6.1",
     "@commitlint/config-conventional": "^18.6.2",
     "@cspell/dict-node": "^4.0.3",
