@@ -1,6 +1,6 @@
 {
   "name": "ts-template",
-  "version": "1.0.0",
+  "version": "0.0.0",
   "description": "Template repository with TypeScript support.",
   "main": "build/index.ts",
   "author": "Ubiquity DAO",
