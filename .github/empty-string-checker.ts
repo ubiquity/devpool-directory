@@ -1,6 +1,6 @@
+import * as core from "@actions/core";
 import { Octokit } from "@octokit/rest";
 import simpleGit from "simple-git";
-import * as core from "@actions/core";
 
 const token = process.env.GITHUB_TOKEN;
 const [owner, repo] = process.env.GITHUB_REPOSITORY?.split("/") || [];
@@ -61,11 +61,11 @@ function parseDiffForEmptyStrings(diff: string) {
       currentFile = line.replace("+++ b/", "");
       lineNumber = 0;
     } else if (line.startsWith("+") && !line.startsWith("+++")) {
-      lineNumber++;
+      ++lineNumber;
       if (line.includes('""')) {
         violations.push({
           file: currentFile,
-          line: lineNumber,
+          line: ++lineNumber,
           content: line.substring(1),
         });
       }
