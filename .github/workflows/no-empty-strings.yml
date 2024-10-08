@@ -9,11 +9,15 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20.10.0'
       - name: Install Dependencies
         run: |
-          yarn install
+          bun install
       - name: Check for Empty Strings
         run: |
-          yarn tsx .github/empty-string-checker.ts
+          bun run tsx .github/empty-string-checker.ts
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
