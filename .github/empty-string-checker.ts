@@ -14,16 +14,31 @@ const octokit = new Octokit({ auth: token });
 const git = simpleGit();
 
 async function run() {
-  // Get the diff of the pull request
-  const diff = await git.diff([`origin/${process.env.GITHUB_BASE_REF}...HEAD`]);
+  try {
+    // Get the base and head SHAs for the pull request
+    const { data: pullRequest } = await octokit.pulls.get({
+      owner,
+      repo,
+      pull_number: parseInt(pullNumber),
+    });
 
-  const violations = parseDiffForEmptyStrings(diff);
+    const baseSha = pullRequest.base.sha;
+    const headSha = pullRequest.head.sha;
 
-  if (violations.length > 0) {
-    await createReview(violations);
-    process.exit(1); // Exit with error to indicate failure
-  } else {
-    console.log("No empty strings found.");
+    // Get the diff of the pull request using the SHAs
+    const diff = await git.diff([`${baseSha}...${headSha}`]);
+
+    const violations = parseDiffForEmptyStrings(diff);
+
+    if (violations.length > 0) {
+      await createReview(violations);
+      process.exit(1); // Exit with error to indicate failure
+    } else {
+      console.log("No empty strings found.");
+    }
+  } catch (error) {
+    console.error("Error running empty string check:", error);
+    process.exit(1);
   }
 }
 
