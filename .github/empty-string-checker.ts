@@ -1,5 +1,5 @@
 import { Octokit } from "@octokit/rest";
-import { execSync } from "child_process";
+import simpleGit from "simple-git";
 
 const token = process.env.GITHUB_TOKEN;
 const [owner, repo] = process.env.GITHUB_REPOSITORY?.split("/") || [];
@@ -11,12 +11,11 @@ if (!token || !owner || !repo || pullNumber === "0") {
 }
 
 const octokit = new Octokit({ auth: token });
+const git = simpleGit();
 
 async function run() {
   // Get the diff of the pull request
-  const diff = execSync(`git diff origin/${process.env.GITHUB_BASE_REF}...HEAD`, {
-    encoding: "utf8",
-  });
+  const diff = await git.diff([`origin/${process.env.GITHUB_BASE_REF}...HEAD`]);
 
   const violations = parseDiffForEmptyStrings(diff);
 
@@ -67,7 +66,7 @@ async function createReview(violations: Array<{ file: string; line: number; cont
     owner,
     repo,
     pull_number: parseInt(pullNumber),
-    event: "REQUEST_CHANGES",
+    event: "COMMENT",
     comments: reviewComments,
     body: "Empty strings detected in the code. Please review.",
   });

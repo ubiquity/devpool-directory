@@ -15,7 +15,7 @@ jobs:
           node-version: '20.10.0'
       - name: Install Dependencies
         run: |
-          yarn add tsx
+          yarn add tsx simple-git
       - name: Check for Empty Strings
         run: |
           yarn tsx .github/empty-string-checker.ts
