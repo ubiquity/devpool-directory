@@ -1,33 +1,29 @@
-import esbuild from "esbuild";
-const typescriptEntries = ["static/main.ts"];
-// const cssEntries = ["static/style.css"];
-const entries = [
-  ...typescriptEntries,
-  //  ...cssEntries
-];
+import esbuild, { BuildOptions } from "esbuild";
 
-export const esBuildContext: esbuild.BuildOptions = {
+const ENTRY_POINTS = {
+  typescript: ["static/main.ts"],
+  // css: ["static/style.css"],
+};
+
+const DATA_URL_LOADERS = [".png", ".woff", ".woff2", ".eot", ".ttf", ".svg"];
+
+export const esbuildOptions: BuildOptions = {
   sourcemap: true,
-  entryPoints: entries,
+  entryPoints: [...ENTRY_POINTS.typescript /* ...ENTRY_POINTS.css */],
   bundle: true,
   minify: false,
-  loader: {
-    ".png": "dataurl",
-    ".woff": "dataurl",
-    ".woff2": "dataurl",
-    ".eot": "dataurl",
-    ".ttf": "dataurl",
-    ".svg": "dataurl",
-  },
+  loader: Object.fromEntries(DATA_URL_LOADERS.map((ext) => [ext, "dataurl"])),
   outdir: "static/dist",
 };
 
-esbuild
-  .build(esBuildContext)
-  .then(() => {
+async function runBuild() {
+  try {
+    await esbuild.build(esbuildOptions);
     console.log("\tesbuild complete");
-  })
-  .catch((err) => {
+  } catch (err) {
     console.error(err);
     process.exit(1);
-  });
+  }
+}
+
+void runBuild();
