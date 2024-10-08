@@ -80,19 +80,16 @@ function parseDiffForEmptyStrings(diff: string) {
 }
 
 async function createReview(violations: Array<{ file: string; line: number; content: string }>) {
-  const reviewComments = violations.map((v) => ({
-    path: v.file,
-    line: v.line,
-    body: `> [!WARNING]\n> Empty string found, consider another approach. [Read more](https://www.github.com/ubiquity/ts-template/issues/31).`,
-  }));
+  const annotationsBody = violations
+    .map((v) => `${v.file}#L${v.line}\n\`\`\`suggestion\n${v.content.trim().replace('""', "/* TODO: Replace empty string */")}\n\`\`\``)
+    .join("\n\n");
 
   await octokit.pulls.createReview({
     owner,
     repo,
     pull_number: parseInt(pullNumber),
     event: "COMMENT",
-    comments: reviewComments,
-    body: "> [!WARNING]\n> Empty strings detected in the code. Please review.",
+    body: `> [!WARNING]\n> ${violations.length} empty string${violations.length > 1 ? "s" : ""} detected in the code.\n\n${annotationsBody}\n\n[Read more about empty string issues](https://www.github.com/ubiquity/ts-template/issues/31).`,
   });
 }
 
