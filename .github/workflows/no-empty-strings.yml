@@ -1,5 +1,9 @@
 name: Check for Empty Strings
 
+permissions:
+  contents: read
+  id-token: write
+
 on:
   pull_request:
     types: [opened, synchronize, reopened]
@@ -8,6 +12,14 @@ jobs:
   check-empty-strings:
     runs-on: ubuntu-latest
     steps:
+      - name: Debug - Check if APP_ID is set
+        run: |
+          if [ -n "${{ secrets.APP_ID }}" ]; then
+            echo "APP_ID is set"
+          else
+            echo "APP_ID is not set"
+          fi
+
       - name: Checkout code
         uses: actions/checkout@v4
 
