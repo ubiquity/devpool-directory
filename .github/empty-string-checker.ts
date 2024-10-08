@@ -1,6 +1,6 @@
+import * as core from "@actions/core";
 import { Octokit } from "@octokit/rest";
 import simpleGit from "simple-git";
-import * as core from "@actions/core";
 
 const token = process.env.GITHUB_TOKEN;
 const [owner, repo] = process.env.GITHUB_REPOSITORY?.split("/") || [];
