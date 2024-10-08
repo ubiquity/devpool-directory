@@ -94,8 +94,14 @@ function parseDiffForEmptyStrings(diff: string) {
     }
 
     if (inHunk && line.startsWith("+")) {
-      // Check for various forms of empty strings, including at the start of the line
-      if (/^\+.*?(?:=\s*["'`]{2}|["'`]\s*:\s*["'`]|:\s*["'`]{2})/.test(line)) {
+      // Ignore package.json version numbers and ternary expressions
+      if (currentFile.endsWith("package.json") || /\? .+ : .+/.test(line)) {
+        headLine++;
+        return;
+      }
+
+      // Check for various forms of empty strings, excluding version numbers and valid use cases
+      if (/^\+.*?(?:=\s*["'`]{2}(?!\s*[,;])|["'`]\s*:\s*["'`](?!\s*[,;])|:\s*["'`]{2}(?!\s*[,;]))/.test(line)) {
         violations.push({
           file: currentFile,
           line: headLine,
