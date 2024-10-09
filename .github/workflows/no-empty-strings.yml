@@ -1,71 +1,32 @@
-name: Check for Empty Strings
+name: Empty String Check
 
 on:
   pull_request:
     types: [opened, synchronize, reopened]
 
 jobs:
-  check-empty-strings:
+  check-for-empty-strings:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
+      - uses: actions/checkout@v4
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20.10.0"
       - name: Get GitHub App token
         uses: tibdex/github-app-token@v1.7.0
         id: get_installation_token
         with:
           app_id: ${{ secrets.APP_ID }}
           private_key: ${{ secrets.APP_PRIVATE_KEY }}
-
-      - name: Find empty strings
-        id: find-empty-strings
+      - name: Install Dependencies
         run: |
-          # Get the base branch (usually main or master)
-          BASE_BRANCH=$(gh pr view ${{ github.event.pull_request.number }} --json baseRefName --jq .baseRefName)
-
-          # Get the list of changed files in the PR
-          CHANGED_FILES=$(gh pr diff ${{ github.event.pull_request.number }} --name-only)
-
-          # Initialize empty string for results
-          EMPTY_STRINGS=""
-
-          # Loop through changed files
-          for file in $CHANGED_FILES; do
-            if [[ $file =~ \.(ts|tsx)$ ]]; then
-              # Get the diff for this file
-              DIFF=$(gh pr diff ${{ github.event.pull_request.number }} --color never -- $file)
-
-              # Find added lines with empty strings
-              ADDED_EMPTY=$(echo "$DIFF" | grep -n "^+" | grep -E "(''{2}|\"\"{2})" | sed "s/^+//g" | sed "s/^/${file}:/")
-
-              # Append results
-              if [ ! -z "$ADDED_EMPTY" ]; then
-                EMPTY_STRINGS+="$ADDED_EMPTY"$'\n'
-              fi
-            fi
-          done
-
-          # Output results
-          echo "EMPTY_STRINGS<<EOF" >> $GITHUB_OUTPUT
-          echo "$EMPTY_STRINGS" >> $GITHUB_OUTPUT
-          echo "EOF" >> $GITHUB_OUTPUT
+          yarn add tsx simple-git
+      - name: Check for Empty Strings
+        run: |
+          yarn tsx .github/empty-string-checker.ts
         env:
-          GH_TOKEN: ${{ steps.get_installation_token.outputs.token }}
-
-      - name: Comment on PR
-        uses: actions/github-script@v6
-        if: steps.find-empty-strings.outputs.EMPTY_STRINGS
-        with:
-          github-token: ${{ steps.get_installation_token.outputs.token }}
-          script: |
-            const emptyStrings = process.env.EMPTY_STRINGS.trim().split('\n');
-            if (emptyStrings.length > 0) {
-              const body = `### Empty Strings Found\n\nPlease review the following lines containing empty strings:\n\n${emptyStrings.map(line => `- \`${line}\``).join('\n')}`;
-              github.rest.issues.createComment({
-                issue_number: context.issue.number,
-                owner: context.repo.owner,
-                repo: context.repo.name,
-                body: body
-              });
-            }
+          GITHUB_TOKEN: ${{ steps.get_installation_token.outputs.token }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
+          GITHUB_PR_NUMBER: ${{ github.event.pull_request.number }}
+          GITHUB_BASE_REF: ${{ github.base_ref }}

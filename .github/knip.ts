@@ -1,7 +1,7 @@
 import type { KnipConfig } from "knip";
 
 const config: KnipConfig = {
-  entry: ["build/index.ts"],
+  entry: ["build/index.ts", ".github/empty-string-checker.ts"],
   project: ["src/**/*.ts"],
   ignore: ["src/types/config.ts", "**/__mocks__/**", "**/__fixtures__/**"],
   ignoreExportsUsedInFile: true,
