@@ -21,7 +21,7 @@ export async function syncPartnerRepoIssues({
   const buffer: (GitHubIssue | null)[] = [];
   for (const fullIssuePerPartnerRepo of fullIssuesPerPartnerRepo) {
     // if the issue is available, then add it to the buffer
-    if (fullIssuePerPartnerRepo.state === "open") {
+    if (fullIssuePerPartnerRepo.state === "open" && fullIssuePerPartnerRepo.assignee === null) {
       buffer.push(fullIssuePerPartnerRepo);
     }
 
