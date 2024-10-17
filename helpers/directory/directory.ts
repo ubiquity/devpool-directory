@@ -2,6 +2,8 @@ import { RestEndpointMethodTypes } from "@octokit/plugin-rest-endpoint-methods";
 import { Octokit } from "@octokit/rest";
 import _projects from "../../projects.json";
 
+export const octokit = new Octokit({ auth: process.env.DEVPOOL_GITHUB_API_TOKEN });
+
 export const PRICING_NOT_SET = "Pricing: not set";
 
 export const DEVPOOL_OWNER_NAME = process.env.DEVPOOL_OWNER_NAME as string;
@@ -34,5 +36,3 @@ export enum LABELS {
   PRICE = "Price",
   UNAVAILABLE = "Unavailable",
 }
-
-export const octokit = new Octokit({ auth: process.env.DEVPOOL_GITHUB_API_TOKEN });
