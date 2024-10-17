@@ -1,13 +1,16 @@
 import { GitHubIssue, octokit } from "./directory";
 
-/**
- * Returns all issues in a repo
- * @param ownerName owner name
- * @param repoName repo name
- * @returns array of issues
- */
-
 export async function getAllIssues(ownerName: string, repoName: string) {
+  // Check if the repository is archived
+  const { data: repo } = await octokit.rest.repos.get({
+    owner: ownerName,
+    repo: repoName,
+  });
+
+  if (repo.archived) {
+    return []; // Return an empty array for archived repositories
+  }
+
   // get all project issues (opened and closed)
   let issues: GitHubIssue[] = await octokit.paginate({
     method: "GET",
