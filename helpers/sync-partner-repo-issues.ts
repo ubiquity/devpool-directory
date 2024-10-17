@@ -34,7 +34,13 @@ export async function syncPartnerRepoIssues({
 
     // adding www creates a link to an issue that does not count as a mention
     // helps with preventing a mention in partner's repo especially during testing
-    const body = (await checkIfForked()) ? fullIssue.html_url.replace("https://github.com", "https://www.github.com") : fullIssue.html_url;
+    let body;
+    const isForked = await checkIfForked();
+    if (isForked) {
+      body = fullIssue.html_url.replace("https://github.com", "https://www.github.com");
+    } else {
+      body = fullIssue.html_url;
+    }
 
     if (partnerIdMatchIssue) {
       // if it exists in the Directory, then update it

@@ -1,3 +1,4 @@
+import { checkIfForked } from "./check-if-forked";
 import { DEVPOOL_OWNER_NAME, DEVPOOL_REPO_NAME, GitHubIssue, octokit } from "./directory";
 
 export async function setMetaChanges({
@@ -16,9 +17,18 @@ export async function setMetaChanges({
   const shouldUpdate = metaChanges.title || metaChanges.body || metaChanges.labels;
 
   if (shouldUpdate) {
-    let newBody = remoteFullIssue.body;
+    let newBody;
 
-    newBody = directoryIssue.html_url;
+    const isForked = await checkIfForked();
+
+    if (isForked) {
+      const body = remoteFullIssue.body;
+      if (body) {
+        newBody = (remoteFullIssue.body as string).replace("https://www.github.com", "https://github.com");
+      }
+    } else {
+      newBody = remoteFullIssue.body;
+    }
 
     try {
       await octokit.rest.issues.update({

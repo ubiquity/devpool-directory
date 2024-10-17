@@ -26,7 +26,13 @@ export async function syncIssueMetaData({
   };
 
   if (hasChanges) {
-    await setMetaChanges({ metaChanges, remoteFullIssue, directoryIssue, labelRemoved, originalLabels });
+    await setMetaChanges({
+      metaChanges,
+      remoteFullIssue,
+      directoryIssue,
+      labelRemoved,
+      originalLabels,
+    });
   }
 
   const newState = await setStateChanges(directoryIssues, directoryIssue, remoteFullIssue);
