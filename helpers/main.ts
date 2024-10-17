@@ -25,8 +25,7 @@ export async function main() {
   await commitTasks(results);
 
   // Calculate total rewards from devpool issues
-  const { rewards, tasks } = await calculateStatistics(await getAllIssues(DEVPOOL_OWNER_NAME, DEVPOOL_REPO_NAME));
-  const statistics: Statistics = { rewards, tasks };
+  const statistics: Statistics = await calculateStatistics(await getAllIssues(DEVPOOL_OWNER_NAME, DEVPOOL_REPO_NAME));
 
   await commitStatistics(statistics);
 }
