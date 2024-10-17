@@ -1,4 +1,3 @@
-import { checkIfForked } from "./directory/check-if-forked";
 import { GitHubIssue } from "./directory/directory";
 import { getAllIssues } from "./directory/get-all-issues";
 import { getIssueByLabel } from "./directory/get-issue-by-label";
@@ -20,7 +19,7 @@ export async function syncPartnerRepoIssues({
   const partnerRepoIssues: GitHubIssue[] = await getAllIssues(ownerName, repoName);
   const buffer: (GitHubIssue | null)[] = [];
   for (const partnerIssue of partnerRepoIssues) {
-    // if the issue is available, then add it to the buffer
+    // if the issue is open, then add it to the buffer
     if (partnerIssue.state === "open") {
       buffer.push(partnerIssue);
     }
@@ -34,7 +33,6 @@ export async function syncPartnerRepoIssues({
 
     // adding www creates a link to an issue that does not count as a mention
     // helps with preventing a mention in partner's repo especially during testing
-    const body = (await checkIfForked()) ? partnerIssue.html_url.replace("https://github.com", "https://www.github.com") : partnerIssue.html_url;
 
     if (directoryIssue) {
       // if it exists in the Directory, then update it
@@ -44,7 +42,7 @@ export async function syncPartnerRepoIssues({
       });
     } else {
       // if it doesn't exist in the Directory, then create it
-      await newDirectoryIssue(partnerIssue, partnerRepoUrl, body, twitterMap);
+      await newDirectoryIssue(partnerIssue, partnerRepoUrl, twitterMap);
     }
 
     return directoryIssue;

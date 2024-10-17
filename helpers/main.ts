@@ -8,20 +8,19 @@ import { initializeTwitterMap, TwitterMap } from "./initialize-twitter-map";
 import { syncPartnerRepoIssues } from "./sync-partner-repo-issues";
 
 export async function main() {
-  const results: GitHubIssue[] = [];
   const twitterMap: TwitterMap = await initializeTwitterMap();
-
   const directoryIssues: GitHubIssue[] = await getAllIssues(DEVPOOL_OWNER_NAME, DEVPOOL_REPO_NAME);
   const partnerRepoUrls = await getPartnerRepoUrls();
+  const taskList: GitHubIssue[] = [];
 
   // for each project URL
   for (const partnerRepoUrl of partnerRepoUrls) {
     // get owner and repository names from project URL
     const result: GitHubIssue[] = await syncPartnerRepoIssues({ partnerRepoUrl, directoryIssues, twitterMap });
-    results.push(...result);
+    taskList.push(...result);
   }
 
-  await commitTasks(results);
+  await commitTasks(taskList);
 
   // Calculate total rewards from devpool issues
   const { rewards, tasks } = await calculateStatistics(await getAllIssues(DEVPOOL_OWNER_NAME, DEVPOOL_REPO_NAME));
