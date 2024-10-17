@@ -46,7 +46,12 @@ export async function newDirectoryIssue(projectIssue: GitHubIssue, projectUrl: s
       }
     }
   } catch (err) {
-    console.error("Failed to create new issue: ", err);
+    console.error("Failed to create new issue:", {
+      projectIssueTitle: projectIssue.title,
+      projectIssueUrl: projectIssue.html_url,
+      projectUrl,
+      error: err.message,
+    });
     return;
   }
 }

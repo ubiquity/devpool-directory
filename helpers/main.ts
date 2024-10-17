@@ -21,7 +21,6 @@ export async function main() {
     results.push(...result);
   }
 
-  console.trace(results);
   await commitTasks(results);
 
   // Calculate total rewards from devpool issues

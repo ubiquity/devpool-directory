@@ -1,3 +1,5 @@
+import { LABELS } from "./helpers/directory/directory";
+import { ensureLabelExists } from "./helpers/directory/label-utils";
 import { gitPush } from "./helpers/git";
 import { main } from "./helpers/main";
 
@@ -9,6 +11,7 @@ import { main } from "./helpers/main";
 
 async function runMainAndPush() {
   try {
+    await ensureLabelExists(LABELS.UNAVAILABLE, "ededed", "Indicates the issue is currently assigned and unavailable.");
     await main();
   } catch (error) {
     console.error("Error in main execution:", error);
