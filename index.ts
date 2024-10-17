@@ -1,7 +1,5 @@
-import dotenv from "dotenv";
 import { gitPush } from "./helpers/git";
 import { main } from "./helpers/main";
-dotenv.config();
 
 /**
  * Main function

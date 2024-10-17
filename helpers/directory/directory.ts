@@ -1,6 +1,8 @@
 import { RestEndpointMethodTypes } from "@octokit/plugin-rest-endpoint-methods";
 import { Octokit } from "@octokit/rest";
+import dotenv from "dotenv";
 import _projects from "../../projects.json";
+dotenv.config();
 
 export const octokit = new Octokit({ auth: process.env.DEVPOOL_GITHUB_API_TOKEN });
 
