@@ -1,5 +1,8 @@
 import { Statistics } from "../types/statistics";
-import { calculateStatistics, DEVPOOL_OWNER_NAME, DEVPOOL_REPO_NAME, getAllIssues, getPartnerUrls as getPartnerRepoUrls, GitHubIssue } from "./directory";
+import { calculateStatistics } from "./directory/calculate-statistics";
+import { DEVPOOL_OWNER_NAME, DEVPOOL_REPO_NAME, GitHubIssue } from "./directory/directory";
+import { getAllIssues } from "./directory/get-all-issues";
+import { getPartnerUrls as getPartnerRepoUrls } from "./directory/get-partner-urls";
 import { commitStatistics, commitTasks } from "./git";
 import { initializeTwitterMap, TwitterMap } from "./initialize-twitter-map";
 import { syncPartnerRepoIssues } from "./sync-partner-repo-issues";

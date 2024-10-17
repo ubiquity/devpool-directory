@@ -1,5 +1,5 @@
 import { Statistics } from "../types/statistics";
-import { DEVPOOL_OWNER_NAME, DEVPOOL_REPO_NAME, GitHubIssue, octokit } from "./directory";
+import { DEVPOOL_OWNER_NAME, DEVPOOL_REPO_NAME, GitHubIssue, octokit } from "./directory/directory";
 let gitChanges: Array<{ path: string; content: string }> = [];
 
 export async function getDefaultBranch(owner: string, repo: string): Promise<string> {

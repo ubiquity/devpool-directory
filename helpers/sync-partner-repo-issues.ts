@@ -1,12 +1,10 @@
-import {
-  checkIfForked,
-  getAllIssues,
-  getIssueByLabel,
-  getRepoCredentials,
-  GitHubIssue,
-  newDirectoryIssue,
-  syncIssueMetaData as syncDirectoryIssue,
-} from "./directory";
+import { checkIfForked } from "./directory/check-if-forked";
+import { GitHubIssue } from "./directory/directory";
+import { getAllIssues } from "./directory/get-all-issues";
+import { getIssueByLabel } from "./directory/get-issue-by-label";
+import { getRepoCredentials } from "./directory/get-repo-credentials";
+import { newDirectoryIssue } from "./directory/new-directory-issue";
+import { syncIssueMetaData as syncDirectoryIssue } from "./directory/sync-issue-meta-data";
 import { TwitterMap } from "./initialize-twitter-map";
 
 export async function syncPartnerRepoIssues({
