@@ -1,19 +1,8 @@
 import { checkIfForked } from "./check-if-forked";
-import { DEVPOOL_OWNER_NAME, DEVPOOL_REPO_NAME, GitHubIssue, octokit } from "./directory";
+import { DEVPOOL_OWNER_NAME, DEVPOOL_REPO_NAME, octokit } from "./directory";
+import { MetadataInterface } from "./sync-issue-meta-data";
 
-export async function setMetaChanges({
-  metaChanges,
-  partnerIssue,
-  directoryIssue,
-  labelRemoved,
-  originalLabels,
-}: {
-  metaChanges: { title: boolean; body: boolean; labels: boolean };
-  partnerIssue: GitHubIssue;
-  directoryIssue: GitHubIssue;
-  labelRemoved: string[];
-  originalLabels: string[];
-}) {
+export async function setMetaChanges({ metaChanges, partnerIssue, directoryIssue, labelRemoved, originalLabels }: MetadataInterface) {
   const shouldUpdate = metaChanges.title || metaChanges.body || metaChanges.labels;
 
   if (shouldUpdate) {

@@ -2,7 +2,7 @@ import { describe, test } from "@jest/globals";
 import { drop } from "@mswjs/data";
 import { DEVPOOL_OWNER_NAME, DEVPOOL_REPO_NAME, GitHubIssue } from "../helpers/directory/directory";
 import { getAllIssues } from "../helpers/directory/get-all-issues";
-import { getDirectoryIssueLabels } from "../helpers/directory/get-directory-issue-labels";
+import { getDirectoryIssueLabelsFromPartnerIssue } from "../helpers/directory/get-directory-issue-labels";
 import { getIssueByLabel } from "../helpers/directory/get-issue-by-label";
 import { getIssueLabelValue } from "../helpers/directory/get-issue-label-value";
 import { getIssuePriceLabel } from "../helpers/directory/get-issue-price-label";
@@ -66,7 +66,7 @@ describe("GitHub items", () => {
   });
 
   test("Get DevPool labels", () => {
-    const res = getDirectoryIssueLabels(
+    const res = getDirectoryIssueLabelsFromPartnerIssue(
       {
         ...githubDevpoolIssueTemplate,
         html_url: "https://github.com/owner/repo",

@@ -1,24 +1,17 @@
-import { DEVPOOL_OWNER_NAME, DEVPOOL_REPO_NAME, GitHubIssue, GitHubLabel, LABELS, octokit } from "./directory";
+import { DEVPOOL_OWNER_NAME, DEVPOOL_REPO_NAME, GitHubLabel, LABELS, octokit } from "./directory";
+import { MetadataInterface } from "./sync-issue-meta-data";
 
-export async function setUnavailableLabelToIssue({
-  directoryIssue,
-  partnerIssue,
-  metaChanges,
-  labelRemoved,
-  originals,
-}: {
-  directoryIssue: GitHubIssue;
-  partnerIssue: GitHubIssue;
-  metaChanges: { labels: boolean };
-  labelRemoved: string[];
-  originals: string[];
-}) {
-  // console.trace({ directoryIssue });
-
+export async function setUnavailableLabelToIssue({ directoryIssue, partnerIssue, metaChanges, labelRemoved, originalLabels }: MetadataInterface) {
   const hasUnavailableLabel = directoryIssue.labels.some((label) => (label as GitHubLabel).name === LABELS.UNAVAILABLE);
-  const isProjectAssigned = !!partnerIssue.assignee?.login;
+  const isProjectAssigned = !!partnerIssue.assignees?.length;
   const isProjectOpen = partnerIssue.state === "open";
-  console.log(`Issue #${partnerIssue.number} | State: ${directoryIssue.state} | Assigned: ${isProjectAssigned} | Unavailable: ${hasUnavailableLabel}`);
+
+  console.log({
+    issueNumber: partnerIssue.number,
+    state: directoryIssue.state,
+    assigned: isProjectAssigned,
+    unavailable: hasUnavailableLabel,
+  });
 
   // Apply the "Unavailable" label to the devpool issue if the project issue is open and assigned
   if (isProjectOpen && isProjectAssigned && !hasUnavailableLabel) {
@@ -27,7 +20,7 @@ export async function setUnavailableLabelToIssue({
         owner: DEVPOOL_OWNER_NAME,
         repo: DEVPOOL_REPO_NAME,
         issue_number: directoryIssue.number,
-        labels: metaChanges.labels ? labelRemoved.concat(LABELS.UNAVAILABLE) : originals.concat(LABELS.UNAVAILABLE),
+        labels: metaChanges.labels ? labelRemoved.concat(LABELS.UNAVAILABLE) : originalLabels.concat(LABELS.UNAVAILABLE),
       });
       console.log(`Added label "${LABELS.UNAVAILABLE}" to Issue #${directoryIssue.number}`);
     } catch (err) {
