@@ -373,7 +373,7 @@ export async function newDirectoryIssue(projectIssue: GitHubIssue, projectUrl: s
       return;
     }
 
-    // post to social media (only if it's not an RFC)
+    // post to social media (only if it's not a proposal)
     if (hasPriceLabel) {
       try {
         const socialMediaText = getSocialMediaText(createdIssue.data);
@@ -394,34 +394,34 @@ export async function newDirectoryIssue(projectIssue: GitHubIssue, projectUrl: s
 }
 
 export async function syncIssueMetaData({
-  previewIssues,
-  previewIssue,
+  directoryIssues,
+  directoryIssue,
   url,
   remoteFullIssue,
 }: {
-  previewIssues: GitHubIssue[];
-  previewIssue: GitHubIssue;
+  directoryIssues: GitHubIssue[];
+  directoryIssue: GitHubIssue;
   url: string;
   remoteFullIssue: GitHubIssue;
 }) {
-  // remove the unavailable label as getDevpoolIssueLabels() adds it and statistics rely on it
-  const labelRemoved = getDirectoryIssueLabels(previewIssue, url).filter((label) => label != LABELS.UNAVAILABLE);
+  // remove the "unavailable" label as this adds it and statistics rely on it
+  const labelRemoved = getDirectoryIssueLabels(directoryIssue, url).filter((label) => label != LABELS.UNAVAILABLE);
   const originalLabels = remoteFullIssue.labels.map((label) => (label as GitHubLabel).name);
   const hasChanges = !areEqual(originalLabels, labelRemoved);
   const metaChanges = {
-    title: previewIssue.title !== remoteFullIssue.title,
-    body: previewIssue.body !== remoteFullIssue.body,
+    title: directoryIssue.title !== remoteFullIssue.title,
+    body: directoryIssue.body !== remoteFullIssue.body,
     labels: !areEqual(originalLabels, labelRemoved),
   };
 
   if (hasChanges) {
-    await setMetaChanges({ metaChanges, remoteFullIssue, previewIssue, labelRemoved, originalLabels });
+    await setMetaChanges({ metaChanges, remoteFullIssue, directoryIssue, labelRemoved, originalLabels });
   }
 
-  const newState = await setStateChanges(previewIssues, previewIssue, remoteFullIssue);
+  const newState = await setStateChanges(directoryIssues, directoryIssue, remoteFullIssue);
 
   await setUnavailableLabelToIssue(
-    previewIssue,
+    directoryIssue,
     remoteFullIssue,
     metaChanges,
     labelRemoved,
@@ -433,13 +433,13 @@ export async function syncIssueMetaData({
 async function setMetaChanges({
   metaChanges,
   remoteFullIssue,
-  previewIssue,
+  directoryIssue,
   labelRemoved,
   originalLabels,
 }: {
   metaChanges: { title: boolean; body: boolean; labels: boolean };
   remoteFullIssue: GitHubIssue;
-  previewIssue: GitHubIssue;
+  directoryIssue: GitHubIssue;
   labelRemoved: string[];
   originalLabels: string[];
 }) {
@@ -448,14 +448,14 @@ async function setMetaChanges({
   if (shouldUpdate) {
     let newBody = remoteFullIssue.body;
 
-    newBody = previewIssue.html_url;
+    newBody = directoryIssue.html_url;
 
     try {
       await octokit.rest.issues.update({
         owner: DEVPOOL_OWNER_NAME,
         repo: DEVPOOL_REPO_NAME,
         issue_number: remoteFullIssue.number,
-        title: metaChanges.title ? previewIssue.title : remoteFullIssue.title,
+        title: metaChanges.title ? directoryIssue.title : remoteFullIssue.title,
         body: newBody,
         labels: metaChanges.labels ? labelRemoved : originalLabels,
       });
@@ -463,51 +463,51 @@ async function setMetaChanges({
       console.error(err);
     }
 
-    console.log(`Updated metadata: ${remoteFullIssue.html_url} - (${previewIssue.html_url})`, metaChanges);
+    console.log(`Updated metadata: ${remoteFullIssue.html_url} - (${directoryIssue.html_url})`, metaChanges);
   }
 }
 
-async function setStateChanges(projectIssues: GitHubIssue[], projectIssue: GitHubIssue, devpoolIssue: GitHubIssue) {
+async function setStateChanges(directoryIssues: GitHubIssue[], directoryIssue: GitHubIssue, remoteIssue: GitHubIssue) {
   const stateChanges: StateChanges = {
     // missing in the partners
     forceMissing_Close: {
-      cause: !projectIssues.some((projectIssue) => projectIssue.node_id === getIssueLabelValue(devpoolIssue, "id:")),
+      cause: !directoryIssues.some((projectIssue) => projectIssue.node_id === getIssueLabelValue(remoteIssue, "id:")),
       effect: "closed",
       comment: "Closed (missing in partners)",
     },
-    // it's closed, been merged and still open in the devpool
+    // it's closed, been merged and still open in the Directory
     issueComplete_Close: {
-      cause: projectIssue.state === "closed" && devpoolIssue.state === "open" && !!projectIssue.pull_request?.merged_at,
+      cause: directoryIssue.state === "closed" && remoteIssue.state === "open" && !!directoryIssue.pull_request?.merged_at,
       effect: "closed",
       comment: "Closed (merged)",
     },
-    // it's closed, assigned and still open in the devpool
+    // it's closed, assigned and still open in the Directory
     issueAssignedClosed_Close: {
-      cause: projectIssue.state === "closed" && devpoolIssue.state === "open" && !!projectIssue.assignee?.login,
+      cause: directoryIssue.state === "closed" && remoteIssue.state === "open" && !!directoryIssue.assignee?.login,
       effect: "closed",
       comment: "Closed (assigned-closed)",
     },
-    // it's closed, not merged and still open in the devpool
+    // it's closed, not merged and still open in the Directory
     issueClosed_Close: {
-      cause: projectIssue.state === "closed" && devpoolIssue.state === "open",
+      cause: directoryIssue.state === "closed" && remoteIssue.state === "open",
       effect: "closed",
       comment: "Closed (not merged)",
     },
-    // it's open, assigned and still open in the devpool
+    // it's open, assigned and still open in the Directory
     issueAssignedOpen_Close: {
-      cause: projectIssue.state === "open" && devpoolIssue.state === "open" && !!projectIssue.assignee?.login,
+      cause: directoryIssue.state === "open" && remoteIssue.state === "open" && !!directoryIssue.assignee?.login,
       effect: "closed",
       comment: "Closed (assigned-open)",
     },
-    // it's open, merged, unassigned and is closed in the devpool
+    // it's open, merged, unassigned and is closed in the Directory
     issueReopenedMerged_Open: {
-      cause: projectIssue.state === "open" && devpoolIssue.state === "closed" && !!projectIssue.pull_request?.merged_at && !projectIssue.assignee?.login,
+      cause: directoryIssue.state === "open" && remoteIssue.state === "closed" && !!directoryIssue.pull_request?.merged_at && !directoryIssue.assignee?.login,
       effect: "open",
       comment: "Reopened (merged)",
     },
-    // it's open, unassigned and is closed in the devpool
+    // it's open, unassigned and is closed in the Directory
     issueUnassigned_Open: {
-      cause: projectIssue.state === "open" && devpoolIssue.state === "closed" && !projectIssue.assignee?.login,
+      cause: directoryIssue.state === "open" && remoteIssue.state === "closed" && !directoryIssue.assignee?.login,
       effect: "open",
       comment: "Reopened (unassigned)",
     },
@@ -517,7 +517,7 @@ async function setStateChanges(projectIssues: GitHubIssue[], projectIssue: GitHu
 
   for (const value of Object.values(stateChanges)) {
     // if the cause is true and the effect is different from the current state
-    if (value.cause && devpoolIssue.state != value.effect) {
+    if (value.cause && remoteIssue.state != value.effect) {
       // if the new state is already set, then skip it
       if (newState && newState === value.effect) {
         continue;
@@ -527,10 +527,10 @@ async function setStateChanges(projectIssues: GitHubIssue[], projectIssue: GitHu
         await octokit.rest.issues.update({
           owner: DEVPOOL_OWNER_NAME,
           repo: DEVPOOL_REPO_NAME,
-          issue_number: devpoolIssue.number,
+          issue_number: remoteIssue.number,
           state: value.effect,
         });
-        console.log(`Updated state: (${value.comment})\n${devpoolIssue.html_url} - (${projectIssue.html_url})`);
+        console.log(`Updated state: (${value.comment})\n${remoteIssue.html_url} - (${directoryIssue.html_url})`);
         newState = value.effect;
       } catch (err) {
         console.log(err);

@@ -92,8 +92,8 @@ describe("handleDevPoolIssue", () => {
       const issueInDb = createIssues(devpoolIssue, partnerIssue);
 
       await syncIssueMetaData({
-        previewIssues: [partnerIssue],
-        previewIssue: partnerIssue,
+        directoryIssues: [partnerIssue],
+        directoryIssue: partnerIssue,
         url: UBIQUITY_TEST_REPO,
         remoteFullIssue: issueInDb,
       });
@@ -128,8 +128,8 @@ describe("handleDevPoolIssue", () => {
       const issueInDb = createIssues(devpoolIssue, partnerIssue);
 
       await syncIssueMetaData({
-        previewIssues: [partnerIssue],
-        previewIssue: partnerIssue,
+        directoryIssues: [partnerIssue],
+        directoryIssue: partnerIssue,
         url: UBIQUITY_TEST_REPO,
         remoteFullIssue: issueInDb,
       });
@@ -165,8 +165,8 @@ describe("handleDevPoolIssue", () => {
       const issueInDb = createIssues(devpoolIssue, partnerIssue);
 
       await syncIssueMetaData({
-        previewIssues: [partnerIssue],
-        previewIssue: partnerIssue,
+        directoryIssues: [partnerIssue],
+        directoryIssue: partnerIssue,
         url: UBIQUITY_TEST_REPO,
         remoteFullIssue: issueInDb,
       });
@@ -188,8 +188,8 @@ describe("handleDevPoolIssue", () => {
       createIssues(devpoolIssue, partnerIssue);
 
       await syncIssueMetaData({
-        previewIssues: [partnerIssue],
-        previewIssue: partnerIssue,
+        directoryIssues: [partnerIssue],
+        directoryIssue: partnerIssue,
         url: UBIQUITY_TEST_REPO,
         remoteFullIssue: devpoolIssue,
       });
@@ -211,8 +211,8 @@ describe("handleDevPoolIssue", () => {
       createIssues(devpoolIssue, partnerIssue);
 
       await syncIssueMetaData({
-        previewIssues: [partnerIssue],
-        previewIssue: partnerIssue,
+        directoryIssues: [partnerIssue],
+        directoryIssue: partnerIssue,
         url: UBIQUITY_TEST_REPO,
         remoteFullIssue: devpoolIssue,
       });
@@ -237,8 +237,8 @@ describe("handleDevPoolIssue", () => {
       createIssues(devpoolIssue, partnerIssue);
 
       await syncIssueMetaData({
-        previewIssues: [partnerIssue],
-        previewIssue: partnerIssue,
+        directoryIssues: [partnerIssue],
+        directoryIssue: partnerIssue,
         url: UBIQUITY_TEST_REPO,
         remoteFullIssue: devpoolIssue,
       });
@@ -267,8 +267,8 @@ describe("handleDevPoolIssue", () => {
       createIssues(devpoolIssue, partnerIssue);
 
       await syncIssueMetaData({
-        previewIssues: [partnerIssue],
-        previewIssue: partnerIssue,
+        directoryIssues: [partnerIssue],
+        directoryIssue: partnerIssue,
         url: UBIQUITY_TEST_REPO,
         remoteFullIssue: devpoolIssue,
       });
@@ -300,8 +300,8 @@ describe("handleDevPoolIssue", () => {
       createIssues(devpoolIssue, partnerIssue);
 
       await syncIssueMetaData({
-        previewIssues: [partnerIssue],
-        previewIssue: partnerIssue,
+        directoryIssues: [partnerIssue],
+        directoryIssue: partnerIssue,
         url: UBIQUITY_TEST_REPO,
         remoteFullIssue: devpoolIssue,
       });
@@ -323,8 +323,8 @@ describe("handleDevPoolIssue", () => {
       createIssues(devpoolIssue, partnerIssue);
 
       await syncIssueMetaData({
-        previewIssues: [partnerIssue],
-        previewIssue: partnerIssue,
+        directoryIssues: [partnerIssue],
+        directoryIssue: partnerIssue,
         url: UBIQUITY_TEST_REPO,
         remoteFullIssue: devpoolIssue,
       });
@@ -353,8 +353,8 @@ describe("handleDevPoolIssue", () => {
       createIssues(devpoolIssue, partnerIssue);
 
       await syncIssueMetaData({
-        previewIssues: [partnerIssue],
-        previewIssue: partnerIssue,
+        directoryIssues: [partnerIssue],
+        directoryIssue: partnerIssue,
         url: UBIQUITY_TEST_REPO,
         remoteFullIssue: devpoolIssue,
       });
@@ -377,8 +377,8 @@ describe("handleDevPoolIssue", () => {
       const issueInDb = createIssues(devpoolIssue, partnerIssue);
 
       await syncIssueMetaData({
-        previewIssues: [partnerIssue],
-        previewIssue: partnerIssue,
+        directoryIssues: [partnerIssue],
+        directoryIssue: partnerIssue,
         url: UBIQUITY_TEST_REPO,
         remoteFullIssue: issueInDb,
       });
@@ -419,8 +419,8 @@ describe("handleDevPoolIssue", () => {
       const issueInDb = createIssues(devpoolIssue, partnerIssue);
 
       await syncIssueMetaData({
-        previewIssues: [partnerIssue],
-        previewIssue: partnerIssue,
+        directoryIssues: [partnerIssue],
+        directoryIssue: partnerIssue,
         url: UBIQUITY_TEST_REPO,
         remoteFullIssue: issueInDb,
       });
@@ -455,8 +455,8 @@ describe("handleDevPoolIssue", () => {
       const issueInDb = createIssues(devpoolIssue, partnerIssue);
 
       await syncIssueMetaData({
-        previewIssues: [partnerIssue],
-        previewIssue: partnerIssue,
+        directoryIssues: [partnerIssue],
+        directoryIssue: partnerIssue,
         url: UBIQUITY_TEST_REPO,
         remoteFullIssue: issueInDb,
       });
@@ -493,8 +493,8 @@ describe("handleDevPoolIssue", () => {
       const issueInDb = createIssues(devpoolIssue, partnerIssue);
 
       await syncIssueMetaData({
-        previewIssues: [partnerIssue],
-        previewIssue: partnerIssue,
+        directoryIssues: [partnerIssue],
+        directoryIssue: partnerIssue,
         url: UBIQUITY_TEST_REPO,
         remoteFullIssue: issueInDb,
       });
@@ -530,8 +530,8 @@ describe("handleDevPoolIssue", () => {
       const issueInDb = createIssues(devpoolIssue, partnerIssue);
 
       await syncIssueMetaData({
-        previewIssues: [partnerIssue],
-        previewIssue: partnerIssue,
+        directoryIssues: [partnerIssue],
+        directoryIssue: partnerIssue,
         url: UBIQUITY_TEST_REPO,
         remoteFullIssue: issueInDb,
       });
@@ -566,8 +566,8 @@ describe("handleDevPoolIssue", () => {
       const issueInDb = createIssues(devpoolIssue, partnerIssue);
 
       await syncIssueMetaData({
-        previewIssues: [partnerIssue],
-        previewIssue: partnerIssue,
+        directoryIssues: [partnerIssue],
+        directoryIssue: partnerIssue,
         url: UBIQUITY_TEST_REPO,
         remoteFullIssue: issueInDb,
       });
@@ -609,8 +609,8 @@ describe("handleDevPoolIssue", () => {
       const issueInDb = createIssues(devpoolIssue, partnerIssue);
 
       await syncIssueMetaData({
-        previewIssues: [partnerIssue],
-        previewIssue: partnerIssue,
+        directoryIssues: [partnerIssue],
+        directoryIssue: partnerIssue,
         url: UBIQUITY_TEST_REPO,
         remoteFullIssue: issueInDb,
       });
@@ -645,8 +645,8 @@ describe("handleDevPoolIssue", () => {
       createIssues(devpoolIssue, projectIssue);
 
       await syncIssueMetaData({
-        previewIssues: [projectIssue],
-        previewIssue: projectIssue,
+        directoryIssues: [projectIssue],
+        directoryIssue: projectIssue,
         url: UBIQUITY_TEST_REPO,
         remoteFullIssue: devpoolIssue,
       });
@@ -690,8 +690,8 @@ describe("handleDevPoolIssue", () => {
       createIssues(devpoolIssue, projectIssue);
 
       await syncIssueMetaData({
-        previewIssues: [projectIssue],
-        previewIssue: projectIssue,
+        directoryIssues: [projectIssue],
+        directoryIssue: projectIssue,
         url: UBIQUITY_TEST_REPO,
         remoteFullIssue: devpoolIssue,
       });
@@ -739,8 +739,8 @@ describe("handleDevPoolIssue", () => {
       createIssues(devpoolIssue, projectIssue);
 
       await syncIssueMetaData({
-        previewIssues: [projectIssue],
-        previewIssue: projectIssue,
+        directoryIssues: [projectIssue],
+        directoryIssue: projectIssue,
         url: UBIQUITY_TEST_REPO,
         remoteFullIssue: devpoolIssue,
       });
@@ -781,8 +781,8 @@ describe("handleDevPoolIssue", () => {
       createIssues(devpoolIssue, projectIssue);
 
       await syncIssueMetaData({
-        previewIssues: [projectIssue],
-        previewIssue: projectIssue,
+        directoryIssues: [projectIssue],
+        directoryIssue: projectIssue,
         url: UBIQUITY_TEST_REPO,
         remoteFullIssue: devpoolIssue,
       });
@@ -830,8 +830,8 @@ describe("handleDevPoolIssue", () => {
       createIssues(devpoolIssue, projectIssue);
 
       await syncIssueMetaData({
-        previewIssues: [projectIssue],
-        previewIssue: projectIssue,
+        directoryIssues: [projectIssue],
+        directoryIssue: projectIssue,
         url: UBIQUITY_TEST_REPO,
         remoteFullIssue: devpoolIssue,
       });
@@ -999,8 +999,8 @@ describe("handleDevPoolIssue", () => {
 
   async function validateClosed(projectIssue: GitHubIssue, devpoolIssue: GitHubIssue) {
     await syncIssueMetaData({
-      previewIssues: [projectIssue],
-      previewIssue: projectIssue,
+      directoryIssues: [projectIssue],
+      directoryIssue: projectIssue,
       url: UBIQUITY_TEST_REPO,
       remoteFullIssue: devpoolIssue,
     });
@@ -1022,8 +1022,8 @@ describe("handleDevPoolIssue", () => {
 
   async function validateOpen(projectIssue: GitHubIssue, devpoolIssue: GitHubIssue) {
     await syncIssueMetaData({
-      previewIssues: [projectIssue],
-      previewIssue: projectIssue,
+      directoryIssues: [projectIssue],
+      directoryIssue: projectIssue,
       url: UBIQUITY_TEST_REPO,
       remoteFullIssue: devpoolIssue,
     });
@@ -1655,22 +1655,22 @@ describe("calculateStatistics", () => {
 
     createIssues(devpoolIssue, projectIssue1);
     await syncIssueMetaData({
-      previewIssues: [projectIssue1],
-      previewIssue: projectIssue1,
+      directoryIssues: [projectIssue1],
+      directoryIssue: projectIssue1,
       url: UBIQUITY_TEST_REPO,
       remoteFullIssue: devpoolIssue,
     });
     createIssues(devpoolIssue2, projectIssue2);
     await syncIssueMetaData({
-      previewIssues: [projectIssue1, projectIssue2],
-      previewIssue: projectIssue2,
+      directoryIssues: [projectIssue1, projectIssue2],
+      directoryIssue: projectIssue2,
       url: UBIQUITY_TEST_REPO,
       remoteFullIssue: devpoolIssue2,
     });
     createIssues(devpoolIssue3, projectIssue3);
     await syncIssueMetaData({
-      previewIssues: [projectIssue1, projectIssue2, projectIssue3],
-      previewIssue: projectIssue3,
+      directoryIssues: [projectIssue1, projectIssue2, projectIssue3],
+      directoryIssue: projectIssue3,
       url: UBIQUITY_TEST_REPO,
       remoteFullIssue: devpoolIssue3,
     });
@@ -1735,8 +1735,8 @@ describe("calculateStatistics", () => {
 
     createIssues(devpoolIssue, projectIssue1);
     await syncIssueMetaData({
-      previewIssues: [projectIssue1],
-      previewIssue: projectIssue1,
+      directoryIssues: [projectIssue1],
+      directoryIssue: projectIssue1,
       url: UBIQUITY_TEST_REPO,
       remoteFullIssue: devpoolIssue,
     });

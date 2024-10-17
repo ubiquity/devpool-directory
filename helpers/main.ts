@@ -8,13 +8,13 @@ export async function main() {
   const results: GitHubIssue[] = [];
   const twitterMap: TwitterMap = await initializeTwitterMap();
 
-  const directoryPreviewIssues: GitHubIssue[] = await getAllIssues(DEVPOOL_OWNER_NAME, DEVPOOL_REPO_NAME);
+  const directoryIssues: GitHubIssue[] = await getAllIssues(DEVPOOL_OWNER_NAME, DEVPOOL_REPO_NAME);
   const partnerRepoUrls = await getPartnerRepoUrls();
 
   // for each project URL
   for (const partnerRepoUrl of partnerRepoUrls) {
     // get owner and repository names from project URL
-    const result: GitHubIssue[] = await syncPartnerRepoIssues({ partnerRepoUrl, directoryPreviewIssues, twitterMap });
+    const result: GitHubIssue[] = await syncPartnerRepoIssues({ partnerRepoUrl, directoryIssues, twitterMap });
     results.push(...result);
   }
 
