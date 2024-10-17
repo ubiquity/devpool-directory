@@ -2,19 +2,6 @@ import { Statistics } from "../types/statistics";
 import { DEVPOOL_OWNER_NAME, DEVPOOL_REPO_NAME, GitHubIssue, octokit } from "./directory/directory";
 let gitChanges: Array<{ path: string; content: string }> = [];
 
-export async function getDefaultBranch(owner: string, repo: string): Promise<string> {
-  try {
-    const { data } = await octokit.rest.repos.get({
-      owner,
-      repo,
-    });
-    return data.default_branch;
-  } catch (error) {
-    console.error(`Error fetching default branch: ${error}`);
-    throw error;
-  }
-}
-
 async function gitCommit(data: unknown, fileName: string) {
   try {
     gitChanges.push({
@@ -41,7 +28,7 @@ export async function gitPush() {
   try {
     const owner = DEVPOOL_OWNER_NAME;
     const repo = DEVPOOL_REPO_NAME;
-    const branch = await getDefaultBranch(owner, repo);
+    const branch = "__DATA-STORAGE__"; // Special branch for automated data updates
     const { data: refData } = await octokit.rest.git.getRef({
       owner,
       repo,
