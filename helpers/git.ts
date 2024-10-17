@@ -28,7 +28,7 @@ export async function gitPush() {
   try {
     const owner = DEVPOOL_OWNER_NAME;
     const repo = DEVPOOL_REPO_NAME;
-    const branch = "__DATA-STORAGE__"; // Special branch for automated data updates
+    const branch = "__STORAGE__"; // Special branch for automated data updates
     const { data: refData } = await octokit.rest.git.getRef({
       owner,
       repo,
