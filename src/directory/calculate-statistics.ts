@@ -1,5 +1,5 @@
 import optInOptOut from "../../opt.json";
-import { DEVPOOL_REPO_NAME, GitHubIssue, GitHubLabel, LABELS } from "./directory";
+import { DEVPOOL_REPO_NAME, GitHubIssue, GitHubLabel, Labels } from "./directory";
 
 // Function to calculate total rewards and tasks statistics
 
@@ -31,9 +31,9 @@ export async function calculateStatistics(devpoolIssues: GitHubIssue[]) {
 
     const labels = issue.labels as GitHubLabel[];
     // devpool issue has unavailable label because it's assigned and so it's closed
-    const isAssigned = labels.find((label) => (label.name as string).includes(LABELS.UNAVAILABLE)) && issue.state === "closed";
+    const isAssigned = labels.find((label) => (label.name as string).includes(Labels.UNAVAILABLE)) && issue.state === "closed";
     // devpool issue doesn't have unavailable label because it's unassigned and closed so it's merged therefore completed
-    const isCompleted = !labels.some((label) => (label.name as string).includes(LABELS.UNAVAILABLE)) && issue.state === "closed";
+    const isCompleted = !labels.some((label) => (label.name as string).includes(Labels.UNAVAILABLE)) && issue.state === "closed";
     const isOpen = issue.state === "open";
     const priceLabel = labels.find((label) => (label.name as string).includes("Pricing"));
     const price = priceLabel ? parseInt((priceLabel.name as string).split(":")[1].trim(), 10) : 0;

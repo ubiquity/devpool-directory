@@ -2,14 +2,14 @@ import { commitTwitterMap } from "../git";
 import { TwitterMap } from "../twitter/initialize-twitter-map";
 import twitter from "../twitter/twitter";
 import { checkIfForked } from "./check-if-forked";
-import { DEVPOOL_OWNER_NAME, DEVPOOL_REPO_NAME, GitHubIssue, GitHubLabel, LABELS, octokit } from "./directory";
+import { DEVPOOL_OWNER_NAME, DEVPOOL_REPO_NAME, GitHubIssue, GitHubLabel, Labels, octokit } from "./directory";
 import { getDirectoryIssueLabelsFromPartnerIssue } from "./get-directory-issue-labels";
 import { getSocialMediaText } from "./get-social-media-text";
 
 export async function newDirectoryIssue(partnerIssue: GitHubIssue, projectUrl: string, twitterMap: TwitterMap) {
   if (partnerIssue.state === "closed") return; // if issue is "closed" then skip it, no need to copy/paste already "closed" issues
 
-  const hasPriceLabel = (partnerIssue.labels as GitHubLabel[]).some((label) => label.name.includes(LABELS.PRICE)); // check if the issue is the same type as it should be
+  const hasPriceLabel = (partnerIssue.labels as GitHubLabel[]).some((label) => label.name.includes(Labels.PRICE)); // check if the issue is the same type as it should be
 
   let body;
   if (await checkIfForked()) {

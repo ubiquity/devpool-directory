@@ -1,7 +1,7 @@
 import { calculateStatistics } from "./directory/calculate-statistics";
 import { DEVPOOL_OWNER_NAME, DEVPOOL_REPO_NAME, GitHubIssue } from "./directory/directory";
-import { getAllIssues } from "./directory/get-all-issues";
 import { getPartnerUrls as getPartnerRepoUrls } from "./directory/get-partner-urls";
+import { getRepositoryIssues } from "./directory/get-repository-issues";
 import { Statistics } from "./directory/statistics";
 import { syncPartnerRepoIssues } from "./directory/sync-partner-repo-issues";
 import { commitStatistics, commitTasks } from "./git";
@@ -9,7 +9,7 @@ import { initializeTwitterMap, TwitterMap } from "./twitter/initialize-twitter-m
 
 export async function main() {
   const twitterMap: TwitterMap = await initializeTwitterMap();
-  const directoryIssues: GitHubIssue[] = await getAllIssues(DEVPOOL_OWNER_NAME, DEVPOOL_REPO_NAME);
+  const directoryIssues: GitHubIssue[] = await getRepositoryIssues(DEVPOOL_OWNER_NAME, DEVPOOL_REPO_NAME);
   const partnerRepoUrls = await getPartnerRepoUrls();
   const taskList: GitHubIssue[] = [];
 
@@ -23,7 +23,7 @@ export async function main() {
   await commitTasks(taskList);
 
   // Calculate total rewards from devpool issues
-  const { rewards, tasks } = await calculateStatistics(await getAllIssues(DEVPOOL_OWNER_NAME, DEVPOOL_REPO_NAME));
+  const { rewards, tasks } = await calculateStatistics(await getRepositoryIssues(DEVPOOL_OWNER_NAME, DEVPOOL_REPO_NAME));
   const statistics: Statistics = { rewards, tasks };
 
   await commitStatistics(statistics);

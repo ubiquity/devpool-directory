@@ -34,7 +34,7 @@ export const projects = _projects as {
   category?: Record<string, string>;
 };
 
-export enum LABELS {
+export enum Labels {
   PRICE = "Price",
   UNAVAILABLE = "Unavailable",
 }
