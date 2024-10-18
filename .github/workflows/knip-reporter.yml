@@ -1,0 +1,38 @@
+name: Knip-reporter
+
+on:
+  workflow_run:
+    workflows: ["Knip"]
+    types:
+      - completed
+
+jobs:
+  knip-reporter:
+    runs-on: ubuntu-latest
+    if: ${{ github.event.workflow_run.conclusion != 'success' }}
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: knip-results
+          run-id: ${{ github.event.workflow_run.id }}
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Read pr number
+        id: pr-number
+        uses: juliangruber/read-file-action@v1
+        with:
+          path: ./pr-number.txt
+          trim: true
+
+      - name: Report knip results to pull request
+        uses: gitcoindev/knip-reporter@main
+        with:
+          verbose: true
+          comment_id: ${{ github.workflow }}-reporter
+          command_script_name: knip-ci
+          annotations: true
+          ignore_results: false
+          json_input: true
+          json_input_file_name: knip-results.json
+          pull_request_number: ${{ steps.pr-number.outputs.content }}
+          token: ${{ secrets.GITHUB_TOKEN }}

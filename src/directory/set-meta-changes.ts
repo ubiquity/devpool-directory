@@ -17,7 +17,7 @@ export async function setMetaChanges({ metaChanges, partnerIssue, directoryIssue
         owner: DEVPOOL_OWNER_NAME,
         repo: DEVPOOL_REPO_NAME,
         issue_number: directoryIssue.number,
-        title: metaChanges.title ? directoryIssue.title : directoryIssue.title,
+        title: directoryIssue.title,
         body: directoryIssueBody,
         labels: metaChanges.labels ? labelRemoved : originalLabels,
       });
