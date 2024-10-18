@@ -41,7 +41,7 @@ async function deleteTweet(id: string) {
     if (data?.deleted) {
       console.log(`Successfully deleted tweet, id: ${id}`);
     } else {
-      console.log(`Couldnt delete tweet, id ${id}`);
+      console.log(`Could not delete tweet, id ${id}`);
     }
   } catch (error) {
     console.error("Error deleting tweet", error);

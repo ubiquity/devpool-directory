@@ -11,7 +11,7 @@ on:
       - "**.json"
       - "**/*.json"
   schedule:
-    - cron: "15 * * * *" # every hour at minute 15 (github recommends to set such cron jobs not at the start of an hour)
+    - cron: "*/15 * * * *" # every 15 minutes
 
 jobs:
   sync-issues:

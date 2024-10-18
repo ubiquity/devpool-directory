@@ -1,7 +1,13 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { drop } from "@mswjs/data";
 import { setupServer } from "msw/node";
-import { calculateStatistics, checkIfForked, getPartnerUrls, getRepoUrls, GitHubIssue, newDirectoryIssue, syncIssueMetaData } from "../helpers/directory";
+import { calculateStatistics } from "../helpers/directory/calculate-statistics";
+import { checkIfForked } from "../helpers/directory/check-if-forked";
+import { GitHubIssue } from "../helpers/directory/directory";
+import { getPartnerUrls } from "../helpers/directory/get-partner-urls";
+import { getRepoUrls } from "../helpers/directory/get-repo-urls";
+import { newDirectoryIssue } from "../helpers/directory/new-directory-issue";
+import { syncIssueMetaData } from "../helpers/directory/sync-issue-meta-data";
 import { db } from "../mocks/db";
 import { handlers } from "../mocks/handlers";
 import issueDevpoolTemplate from "../mocks/issue-devpool-template.json";
@@ -92,10 +98,8 @@ describe("handleDevPoolIssue", () => {
       const issueInDb = createIssues(devpoolIssue, partnerIssue);
 
       await syncIssueMetaData({
-        previewIssues: [partnerIssue],
-        previewIssue: partnerIssue,
-        url: UBIQUITY_TEST_REPO,
-        remoteFullIssue: issueInDb,
+        directoryIssue: partnerIssue,
+        partnerIssue: issueInDb,
       });
 
       const updatedIssue = db.issue.findFirst({
@@ -128,10 +132,8 @@ describe("handleDevPoolIssue", () => {
       const issueInDb = createIssues(devpoolIssue, partnerIssue);
 
       await syncIssueMetaData({
-        previewIssues: [partnerIssue],
-        previewIssue: partnerIssue,
-        url: UBIQUITY_TEST_REPO,
-        remoteFullIssue: issueInDb,
+        directoryIssue: partnerIssue,
+        partnerIssue: issueInDb,
       });
 
       const updatedIssue = db.issue.findFirst({
@@ -165,10 +167,8 @@ describe("handleDevPoolIssue", () => {
       const issueInDb = createIssues(devpoolIssue, partnerIssue);
 
       await syncIssueMetaData({
-        previewIssues: [partnerIssue],
-        previewIssue: partnerIssue,
-        url: UBIQUITY_TEST_REPO,
-        remoteFullIssue: issueInDb,
+        directoryIssue: partnerIssue,
+        partnerIssue: issueInDb,
       });
 
       expect(logSpy).not.toHaveBeenCalled();
@@ -188,10 +188,8 @@ describe("handleDevPoolIssue", () => {
       createIssues(devpoolIssue, partnerIssue);
 
       await syncIssueMetaData({
-        previewIssues: [partnerIssue],
-        previewIssue: partnerIssue,
-        url: UBIQUITY_TEST_REPO,
-        remoteFullIssue: devpoolIssue,
+        directoryIssue: partnerIssue,
+        partnerIssue: devpoolIssue,
       });
 
       expect(logSpy).not.toHaveBeenCalledWith(expect.stringContaining("Updated state"));
@@ -211,10 +209,8 @@ describe("handleDevPoolIssue", () => {
       createIssues(devpoolIssue, partnerIssue);
 
       await syncIssueMetaData({
-        previewIssues: [partnerIssue],
-        previewIssue: partnerIssue,
-        url: UBIQUITY_TEST_REPO,
-        remoteFullIssue: devpoolIssue,
+        directoryIssue: partnerIssue,
+        partnerIssue: devpoolIssue,
       });
 
       expect(logSpy).not.toHaveBeenCalledWith(expect.stringContaining("Updated state"));
@@ -237,10 +233,8 @@ describe("handleDevPoolIssue", () => {
       createIssues(devpoolIssue, partnerIssue);
 
       await syncIssueMetaData({
-        previewIssues: [partnerIssue],
-        previewIssue: partnerIssue,
-        url: UBIQUITY_TEST_REPO,
-        remoteFullIssue: devpoolIssue,
+        directoryIssue: partnerIssue,
+        partnerIssue: devpoolIssue,
       });
 
       expect(logSpy).not.toHaveBeenCalledWith(expect.stringContaining("Updated state"));
@@ -267,10 +261,8 @@ describe("handleDevPoolIssue", () => {
       createIssues(devpoolIssue, partnerIssue);
 
       await syncIssueMetaData({
-        previewIssues: [partnerIssue],
-        previewIssue: partnerIssue,
-        url: UBIQUITY_TEST_REPO,
-        remoteFullIssue: devpoolIssue,
+        directoryIssue: partnerIssue,
+        partnerIssue: devpoolIssue,
       });
 
       expect(logSpy).not.toHaveBeenCalledWith(expect.stringContaining("Updated state"));
@@ -300,10 +292,8 @@ describe("handleDevPoolIssue", () => {
       createIssues(devpoolIssue, partnerIssue);
 
       await syncIssueMetaData({
-        previewIssues: [partnerIssue],
-        previewIssue: partnerIssue,
-        url: UBIQUITY_TEST_REPO,
-        remoteFullIssue: devpoolIssue,
+        directoryIssue: partnerIssue,
+        partnerIssue: devpoolIssue,
       });
 
       expect(logSpy).not.toHaveBeenCalledWith(expect.stringContaining("Updated"));
@@ -323,10 +313,8 @@ describe("handleDevPoolIssue", () => {
       createIssues(devpoolIssue, partnerIssue);
 
       await syncIssueMetaData({
-        previewIssues: [partnerIssue],
-        previewIssue: partnerIssue,
-        url: UBIQUITY_TEST_REPO,
-        remoteFullIssue: devpoolIssue,
+        directoryIssue: partnerIssue,
+        partnerIssue: devpoolIssue,
       });
 
       expect(logSpy).not.toHaveBeenCalledWith(expect.stringContaining("Updated state"));
@@ -353,10 +341,8 @@ describe("handleDevPoolIssue", () => {
       createIssues(devpoolIssue, partnerIssue);
 
       await syncIssueMetaData({
-        previewIssues: [partnerIssue],
-        previewIssue: partnerIssue,
-        url: UBIQUITY_TEST_REPO,
-        remoteFullIssue: devpoolIssue,
+        directoryIssue: partnerIssue,
+        partnerIssue: devpoolIssue,
       });
 
       expect(logSpy).not.toHaveBeenCalledWith(expect.stringContaining("Updated state"));
@@ -377,10 +363,8 @@ describe("handleDevPoolIssue", () => {
       const issueInDb = createIssues(devpoolIssue, partnerIssue);
 
       await syncIssueMetaData({
-        previewIssues: [partnerIssue],
-        previewIssue: partnerIssue,
-        url: UBIQUITY_TEST_REPO,
-        remoteFullIssue: issueInDb,
+        directoryIssue: partnerIssue,
+        partnerIssue: issueInDb,
       });
 
       const updatedIssue = db.issue.findFirst({
@@ -419,10 +403,8 @@ describe("handleDevPoolIssue", () => {
       const issueInDb = createIssues(devpoolIssue, partnerIssue);
 
       await syncIssueMetaData({
-        previewIssues: [partnerIssue],
-        previewIssue: partnerIssue,
-        url: UBIQUITY_TEST_REPO,
-        remoteFullIssue: issueInDb,
+        directoryIssue: partnerIssue,
+        partnerIssue: issueInDb,
       });
 
       const updatedIssue = db.issue.findFirst({
@@ -455,10 +437,8 @@ describe("handleDevPoolIssue", () => {
       const issueInDb = createIssues(devpoolIssue, partnerIssue);
 
       await syncIssueMetaData({
-        previewIssues: [partnerIssue],
-        previewIssue: partnerIssue,
-        url: UBIQUITY_TEST_REPO,
-        remoteFullIssue: issueInDb,
+        directoryIssue: partnerIssue,
+        partnerIssue: issueInDb,
       });
 
       const updatedIssue = db.issue.findFirst({
@@ -493,10 +473,8 @@ describe("handleDevPoolIssue", () => {
       const issueInDb = createIssues(devpoolIssue, partnerIssue);
 
       await syncIssueMetaData({
-        previewIssues: [partnerIssue],
-        previewIssue: partnerIssue,
-        url: UBIQUITY_TEST_REPO,
-        remoteFullIssue: issueInDb,
+        directoryIssue: partnerIssue,
+        partnerIssue: issueInDb,
       });
 
       const updatedIssue = db.issue.findFirst({
@@ -530,10 +508,8 @@ describe("handleDevPoolIssue", () => {
       const issueInDb = createIssues(devpoolIssue, partnerIssue);
 
       await syncIssueMetaData({
-        previewIssues: [partnerIssue],
-        previewIssue: partnerIssue,
-        url: UBIQUITY_TEST_REPO,
-        remoteFullIssue: issueInDb,
+        directoryIssue: partnerIssue,
+        partnerIssue: issueInDb,
       });
 
       const updatedIssue = db.issue.findFirst({
@@ -566,10 +542,8 @@ describe("handleDevPoolIssue", () => {
       const issueInDb = createIssues(devpoolIssue, partnerIssue);
 
       await syncIssueMetaData({
-        previewIssues: [partnerIssue],
-        previewIssue: partnerIssue,
-        url: UBIQUITY_TEST_REPO,
-        remoteFullIssue: issueInDb,
+        directoryIssue: partnerIssue,
+        partnerIssue: issueInDb,
       });
 
       const updatedIssue = db.issue.findFirst({
@@ -609,10 +583,8 @@ describe("handleDevPoolIssue", () => {
       const issueInDb = createIssues(devpoolIssue, partnerIssue);
 
       await syncIssueMetaData({
-        previewIssues: [partnerIssue],
-        previewIssue: partnerIssue,
-        url: UBIQUITY_TEST_REPO,
-        remoteFullIssue: issueInDb,
+        directoryIssue: partnerIssue,
+        partnerIssue: issueInDb,
       });
 
       const updatedIssue = db.issue.findFirst({
@@ -645,10 +617,8 @@ describe("handleDevPoolIssue", () => {
       createIssues(devpoolIssue, projectIssue);
 
       await syncIssueMetaData({
-        previewIssues: [projectIssue],
-        previewIssue: projectIssue,
-        url: UBIQUITY_TEST_REPO,
-        remoteFullIssue: devpoolIssue,
+        directoryIssue: projectIssue,
+        partnerIssue: devpoolIssue,
       });
 
       const updatedIssue = db.issue.findFirst({
@@ -690,10 +660,8 @@ describe("handleDevPoolIssue", () => {
       createIssues(devpoolIssue, projectIssue);
 
       await syncIssueMetaData({
-        previewIssues: [projectIssue],
-        previewIssue: projectIssue,
-        url: UBIQUITY_TEST_REPO,
-        remoteFullIssue: devpoolIssue,
+        directoryIssue: projectIssue,
+        partnerIssue: devpoolIssue,
       });
 
       const updatedIssue = db.issue.findFirst({
@@ -739,10 +707,8 @@ describe("handleDevPoolIssue", () => {
       createIssues(devpoolIssue, projectIssue);
 
       await syncIssueMetaData({
-        previewIssues: [projectIssue],
-        previewIssue: projectIssue,
-        url: UBIQUITY_TEST_REPO,
-        remoteFullIssue: devpoolIssue,
+        directoryIssue: projectIssue,
+        partnerIssue: devpoolIssue,
       });
 
       const updatedIssue = db.issue.findFirst({
@@ -781,10 +747,8 @@ describe("handleDevPoolIssue", () => {
       createIssues(devpoolIssue, projectIssue);
 
       await syncIssueMetaData({
-        previewIssues: [projectIssue],
-        previewIssue: projectIssue,
-        url: UBIQUITY_TEST_REPO,
-        remoteFullIssue: devpoolIssue,
+        directoryIssue: projectIssue,
+        partnerIssue: devpoolIssue,
       });
 
       const updatedIssue = db.issue.findFirst({
@@ -830,10 +794,8 @@ describe("handleDevPoolIssue", () => {
       createIssues(devpoolIssue, projectIssue);
 
       await syncIssueMetaData({
-        previewIssues: [projectIssue],
-        previewIssue: projectIssue,
-        url: UBIQUITY_TEST_REPO,
-        remoteFullIssue: devpoolIssue,
+        directoryIssue: projectIssue,
+        partnerIssue: devpoolIssue,
       });
 
       const updatedIssue = db.issue.findFirst({
@@ -999,10 +961,8 @@ describe("handleDevPoolIssue", () => {
 
   async function validateClosed(projectIssue: GitHubIssue, devpoolIssue: GitHubIssue) {
     await syncIssueMetaData({
-      previewIssues: [projectIssue],
-      previewIssue: projectIssue,
-      url: UBIQUITY_TEST_REPO,
-      remoteFullIssue: devpoolIssue,
+      directoryIssue: projectIssue,
+      partnerIssue: devpoolIssue,
     });
 
     const updatedIssue = getDB();
@@ -1022,10 +982,8 @@ describe("handleDevPoolIssue", () => {
 
   async function validateOpen(projectIssue: GitHubIssue, devpoolIssue: GitHubIssue) {
     await syncIssueMetaData({
-      previewIssues: [projectIssue],
-      previewIssue: projectIssue,
-      url: UBIQUITY_TEST_REPO,
-      remoteFullIssue: devpoolIssue,
+      directoryIssue: projectIssue,
+      partnerIssue: devpoolIssue,
     });
 
     const updatedIssue = getDB();
@@ -1363,7 +1321,6 @@ describe("createDevPoolIssue", () => {
         ...issueDevpoolTemplate,
         title: partnerIssue.title,
         body: partnerIssue.html_url,
-        repository_url: UBIQUITY_TEST_REPO,
       });
 
       await newDirectoryIssue(partnerIssue, partnerIssue.html_url, UBIQUITY_TEST_REPO, twitterMap);
@@ -1655,24 +1612,18 @@ describe("calculateStatistics", () => {
 
     createIssues(devpoolIssue, projectIssue1);
     await syncIssueMetaData({
-      previewIssues: [projectIssue1],
-      previewIssue: projectIssue1,
-      url: UBIQUITY_TEST_REPO,
-      remoteFullIssue: devpoolIssue,
+      directoryIssue: projectIssue1,
+      partnerIssue: devpoolIssue,
     });
     createIssues(devpoolIssue2, projectIssue2);
     await syncIssueMetaData({
-      previewIssues: [projectIssue1, projectIssue2],
-      previewIssue: projectIssue2,
-      url: UBIQUITY_TEST_REPO,
-      remoteFullIssue: devpoolIssue2,
+      directoryIssue: projectIssue2,
+      partnerIssue: devpoolIssue2,
     });
     createIssues(devpoolIssue3, projectIssue3);
     await syncIssueMetaData({
-      previewIssues: [projectIssue1, projectIssue2, projectIssue3],
-      previewIssue: projectIssue3,
-      url: UBIQUITY_TEST_REPO,
-      remoteFullIssue: devpoolIssue3,
+      directoryIssue: projectIssue3,
+      partnerIssue: devpoolIssue3,
     });
 
     const issues = [devpoolIssue, devpoolIssue2, projectIssue1, projectIssue2, devpoolIssue3, projectIssue3];
@@ -1735,10 +1686,8 @@ describe("calculateStatistics", () => {
 
     createIssues(devpoolIssue, projectIssue1);
     await syncIssueMetaData({
-      previewIssues: [projectIssue1],
-      previewIssue: projectIssue1,
-      url: UBIQUITY_TEST_REPO,
-      remoteFullIssue: devpoolIssue,
+      directoryIssue: projectIssue1,
+      partnerIssue: devpoolIssue,
     });
 
     const issues = [devpoolIssue, projectIssue1];

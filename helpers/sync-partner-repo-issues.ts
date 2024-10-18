@@ -1,57 +1,50 @@
-import {
-  checkIfForked,
-  getAllIssues,
-  getIssueByLabel,
-  getRepoCredentials,
-  GitHubIssue,
-  newDirectoryIssue,
-  syncIssueMetaData as syncDirectoryIssue,
-} from "./directory";
+import { GitHubIssue } from "./directory/directory";
+import { getAllIssues } from "./directory/get-all-issues";
+import { getIssueByLabel } from "./directory/get-issue-by-label";
+import { getRepoCredentials } from "./directory/get-repo-credentials";
+import { newDirectoryIssue } from "./directory/new-directory-issue";
+import { syncIssueMetaData as syncDirectoryIssue } from "./directory/sync-issue-meta-data";
 import { TwitterMap } from "./initialize-twitter-map";
 
 export async function syncPartnerRepoIssues({
   partnerRepoUrl,
-  directoryPreviewIssues,
+  directoryIssues,
   twitterMap,
 }: {
   partnerRepoUrl: string;
-  directoryPreviewIssues: GitHubIssue[];
+  directoryIssues: GitHubIssue[];
   twitterMap: TwitterMap;
 }): Promise<GitHubIssue[]> {
   const [ownerName, repoName] = getRepoCredentials(partnerRepoUrl);
-  const fullIssuesPerPartnerRepo: GitHubIssue[] = await getAllIssues(ownerName, repoName);
+  const partnerRepoIssues: GitHubIssue[] = await getAllIssues(ownerName, repoName);
   const buffer: (GitHubIssue | null)[] = [];
-  for (const fullIssuePerPartnerRepo of fullIssuesPerPartnerRepo) {
-    // if the issue is available and unassigned, then add it to the buffer
-    if (fullIssuePerPartnerRepo.state === "open" && fullIssuePerPartnerRepo.assignee === null) {
-      buffer.push(fullIssuePerPartnerRepo);
+  for (const partnerIssue of partnerRepoIssues) {
+    // if the issue is open, then add it to the buffer
+    if (partnerIssue.state === "open") {
+      buffer.push(partnerIssue);
     }
 
-    await createOrSync(fullIssuePerPartnerRepo);
+    await createOrSync(partnerIssue);
   }
   return buffer.filter((issue) => issue !== null) as GitHubIssue[];
 
-  async function createOrSync(fullIssue: GitHubIssue) {
-    const partnerIdMatchIssue: GitHubIssue | null = getIssueByLabel(directoryPreviewIssues, `id: ${fullIssue.node_id}`);
+  async function createOrSync(partnerIssue: GitHubIssue) {
+    const directoryIssue: GitHubIssue | null = getIssueByLabel(directoryIssues, `id: ${partnerIssue.node_id}`);
 
     // adding www creates a link to an issue that does not count as a mention
     // helps with preventing a mention in partner's repo especially during testing
-    const body = (await checkIfForked()) ? fullIssue.html_url.replace("https://github.com", "https://www.github.com") : fullIssue.html_url;
 
-    if (partnerIdMatchIssue) {
-      // if it exists in the devpool, then update it
+    if (directoryIssue) {
+      // if it exists in the Directory, then update it
       await syncDirectoryIssue({
-        previewIssues: fullIssuesPerPartnerRepo,
-        previewIssue: fullIssue,
-        url: partnerRepoUrl,
-        remoteFullIssue: partnerIdMatchIssue,
+        partnerIssue: partnerIssue,
+        directoryIssue: directoryIssue,
       });
-      // allFullIssues.push(partnerIdMatchIssue);
     } else {
-      // if it doesn't exist in the devpool, then create it
-      await newDirectoryIssue(fullIssue, partnerRepoUrl, body, twitterMap);
+      // if it doesn't exist in the Directory, then create it
+      await newDirectoryIssue(partnerIssue, partnerRepoUrl, twitterMap);
     }
 
-    return partnerIdMatchIssue;
+    return directoryIssue;
   }
 }

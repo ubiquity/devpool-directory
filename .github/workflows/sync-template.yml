@@ -3,7 +3,7 @@ name: Sync branch to template
 on:
   workflow_dispatch:
   schedule:
-    - cron: '14 0 1 * *'
+    - cron: "14 0 1 * *"
 
 jobs:
   sync:
@@ -23,7 +23,7 @@ jobs:
         with:
           app_id: ${{ secrets.APP_ID }}
           private_key: ${{ secrets.APP_PRIVATE_KEY }}
-  
+
       - name: Sync branch to template
         env:
           GH_TOKEN: ${{ steps.get_installation_token.outputs.token }}
@@ -45,5 +45,3 @@ jobs:
           git commit -m "chore: sync template"
           git push "$original_remote" "$pr_branch"
           gh pr create --title "Sync branch to template" --body "This pull request merges changes from the template repository." --head "$pr_branch" --base "$branch_name"
-
-          
