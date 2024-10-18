@@ -1,4 +1,3 @@
-import { checkIfForked } from "./directory/check-if-forked";
 import { GitHubIssue } from "./directory/directory";
 import { getAllIssues } from "./directory/get-all-issues";
 import { getIssueByLabel } from "./directory/get-issue-by-label";
@@ -17,38 +16,35 @@ export async function syncPartnerRepoIssues({
   twitterMap: TwitterMap;
 }): Promise<GitHubIssue[]> {
   const [ownerName, repoName] = getRepoCredentials(partnerRepoUrl);
-  const fullIssuesPerPartnerRepo: GitHubIssue[] = await getAllIssues(ownerName, repoName);
+  const partnerRepoIssues: GitHubIssue[] = await getAllIssues(ownerName, repoName);
   const buffer: (GitHubIssue | null)[] = [];
-  for (const fullIssuePerPartnerRepo of fullIssuesPerPartnerRepo) {
-    // if the issue is available, then add it to the buffer
-    if (fullIssuePerPartnerRepo.state === "open") {
-      buffer.push(fullIssuePerPartnerRepo);
+  for (const partnerIssue of partnerRepoIssues) {
+    // if the issue is open, then add it to the buffer
+    if (partnerIssue.state === "open") {
+      buffer.push(partnerIssue);
     }
 
-    await createOrSync(fullIssuePerPartnerRepo);
+    await createOrSync(partnerIssue);
   }
   return buffer.filter((issue) => issue !== null) as GitHubIssue[];
 
-  async function createOrSync(fullIssue: GitHubIssue) {
-    const partnerIdMatchIssue: GitHubIssue | null = getIssueByLabel(directoryIssues, `id: ${fullIssue.node_id}`);
+  async function createOrSync(partnerIssue: GitHubIssue) {
+    const directoryIssue: GitHubIssue | null = getIssueByLabel(directoryIssues, `id: ${partnerIssue.node_id}`);
 
     // adding www creates a link to an issue that does not count as a mention
     // helps with preventing a mention in partner's repo especially during testing
-    const body = (await checkIfForked()) ? fullIssue.html_url.replace("https://github.com", "https://www.github.com") : fullIssue.html_url;
 
-    if (partnerIdMatchIssue) {
+    if (directoryIssue) {
       // if it exists in the Directory, then update it
       await syncDirectoryIssue({
-        directoryIssues: fullIssuesPerPartnerRepo,
-        directoryIssue: fullIssue,
-        url: partnerRepoUrl,
-        remoteFullIssue: partnerIdMatchIssue,
+        partnerIssue: partnerIssue,
+        directoryIssue: directoryIssue,
       });
     } else {
       // if it doesn't exist in the Directory, then create it
-      await newDirectoryIssue(fullIssue, partnerRepoUrl, body, twitterMap);
+      await newDirectoryIssue(partnerIssue, partnerRepoUrl, twitterMap);
     }
 
-    return partnerIdMatchIssue;
+    return directoryIssue;
   }
 }

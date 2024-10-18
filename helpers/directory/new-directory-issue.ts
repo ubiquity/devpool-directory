@@ -1,30 +1,33 @@
 import { commitTwitterMap } from "../git";
 import { TwitterMap } from "../initialize-twitter-map";
 import twitter from "../twitter";
+import { checkIfForked } from "./check-if-forked";
 import { DEVPOOL_OWNER_NAME, DEVPOOL_REPO_NAME, GitHubIssue, GitHubLabel, LABELS, octokit } from "./directory";
-import { getDirectoryIssueLabels } from "./get-directory-issue-labels";
+import { getDirectoryIssueLabelsFromPartnerIssue } from "./get-directory-issue-labels";
 import { getSocialMediaText } from "./get-social-media-text";
 
-export async function newDirectoryIssue(projectIssue: GitHubIssue, projectUrl: string, body: string, twitterMap: TwitterMap) {
-  // if issue is "closed" then skip it, no need to copy/paste already "closed" issues
-  if (projectIssue.state === "closed") return;
+export async function newDirectoryIssue(partnerIssue: GitHubIssue, projectUrl: string, twitterMap: TwitterMap) {
+  if (partnerIssue.state === "closed") return; // if issue is "closed" then skip it, no need to copy/paste already "closed" issues
 
-  // if the project issue is assigned to someone, then skip it
-  if (projectIssue.assignee) return;
+  const hasPriceLabel = (partnerIssue.labels as GitHubLabel[]).some((label) => label.name.includes(LABELS.PRICE)); // check if the issue is the same type as it should be
 
-  // check if the issue is the same type as it should be
-  const hasPriceLabel = (projectIssue.labels as GitHubLabel[]).some((label) => label.name.includes(LABELS.PRICE));
+  let body;
+  if (await checkIfForked()) {
+    body = partnerIssue.html_url.replace("https://github.com", "https://www.github.com");
+  } else {
+    body = partnerIssue.html_url;
+  }
 
   // create a new issue
   try {
     const createdIssue = await octokit.rest.issues.create({
       owner: DEVPOOL_OWNER_NAME,
       repo: DEVPOOL_REPO_NAME,
-      title: projectIssue.title,
+      title: partnerIssue.title,
       body,
-      labels: getDirectoryIssueLabels(projectIssue, projectUrl),
+      labels: getDirectoryIssueLabelsFromPartnerIssue(partnerIssue),
     });
-    console.log(`Created: ${createdIssue.data.html_url} (${projectIssue.html_url})`);
+    console.log(`Created: ${createdIssue.data.html_url} (${partnerIssue.html_url})`);
 
     if (!createdIssue) {
       console.log("No new issue to tweet about");
@@ -46,7 +49,12 @@ export async function newDirectoryIssue(projectIssue: GitHubIssue, projectUrl: s
       }
     }
   } catch (err) {
-    console.error("Failed to create new issue: ", err);
+    console.error("Failed to create new issue:", {
+      partnerIssueTitle: partnerIssue.title,
+      partnerIssueUrl: partnerIssue.html_url,
+      projectUrl,
+      error: err.message,
+    });
     return;
   }
 }
