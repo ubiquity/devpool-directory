@@ -1,4 +1,4 @@
-import { GitHubIssue, GitHubLabel, LABELS, PRICING_NOT_SET, projects } from "./directory";
+import { GitHubIssue, GitHubLabel, Labels, PRICING_NOT_SET, projects } from "./directory";
 import { getIssuePriceLabel } from "./get-issue-price-label";
 
 export function getDirectoryIssueLabelsFromPartnerIssue(partnerIssue: GitHubIssue) {
@@ -11,7 +11,7 @@ export function getDirectoryIssueLabelsFromPartnerIssue(partnerIssue: GitHubIssu
 
   // if project is already assigned then add the "Unavailable" label
   if (partnerIssue.assignees && partnerIssue.assignees.length > 0) {
-    buffer.push(LABELS.UNAVAILABLE);
+    buffer.push(Labels.UNAVAILABLE);
   }
 
   const partnerIssueLabels = partnerIssue.labels as GitHubLabel[];

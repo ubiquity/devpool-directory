@@ -949,7 +949,7 @@ describe("handleDevPoolIssue", () => {
     });
   });
 
-  function getDB() {
+  function getDb() {
     return db.issue.findFirst({
       where: {
         id: {
@@ -965,7 +965,7 @@ describe("handleDevPoolIssue", () => {
       partnerIssue: devpoolIssue,
     });
 
-    const updatedIssue = getDB();
+    const updatedIssue = getDb();
     if (updatedIssue === null) {
       throw new Error("Updated issue is null");
     }
@@ -986,7 +986,7 @@ describe("handleDevPoolIssue", () => {
       partnerIssue: devpoolIssue,
     });
 
-    const updatedIssue = getDB();
+    const updatedIssue = getDb();
     if (updatedIssue === null) {
       throw new Error("Updated issue is null");
     }
@@ -1461,7 +1461,7 @@ describe("getProjectUrls", () => {
       expect(urls).not.toContain("https://github.com/" + url);
     });
 
-    expect(urls).not.toEqual("https://github.com/" + opt.out);
+    expect(urls).not.toEqual("https://github.com/" + opt.out.join(","));
 
     expect(urls).toEqual(
       expect.arrayContaining([
