@@ -1,5 +1,5 @@
-import { Statistics } from "../types/statistics";
 import { DEVPOOL_OWNER_NAME, DEVPOOL_REPO_NAME, GitHubIssue, octokit } from "./directory/directory";
+import { Statistics } from "./directory/statistics";
 let gitChanges: Array<{ path: string; content: string }> = [];
 
 async function gitCommit(data: unknown, fileName: string) {
@@ -15,7 +15,7 @@ async function gitCommit(data: unknown, fileName: string) {
 }
 
 import { Octokit } from "@octokit/rest";
-import { TwitterMap } from "./initialize-twitter-map";
+import { TwitterMap } from "./twitter/initialize-twitter-map";
 
 const MAX_PAYLOAD_SIZE = 100000000; // 100MB per commit, adjust as needed
 

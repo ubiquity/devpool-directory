@@ -1,7 +1,7 @@
-import { LABELS } from "./helpers/directory/directory";
-import { ensureLabelExists } from "./helpers/directory/label-utils";
-import { gitPush } from "./helpers/git";
-import { main } from "./helpers/main";
+import { LABELS } from "./src/directory/directory";
+import { ensureLabelExists } from "./src/directory/label-utils";
+import { gitPush } from "./src/git";
+import { main } from "./src/main";
 
 /**
  * Main function

@@ -1,5 +1,5 @@
 import { readFile } from "fs/promises";
-import { commitTwitterMap } from "./git";
+import { commitTwitterMap } from "../git";
 
 export type TwitterMap = Record<string, string>;
 

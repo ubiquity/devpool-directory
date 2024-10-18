@@ -1,7 +1,7 @@
-import { server } from "../mocks/node";
 import { describe, test } from "@jest/globals";
 import dotenv from "dotenv";
 import { http, HttpResponse } from "msw";
+import { server } from "../mocks/node";
 
 beforeAll(() => server.listen());
 afterEach(() => server.resetHandlers());
@@ -24,7 +24,7 @@ describe("Twitter", () => {
     jest.resetModules();
 
     await expect(async () => {
-      const { default: twitterHelper } = await import("../helpers/twitter");
+      const { default: twitterHelper } = await import("../src/twitter/twitter");
       () => twitterHelper;
     }).rejects.toThrow("Twitter environment variables are not set");
 
@@ -44,7 +44,7 @@ describe("Twitter", () => {
     jest.resetModules();
 
     await expect(async () => {
-      const { default: twitterHelper } = await import("../helpers/twitter");
+      const { default: twitterHelper } = await import("../src/twitter/twitter");
       console.log(twitterHelper);
     }).rejects.toThrow("Twitter environment variables are not set");
 
@@ -64,7 +64,7 @@ describe("Twitter", () => {
     jest.resetModules();
 
     await expect(async () => {
-      const { default: twitterHelper } = await import("../helpers/twitter");
+      const { default: twitterHelper } = await import("../src/twitter/twitter");
       console.log(twitterHelper);
     }).rejects.toThrow("Twitter environment variables are not set");
 
@@ -84,7 +84,7 @@ describe("Twitter", () => {
     jest.resetModules();
 
     await expect(async () => {
-      const { default: twitterHelper } = await import("../helpers/twitter");
+      const { default: twitterHelper } = await import("../src/twitter/twitter");
       console.log(twitterHelper);
     }).rejects.toThrow("Twitter environment variables are not set");
 
@@ -104,7 +104,7 @@ describe("Twitter", () => {
     jest.resetModules();
 
     await expect(async () => {
-      const { default: twitterHelper } = await import("../helpers/twitter");
+      const { default: twitterHelper } = await import("../src/twitter/twitter");
       console.log(twitterHelper);
     }).rejects.toThrow("Twitter environment variables are not set");
 
@@ -119,7 +119,7 @@ describe("Twitter", () => {
     process.env.TWITTER_API_KEY_SECRET = "foobar";
     process.env.TWITTER_ACCESS_TOKEN = "foobar";
     process.env.TWITTER_ACCESS_TOKEN_SECRET = "foobar";
-    const twitter = (await import("../helpers/twitter")).default;
+    const twitter = (await import("../src/twitter/twitter")).default;
     const res = await twitter.postTweet("status");
     expect(res).not.toBeUndefined();
   });
@@ -133,7 +133,7 @@ describe("Twitter", () => {
     process.env.TWITTER_API_KEY_SECRET = "foobar";
     process.env.TWITTER_ACCESS_TOKEN = "foobar";
     process.env.TWITTER_ACCESS_TOKEN_SECRET = "foobar";
-    const twitter = (await import("../helpers/twitter")).default;
+    const twitter = (await import("../src/twitter/twitter")).default;
     const tweet = await twitter.postTweet("status");
     await twitter.deleteTweet(tweet?.id as string);
 
@@ -157,7 +157,7 @@ describe("Twitter", () => {
         return HttpResponse.error();
       })
     );
-    const t = (await import("../helpers/twitter")).default;
+    const t = (await import("../src/twitter/twitter")).default;
     const empty = await t.postTweet("status");
     expect(empty).toBeUndefined();
   });

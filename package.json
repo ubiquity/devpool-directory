@@ -1,7 +1,7 @@
 {
-  "name": "ts-template",
+  "name": "devpool-directory",
   "version": "1.0.0",
-  "description": "Template repository with TypeScript support.",
+  "description": "Aggregates issues across our network.",
   "main": "index.ts",
   "author": "Ubiquity DAO",
   "license": "MIT",

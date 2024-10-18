@@ -1,6 +1,6 @@
 import { commitTwitterMap } from "../git";
-import { TwitterMap } from "../initialize-twitter-map";
-import twitter from "../twitter";
+import { TwitterMap } from "../twitter/initialize-twitter-map";
+import twitter from "../twitter/twitter";
 import { checkIfForked } from "./check-if-forked";
 import { DEVPOOL_OWNER_NAME, DEVPOOL_REPO_NAME, GitHubIssue, GitHubLabel, LABELS, octokit } from "./directory";
 import { getDirectoryIssueLabelsFromPartnerIssue } from "./get-directory-issue-labels";

@@ -1,17 +1,17 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { drop } from "@mswjs/data";
 import { setupServer } from "msw/node";
-import { calculateStatistics } from "../helpers/directory/calculate-statistics";
-import { checkIfForked } from "../helpers/directory/check-if-forked";
-import { GitHubIssue } from "../helpers/directory/directory";
-import { getPartnerUrls } from "../helpers/directory/get-partner-urls";
-import { getRepoUrls } from "../helpers/directory/get-repo-urls";
-import { newDirectoryIssue } from "../helpers/directory/new-directory-issue";
-import { syncIssueMetaData } from "../helpers/directory/sync-issue-meta-data";
 import { db } from "../mocks/db";
 import { handlers } from "../mocks/handlers";
 import issueDevpoolTemplate from "../mocks/issue-devpool-template.json";
 import issueTemplate from "../mocks/issue-template.json";
+import { calculateStatistics } from "../src/directory/calculate-statistics";
+import { checkIfForked } from "../src/directory/check-if-forked";
+import { GitHubIssue } from "../src/directory/directory";
+import { getPartnerUrls } from "../src/directory/get-partner-urls";
+import { getRepoUrls } from "../src/directory/get-repo-urls";
+import { newDirectoryIssue } from "../src/directory/new-directory-issue";
+import { syncIssueMetaData } from "../src/directory/sync-issue-meta-data";
 
 const DEVPOOL_OWNER_NAME = "ubiquity";
 const DEVPOOL_REPO_NAME = "devpool-directory";

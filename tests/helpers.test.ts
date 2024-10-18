@@ -1,17 +1,17 @@
 import { describe, test } from "@jest/globals";
 import { drop } from "@mswjs/data";
-import { DEVPOOL_OWNER_NAME, DEVPOOL_REPO_NAME, GitHubIssue } from "../helpers/directory/directory";
-import { getAllIssues } from "../helpers/directory/get-all-issues";
-import { getDirectoryIssueLabelsFromPartnerIssue } from "../helpers/directory/get-directory-issue-labels";
-import { getIssueByLabel } from "../helpers/directory/get-issue-by-label";
-import { getIssueLabelValue } from "../helpers/directory/get-issue-label-value";
-import { getIssuePriceLabel } from "../helpers/directory/get-issue-price-label";
-import { getRepoCredentials } from "../helpers/directory/get-repo-credentials";
-import { getRepoUrls } from "../helpers/directory/get-repo-urls";
-import { getSocialMediaText } from "../helpers/directory/get-social-media-text";
 import { db } from "../mocks/db";
 import cfg from "../mocks/issue-devpool-template.json";
 import { server } from "../mocks/node";
+import { DEVPOOL_OWNER_NAME, DEVPOOL_REPO_NAME, GitHubIssue } from "../src/directory/directory";
+import { getAllIssues } from "../src/directory/get-all-issues";
+import { getDirectoryIssueLabelsFromPartnerIssue } from "../src/directory/get-directory-issue-labels";
+import { getIssueByLabel } from "../src/directory/get-issue-by-label";
+import { getIssueLabelValue } from "../src/directory/get-issue-label-value";
+import { getIssuePriceLabel } from "../src/directory/get-issue-price-label";
+import { getRepoCredentials } from "../src/directory/get-repo-credentials";
+import { getRepoUrls } from "../src/directory/get-repo-urls";
+import { getSocialMediaText } from "../src/directory/get-social-media-text";
 
 beforeAll(() => server.listen());
 afterEach(() => server.resetHandlers());

@@ -1,5 +1,5 @@
 import { http, HttpResponse } from "msw";
-import { DEVPOOL_OWNER_NAME, DEVPOOL_REPO_NAME, GitHubIssue, GitHubLabel } from "../helpers/directory/directory";
+import { DEVPOOL_OWNER_NAME, DEVPOOL_REPO_NAME, GitHubIssue, GitHubLabel } from "../src/directory/directory";
 import { db } from "./db";
 import issueDevpoolTemplate from "./issue-devpool-template.json";
 import { default as issueTemplate, default as totalRewards } from "./issue-template.json";
