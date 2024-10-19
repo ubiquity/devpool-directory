@@ -4,13 +4,13 @@ import { db } from "../mocks/db";
 import cfg from "../mocks/issue-devpool-template.json";
 import { server } from "../mocks/node";
 import { DEVPOOL_OWNER_NAME, DEVPOOL_REPO_NAME, GitHubIssue } from "../src/directory/directory";
-import { getAllIssues } from "../src/directory/get-all-issues";
 import { getDirectoryIssueLabelsFromPartnerIssue } from "../src/directory/get-directory-issue-labels";
 import { getIssueByLabel } from "../src/directory/get-issue-by-label";
 import { getIssueLabelValue } from "../src/directory/get-issue-label-value";
 import { getIssuePriceLabel } from "../src/directory/get-issue-price-label";
 import { getRepoCredentials } from "../src/directory/get-repo-credentials";
 import { getRepoUrls } from "../src/directory/get-repo-urls";
+import { getRepositoryIssues } from "../src/directory/get-repository-issues";
 import { getSocialMediaText } from "../src/directory/get-social-media-text";
 
 beforeAll(() => server.listen());
@@ -104,7 +104,7 @@ describe("GitHub items", () => {
 
   test("Get all issues", async () => {
     db.issue.create({ ...githubDevpoolIssueTemplate, repo: DEVPOOL_REPO_NAME, owner: DEVPOOL_OWNER_NAME });
-    const issues = await getAllIssues(DEVPOOL_OWNER_NAME, DEVPOOL_REPO_NAME);
+    const issues = await getRepositoryIssues(DEVPOOL_OWNER_NAME, DEVPOOL_REPO_NAME);
     expect(issues).toMatchObject([githubDevpoolIssueTemplate]);
   });
 });

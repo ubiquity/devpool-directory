@@ -10,8 +10,10 @@ node_modules
 
 coverage
 coverage.txt
-total-rewards.txt
-total-rewards.json
 junit.xml
-statistics.json
 test-script.ts
+.env
+static/dist
+coverage
+junit.xml
+cypress/screenshots

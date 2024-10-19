@@ -1,8 +1,8 @@
 import { TwitterMap } from "../twitter/initialize-twitter-map";
 import { GitHubIssue } from "./directory";
-import { getAllIssues } from "./get-all-issues";
 import { getIssueByLabel } from "./get-issue-by-label";
 import { getRepoCredentials } from "./get-repo-credentials";
+import { getRepositoryIssues } from "./get-repository-issues";
 import { newDirectoryIssue } from "./new-directory-issue";
 import { syncIssueMetaData as syncDirectoryIssue } from "./sync-issue-meta-data";
 
@@ -16,7 +16,7 @@ export async function syncPartnerRepoIssues({
   twitterMap: TwitterMap;
 }): Promise<GitHubIssue[]> {
   const [ownerName, repoName] = getRepoCredentials(partnerRepoUrl);
-  const partnerRepoIssues: GitHubIssue[] = await getAllIssues(ownerName, repoName);
+  const partnerRepoIssues: GitHubIssue[] = await getRepositoryIssues(ownerName, repoName);
   const buffer: (GitHubIssue | null)[] = [];
   for (const partnerIssue of partnerRepoIssues) {
     // if the issue is open, then add it to the buffer

@@ -1,12 +1,12 @@
 import { checkIfForked } from "./check-if-forked";
-import { GitHubIssue, GitHubLabel, LABELS } from "./directory";
+import { GitHubIssue, GitHubLabel, Labels } from "./directory";
 import { getDirectoryIssueLabelsFromPartnerIssue } from "./get-directory-issue-labels";
 import { setMetaChanges } from "./set-meta-changes";
 import { setUnavailableLabelToIssue } from "./set-unavailable-label-to-issue";
 
 export async function syncIssueMetaData({ directoryIssue, partnerIssue }: { directoryIssue: GitHubIssue; partnerIssue: GitHubIssue }) {
   // remove the "unavailable" label as this adds it and statistics rely on it
-  const labelRemoved = getDirectoryIssueLabelsFromPartnerIssue(partnerIssue).filter((label) => label != LABELS.UNAVAILABLE);
+  const labelRemoved = getDirectoryIssueLabelsFromPartnerIssue(partnerIssue).filter((label) => label != Labels.UNAVAILABLE);
   const originalLabels = partnerIssue.labels.map((label) => (label as GitHubLabel).name);
 
   const isFork = await checkIfForked();

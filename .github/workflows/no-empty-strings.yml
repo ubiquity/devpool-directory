@@ -1,0 +1,32 @@
+name: Empty String Check
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+
+jobs:
+  check-for-empty-strings:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20.10.0"
+      - name: Get GitHub App token
+        uses: tibdex/github-app-token@v1.7.0
+        id: get_installation_token
+        with:
+          app_id: ${{ secrets.APP_ID }}
+          private_key: ${{ secrets.APP_PRIVATE_KEY }}
+      - name: Install Dependencies
+        run: |
+          yarn add tsx simple-git
+      - name: Check for Empty Strings
+        run: |
+          yarn tsx .github/empty-string-checker.ts
+        env:
+          GITHUB_TOKEN: ${{ steps.get_installation_token.outputs.token }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
+          GITHUB_PR_NUMBER: ${{ github.event.pull_request.number }}
+          GITHUB_BASE_REF: ${{ github.base_ref }}
