@@ -28,5 +28,5 @@ export { twitterClient };
 export default {
   postTweet,
   deleteTweet,
-  client: twitterClient ?? undefined,
+  client: twitterClient,
 };
