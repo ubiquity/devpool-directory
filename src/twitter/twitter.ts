@@ -10,19 +10,23 @@ const apiKeySecret = process.env.TWITTER_API_KEY_SECRET;
 const accessToken = process.env.TWITTER_ACCESS_TOKEN;
 const accessTokenSecret = process.env.TWITTER_ACCESS_TOKEN_SECRET;
 
+let twitterClient: TwitterApi | undefined;
+
 if (!apiKey || !apiKeySecret || !accessToken || !accessTokenSecret) {
-  throw new Error("Twitter environment variables are not set");
+  console.log("Twitter environment variables not found! Skipping sync to social media.");
+} else {
+  twitterClient = new TwitterApi({
+    appKey: apiKey,
+    appSecret: apiKeySecret,
+    accessToken: accessToken,
+    accessSecret: accessTokenSecret,
+  });
 }
 
-export const twitterClient = new TwitterApi({
-  appKey: apiKey,
-  appSecret: apiKeySecret,
-  accessToken: accessToken,
-  accessSecret: accessTokenSecret,
-});
+export { twitterClient };
 
 export default {
   postTweet,
   deleteTweet,
-  client: twitterClient,
+  client: twitterClient ?? undefined,
 };
