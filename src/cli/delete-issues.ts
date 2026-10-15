@@ -10,6 +10,10 @@ async function main() {
   const guard = process.env.WRITE_TARGET_REPO;
   if (guard && guard !== target) throw new Error(`write-blocked: target ${target} != enforced ${guard}`);
 
+  // Verificar que el APP_ID está configurado
+  const appId = process.env.APP_ID;
+  if (!appId) throw new Error("APP_ID env must be set for authorization");
+
   const input = (process.env.NUMBERS || "").trim();
   if (!input) throw new Error("NUMBERS env must be a comma-separated list of issue numbers");
   const numbers = input.split(/[\s,]+/).map((s) => Number(s)).filter((n) => Number.isFinite(n));
@@ -26,6 +30,14 @@ async function main() {
     try {
       const { data } = await (okRead as any).issues.get({ owner, repo, issue_number });
       const node_id = (data as any).node_id;
+      const author = (data as any).user?.login;
+
+      // Verificar que el autor es el bot autorizado
+      if (author !== "devpool-directory-superintendent[bot]") {
+        failures.push({ number: issue_number, reason: "unauthorized author" });
+        continue;
+      }
+
       if (!node_id) { failures.push({ number: issue_number, reason: "missing node_id" }); continue; }
       const res = await (okDelete as any).request("POST /graphql", { query, variables: { id: node_id } });
       const ok = Boolean((res as any)?.data?.deleteIssue);
