@@ -150,7 +150,7 @@ async function aggregateFixture(options: { priced?: boolean; outcome?: "complete
   const saved: Record<string, any> = {
     "issues-map.json": { "source-node": options.noShards ? current : cached }, "index.json": { "source-node": { number: 6165, url: mirrorUrl } },
     "mirror-state.json": { "source-node": { assigned: false, assignees: [], directory_issue_number: 6165, directory_issue_url: mirrorUrl } },
-    "lifetime-map.json": { "source-node": 0 }, "owners-avatars.json": [], "twitter-map.json": {}, "twitter-pending.json": {},
+    "lifetime-map.json": { "source-node": 0 }, "owners-avatars.json": [], "twitter-map.json": {}, "twitter-pending.json": {}, "partner-pull-requests.json": [],
     "sync-metadata.json": { perRepo: { "ubiquity/ai.ubq.fi": { lastSyncISO: "2026-10-17T00:00:00Z", etag: "previous-etag" } } }
   };
   let failPublication = false;
@@ -442,5 +442,42 @@ test("backfill aggregation rejects invalid saved watermarks instead of replacing
     await assert.rejects(invoke(), /invalid sync metadata artifact/);
     assert.deepEqual(saved["sync-metadata.json"], { perRepo: [] });
     assert.deepEqual(updates, []);
+  });
+});
+
+test("backfill aggregation preserves published pull requests on repeated runs without shards", async () => {
+  await aggregateFixture({ noShards: true }, async ({ invoke, saved }: any) => {
+    const prs = [{ owner: source.owner, repo: source.repo, number: 740, state: "open", title: "Existing pull request",
+      url: "https://github.com/ubiquity/ai.ubq.fi/pull/740", created_at: source.created_at, updated_at: source.updated_at }];
+    saved["partner-pull-requests.json"] = structuredClone(prs);
+    await invoke();
+    assert.deepEqual(saved["partner-pull-requests.json"], prs);
+    assert.equal(saved["summary.json"].prs, 1);
+    await invoke();
+    assert.deepEqual(saved["partner-pull-requests.json"], prs);
+    assert.equal(saved["summary.json"].prs, 1);
+  });
+});
+
+test("backfill aggregation rejects a non-array pull request artifact before mirror or artifact writes", async () => {
+  await aggregateFixture({ noShards: true }, async ({ invoke, saved, updates, creates }: any) => {
+    saved["partner-pull-requests.json"] = { invalid: true };
+    const before = structuredClone(saved);
+    await assert.rejects(invoke(), /invalid pull requests artifact/);
+    assert.deepEqual(saved, before);
+    assert.deepEqual(updates, []);
+    assert.deepEqual(creates, []);
+  });
+});
+
+test("matrix aggregation publishes shard pull requests instead of loading the prior artifact", async () => {
+  await aggregateFixture({}, async ({ invoke, saved, scratch }: any) => {
+    const prs = [{ owner: source.owner, repo: source.repo, number: 741, state: "closed", title: "Fresh pull request",
+      url: "https://github.com/ubiquity/ai.ubq.fi/pull/741", created_at: source.created_at, updated_at: source.updated_at }];
+    saved["partner-pull-requests.json"] = { invalid: true };
+    fs.writeFileSync(path.join(scratch, "shards", "shard-0", "shard-0-prs.json"), JSON.stringify(prs));
+    await invoke();
+    assert.deepEqual(saved["partner-pull-requests.json"], prs);
+    assert.equal(saved["summary.json"].prs, 1);
   });
 });

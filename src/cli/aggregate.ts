@@ -16,6 +16,7 @@ import { applyTwitterLifecycle, type TwitterPending } from "../twitter/sync-life
 import type { TwitterApi } from "twitter-api-v2";
 import { loadConfig } from "../config/load";
 import { discoverRepos } from "../discovery";
+import type { PartnerPullRequest } from "../artifacts/types";
 
 export async function main(clients?: { write: Octokit; read: Octokit; remove: Octokit; twitter?: TwitterApi }) {
   const shardsDir = path.join(process.cwd(), "shards");
@@ -55,7 +56,6 @@ export async function main(clients?: { write: Octokit; read: Octokit; remove: Oc
   }
 
   const issues = mergeIssues(issueChunks);
-  const prs = mergePRs(prChunks);
   const octokit = clients?.write ?? new Octokit({ auth: process.env.GITHUB_TOKEN });
   const owner = process.env.DIRECTORY_OWNER ?? "";
   const repo = process.env.DIRECTORY_REPO ?? "";
@@ -65,6 +65,9 @@ export async function main(clients?: { write: Octokit; read: Octokit; remove: Oc
   if (enforced && enforced !== target) {
     throw new Error(`write-blocked: target ${target} != enforced ${enforced}`);
   }
+  const prs = hasShardInputs ? mergePRs(prChunks)
+    : await loadArtifact<PartnerPullRequest[]>(octokit, owner, repo, "partner-pull-requests.json", branch) ?? [];
+  if (!Array.isArray(prs)) throw new Error("invalid pull requests artifact");
 
   const [ownersPrev, issuesPrev, mirrorPrev, indexPrev, twitterPrev, lifetimePrev, twitterPendingPrev] = await Promise.all([
     loadArtifact<any[]>(octokit, owner, repo, "owners-avatars.json", branch),

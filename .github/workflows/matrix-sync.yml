@@ -16,9 +16,9 @@ permissions:
   issues: write
   actions: read
 
-# Serialize scheduled and manual runs so recovery can finish publishing.
+# Serialize all writers of the shared data branch across code refs.
 concurrency:
-  group: directory-sync-${{ github.ref }}
+  group: directory-sync-__STORAGE__
   cancel-in-progress: false
 
 jobs:
