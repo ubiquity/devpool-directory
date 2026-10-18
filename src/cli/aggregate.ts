@@ -14,10 +14,13 @@ import { recoverMirrorState, applyRecoveredClosures } from "../mirror/recover";
 import { getTwitterClient } from "../twitter/client";
 import { applyTwitterLifecycle, type TwitterPending } from "../twitter/sync-lifecycle";
 import type { TwitterApi } from "twitter-api-v2";
+import { loadConfig } from "../config/load";
+import { discoverRepos } from "../discovery";
 
 export async function main(clients?: { write: Octokit; read: Octokit; remove: Octokit; twitter?: TwitterApi }) {
   const shardsDir = path.join(process.cwd(), "shards");
-  const shardDirs = fs.existsSync(shardsDir) ? fs.readdirSync(shardsDir) : [];
+  const hasShardInputs = fs.existsSync(shardsDir);
+  const shardDirs = hasShardInputs ? fs.readdirSync(shardsDir) : [];
 
   const issueChunks: any[] = [];
   const prChunks: any[] = [];
@@ -28,6 +31,7 @@ export async function main(clients?: { write: Octokit; read: Octokit; remove: Oc
   let tweetsCreated = 0;
   let tweetsDeleted = 0;
   const shardIdSet = new Set<number>();
+  const syncShardIdSet = new Set<number>();
 
   for (const d of shardDirs) {
     const dir = path.join(shardsDir, d);
@@ -40,8 +44,14 @@ export async function main(clients?: { write: Octokit; read: Octokit; remove: Oc
       if (f.endsWith("-sync-meta.json")) syncChunks.push(JSON.parse(fs.readFileSync(path.join(dir, f), "utf8")));
       if (f.endsWith("-twitter-delta.json")) twitterDeltas.push(JSON.parse(fs.readFileSync(path.join(dir, f), "utf8")));
       const m = f.match(/^shard-(\d+)-/);
-      if (m) shardIdSet.add(Number(m[1]));
+      if (m) {
+        shardIdSet.add(Number(m[1]));
+        if (f.endsWith("-sync-meta.json")) syncShardIdSet.add(Number(m[1]));
+      }
     }
+  }
+  if (hasShardInputs && (!shardIdSet.size || Array.from(shardIdSet).some((id) => !syncShardIdSet.has(id)))) {
+    throw new Error("missing shard sync metadata");
   }
 
   const issues = mergeIssues(issueChunks);
@@ -75,15 +85,20 @@ export async function main(clients?: { write: Octokit; read: Octokit; remove: Oc
   for (const chunk of ownerChunks) for (const o of chunk) ownersMap[o.owner] = o;
   const owners = Object.values(ownersMap).sort((a, b) => a.owner.localeCompare(b.owner));
 
-  const syncMeta = { perRepo: {} as Record<string, any> };
+  // Backfill has no shard deltas and must preserve the last successful watermarks.
+  const syncMeta = hasShardInputs ? { perRepo: {} as Record<string, any> }
+    : await loadArtifact<{ perRepo: Record<string, any> }>(octokit, owner, repo, "sync-metadata.json", branch) ?? { perRepo: {} };
+  if (!syncMeta.perRepo || typeof syncMeta.perRepo !== "object" || Array.isArray(syncMeta.perRepo)) throw new Error("invalid sync metadata artifact");
   for (const ch of syncChunks) Object.assign(syncMeta.perRepo, ch?.perRepo ?? ch);
+  const read = clients?.read ?? getOctokitRead();
+  const allowedRepos = new Set(hasShardInputs ? Object.keys(syncMeta.perRepo) : await discoverRepos(read, loadConfig()));
 
   // Load and update issues map (persistent), then compute open+priced from the full map
   const issuesMap: Record<string, any> = { ...(issuesPrev ?? {}) };
   for (const it of issues) issuesMap[it.node_id] = it;
   const directory = { owner, repo };
   const dry = process.env.DRY_RUN === "true";
-  const recovered = await recoverMirrorState(clients?.read ?? getOctokitRead(), directory, issuesMap, indexPrev ?? {}, mirrorPrev ?? {}, new Set(issues.map((issue) => issue.node_id)), new Set(Object.keys(syncMeta.perRepo)));
+  const recovered = await recoverMirrorState(read, directory, issuesMap, indexPrev ?? {}, mirrorPrev ?? {}, new Set(issues.map((issue) => issue.node_id)), allowedRepos);
   for (const node of recovered.cancelledNodeIds) delete issuesMap[node];
   const allIssues: any[] = Object.values(issuesMap);
   const issuesOpenPricedFromMap = allIssues.filter((i) => i.state === "open" && (i.labels || []).some((l: string) => /^Price:\s*/.test(String(l))));
