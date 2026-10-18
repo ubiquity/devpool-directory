@@ -217,8 +217,9 @@ export async function main(clients?: { write: Octokit; read: Octokit; remove: Oc
     const issue = issuesMap[nodeId];
     const pending = twitterPending[nodeId];
     if (pending.createAttempt || (pending.cleanupOnly && twitterMap[nodeId])) {
-      twitterPending[nodeId] = { ...pending, ...issue, cleanupOnly: pending.cleanupOnly || !issue || issue.state === "closed" ||
-        !issue.labels.some((label: string) => /^Price:/.test(label)) };
+      const cleanupOnly = !issue || issue.state === "closed" || !issue.labels.some((label: string) => /^Price:/.test(label));
+      if (!cleanupOnly && !pending.createAttempt) delete twitterPending[nodeId];
+      else twitterPending[nodeId] = { ...pending, ...issue, cleanupOnly };
       continue;
     }
     if (!issue || (issue.state === "open" && (twitterMap[nodeId] || !issue.labels.some((label: string) => /^Price:/.test(label)))) ||

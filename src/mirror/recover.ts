@@ -84,15 +84,17 @@ export async function recoverMirrorState(
         if (!nodeId || nodeId !== data.node_id) throw new Error(`unverified source redirect for mirror #${mirror.number}`);
         if (!allowedRepos.has(`${destination[1]}/${destination[2]}`)) throw new Error(`source redirect leaves configured scope: ${url}`);
         const fresh = issues[nodeId];
-        // Freshly ingested sources already passed public repository discovery. Cached
-        // identities may follow same-owner renames only after a public visibility read.
+        // Fresh ingestion proves configured scope for cross-owner redirects.
+        // Cached identities may only follow same-owner repository renames.
         if (!fresh || !fetchedNodeIds.has(nodeId) || fresh.url !== canonical) {
           if (destination[1] !== match[1]) throw new Error(`source redirect leaves configured scope: ${url}`);
-          const { data: repository } = await read.repos.get({ owner: destination[1], repo: destination[2] });
-          if (repository.private !== false) throw new Error(`source redirect is not public: ${url}`);
         }
         redirectedBody = canonical;
       }
+      // Visibility can change without a URL change. Verify it before copying
+      // any exact-read metadata into durable state or public mirror updates.
+      const { data: repository } = await read.repos.get({ owner: destination[1], repo: destination[2] });
+      if (repository.private !== false) throw new Error(`source is not public: ${url}`);
       nodeId = data.node_id;
       if (source) {
         source = {

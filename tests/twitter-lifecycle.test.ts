@@ -50,6 +50,7 @@ async function fixture(run: (f: any) => Promise<void>) {
   let failSource = false;
   let failReceipt = false;
   let failPost = false;
+  let failDelete = false;
   let postError: unknown;
   let timelineRows: any[] | undefined;
   let timelineDone = true;
@@ -62,6 +63,7 @@ async function fixture(run: (f: any) => Promise<void>) {
   const prRoute = () => {};
   const read = {
     issues: { listForRepo: issueRoute, get: async ({ repo }: any) => ({ data: restIssue(sources.find((issue) => issue.repo === repo)!) }) },
+    repos: { get: async () => ({ data: { private: false } }) },
     pulls: { list: prRoute }, users: { getByUsername: async () => ({ data: { avatar_url: "https://example.test/avatar" } }) },
     paginate: async (route: unknown, args: any) => {
       if (args.owner === directory.owner) return mirrors();
@@ -119,7 +121,7 @@ async function fixture(run: (f: any) => Promise<void>) {
         entities: { urls: [{ expanded_url: originalUrl, unwound_url: originalUrl, url: "https://t.co/short" }] } });
       return { data: { id: `tweet-${posts.length}` } };
     },
-    deleteTweet: async (id: string) => { apiCalls.push("delete"); deletes.push(id); events.push("delete"); return { data: { deleted: true } }; }
+    deleteTweet: async (id: string) => { apiCalls.push("delete"); if (failDelete) throw responseError(429); deletes.push(id); events.push("delete"); return { data: { deleted: true } }; }
   } } as unknown as TwitterApi;
   const setDelta = (issues: PartnerIssue[]) => {
     const dir = path.join(scratch, "shards", "shard-0");
@@ -136,6 +138,7 @@ async function fixture(run: (f: any) => Promise<void>) {
     await run({ sources, saved, events, posts, deletes, apiCalls, liveTweets, setDelta, invoke: () => aggregate({ write, read, remove: write, twitter }),
       failSource: (value: boolean) => { failSource = value; }, failReceipt: (value: boolean) => { failReceipt = value; },
       failPost: (value: boolean) => { failPost = value; }, failedRead: (value?: "issues" | "prs") => { failedRead = value; },
+      failDelete: (value: boolean) => { failDelete = value; },
       postError: (value: unknown) => { postError = value; }, account: (value: string) => { currentAccount = value; },
       timeline: (rows?: any[], done = true, errors: any[] = [], failed = false) => {
         timelineRows = rows; timelineDone = done; timelineErrors = errors; timelineFailure = failed;
@@ -339,5 +342,43 @@ test("both disabled controls preserve an unresolved attempt without any Twitter 
     await f.invoke();
     assert.deepEqual(f.apiCalls, []);
     assert.deepEqual(f.saved["twitter-pending.json"]["source-first"].createAttempt, attempt);
+  });
+});
+
+test("a priced reopen after failed completion deletion retains its original announcement across later empty deltas", async () => {
+  await fixture(async (f) => {
+    f.setDelta(f.sources); await f.invoke();
+    f.sources[0].state = "closed"; f.setDelta(f.sources); f.failDelete(true);
+    await f.invoke();
+    assert.equal(f.saved["twitter-pending.json"]["source-first"].cleanupOnly, true);
+    assert.equal(f.saved["twitter-map.json"]["source-first"], "tweet-1");
+    f.sources[0].state = "open"; f.setDelta(f.sources); f.failDelete(false);
+    await f.invoke();
+    f.setDelta([]); await f.invoke();
+    assert.equal(f.apiCalls.filter((call: string) => call === "delete").length, 1);
+    assert.deepEqual(f.deletes, []);
+    assert.equal(f.posts.length, 1);
+    assert.equal(f.saved["twitter-map.json"]["source-first"], "tweet-1");
+    assert.deepEqual(f.saved["twitter-pending.json"], {});
+  });
+});
+
+test("a priced reopen clears obsolete cleanup while retaining and recovering an unresolved original attempt", async () => {
+  await fixture(async (f) => {
+    f.setDelta(f.sources); f.failReceipt(true);
+    await assert.rejects(f.invoke(), /receipt persistence failed/);
+    f.failReceipt(false); f.sources[0].state = "closed"; f.setDelta([]); f.timeline(undefined, true, [], true);
+    await assert.rejects(f.invoke(), /unresolved Twitter creation/);
+    assert.equal(f.saved["twitter-pending.json"]["source-first"].cleanupOnly, true);
+    const attempt = structuredClone(f.saved["twitter-pending.json"]["source-first"].createAttempt);
+    f.sources[0].state = "open"; f.setDelta(f.sources);
+    await assert.rejects(f.invoke(), /unresolved Twitter creation/);
+    assert.deepEqual(f.saved["twitter-pending.json"]["source-first"].createAttempt, attempt);
+    assert.equal(f.saved["twitter-pending.json"]["source-first"].cleanupOnly, false);
+    f.timeline(); await f.invoke();
+    assert.deepEqual(f.deletes, []);
+    assert.equal(f.posts.length, 1);
+    assert.equal(f.saved["twitter-map.json"]["source-first"], "tweet-1");
+    assert.deepEqual(f.saved["twitter-pending.json"], {});
   });
 });

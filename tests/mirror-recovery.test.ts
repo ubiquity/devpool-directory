@@ -26,6 +26,7 @@ function mirror(number = 6165, body = sourceUrl, state = "open") {
 function reader(mirrors: unknown[], sourceRead?: () => Promise<unknown>) {
   return {
     issues: { listForRepo: () => {}, get: sourceRead ?? (async () => { throw new Error("unexpected source read"); }) },
+    repos: { get: async () => ({ data: { private: false } }) },
     paginate: async (_method: unknown, args: unknown) => {
       assert.deepEqual(args, { ...directory, state: "all", per_page: 100 });
       return mirrors;
@@ -134,7 +135,7 @@ test("rejects unauthorized authors, noncanonical open links, and unpriced cleanu
   await assert.rejects(recoverMirrorState(reader([mirror()]), directory, { "source-node": { ...source, state: "open", labels: [] } }, {}, {}, new Set(["source-node"])), /separate cleanup/);
 });
 
-async function aggregateFixture(options: { priced?: boolean; outcome?: "completed" | "not_planned"; renamed?: boolean; redirectRepo?: string; allowedRepos?: string[]; exact?: Partial<PartnerIssue>; noShards?: boolean; discoveredRepos?: string[]; exclude?: string[]; repositoryPrivate?: boolean | null; discoveryError?: boolean }, run: (fixture: any) => Promise<void>) {
+async function aggregateFixture(options: { priced?: boolean; outcome?: "completed" | "not_planned"; renamed?: boolean; redirectRepo?: string; allowedRepos?: string[]; exact?: Partial<PartnerIssue>; noShards?: boolean; discoveredRepos?: string[]; exclude?: string[]; repositoryPrivate?: boolean | null; visibilityError?: boolean; discoveryError?: boolean }, run: (fixture: any) => Promise<void>) {
   const cwd = process.cwd();
   const envNames = ["DIRECTORY_OWNER", "DIRECTORY_REPO", "WRITE_TARGET_REPO", "CONFIG_PATH"] as const;
   const priorEnv = envNames.map((name) => process.env[name]);
@@ -176,7 +177,7 @@ async function aggregateFixture(options: { priced?: boolean; outcome?: "complete
     }
   } as unknown as Octokit;
   const read = reader([snapshot], async () => ({ data: exactIssue({ ...current, state: "closed", ...options.exact }, options.outcome) }));
-  (read as any).repos = { listForOrg: () => {}, get: async (args: unknown) => { publicReads.push(args); return { data: { private: options.repositoryPrivate === undefined ? false : options.repositoryPrivate } }; } };
+  (read as any).repos = { listForOrg: () => {}, get: async (args: unknown) => { publicReads.push(args); if (options.visibilityError) throw new Error("visibility unavailable"); return { data: { private: options.repositoryPrivate === undefined ? false : options.repositoryPrivate } }; } };
   (read as any).paginate = async (method: unknown, args: unknown) => {
     if (method === read.repos.listForOrg) {
       scopeReads.push(args);
@@ -199,6 +200,31 @@ async function aggregateFixture(options: { priced?: boolean; outcome?: "complete
     fs.rmSync(scratch, { recursive: true, force: true });
   }
 }
+
+for (const options of [{ repositoryPrivate: true }, { repositoryPrivate: null }, { visibilityError: true }]) {
+  test(`same-URL cached recovery rejects unverified public visibility ${JSON.stringify(options)} before publishing metadata`, async () => {
+    await aggregateFixture({ ...options, exact: { state: "open", title: "Private title", body: "Private body", assignees: ["private-owner"], labels: ["Price: 150 USD"] } }, async ({ invoke, saved, snapshot, updates, creates, publicReads }: any) => {
+      const before = structuredClone(saved);
+      const mirrorBefore = structuredClone(snapshot);
+      await assert.rejects(invoke(), /not public|visibility unavailable/);
+      assert.deepEqual(publicReads, [{ owner: "ubiquity", repo: "ai.ubq.fi" }]);
+      assert.deepEqual(saved, before);
+      assert.deepEqual(snapshot, mirrorBefore);
+      assert.deepEqual(updates, []);
+      assert.deepEqual(creates, []);
+    });
+  });
+}
+
+test("same-URL cached recovery publishes refreshed metadata only after verified public visibility", async () => {
+  await aggregateFixture({ exact: { state: "open", title: "Verified public title", body: "Verified public body" } }, async ({ invoke, saved, snapshot, publicReads }: any) => {
+    await invoke();
+    assert.deepEqual(publicReads, [{ owner: "ubiquity", repo: "ai.ubq.fi" }]);
+    assert.equal(saved["issues-map.json"][source.node_id].body, "Verified public body");
+    assert.equal(saved["partner-open-issues.json"][0].title, "Verified public title");
+    assert.equal(snapshot.title, "Verified public title");
+  });
+});
 
 test("aggregate does not persist a mirror identity after a confirmed hard deletion", async () => {
   await aggregateFixture({ priced: false }, async ({ invoke, saved }: any) => {
