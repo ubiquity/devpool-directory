@@ -7,18 +7,18 @@ import { fetchIssuesForRepo } from "../fetch.js";
 import { ensureBranch, commitChanges } from "../storage/git.js";
 import { loadArtifact } from "../storage/load.js";
 
-async function main() {
+export async function main(clients?: { read: Octokit; write: Octokit }) {
   const cfg = loadConfig();
   let repos: string[] = [];
   try {
-    repos = await discoverRepos(new Octokit({ auth: process.env.GH_TOKEN || process.env.GITHUB_TOKEN }), cfg);
+    repos = await discoverRepos(clients?.read ?? new Octokit({ auth: process.env.GH_TOKEN || process.env.GITHUB_TOKEN }), cfg);
   } catch (_e) {
     // Fallback to anonymous for public orgs if token is invalid/mis-scoped
-    repos = await discoverRepos(new Octokit(), cfg);
+    repos = await discoverRepos(clients?.read ?? new Octokit(), cfg);
   }
 
-  const octokitRead = process.env.GH_TOKEN ? new Octokit({ auth: process.env.GH_TOKEN }) : new Octokit();
-  const octokitWrite = new Octokit({ auth: process.env.GITHUB_TOKEN });
+  const octokitRead = clients?.read ?? (process.env.GH_TOKEN ? new Octokit({ auth: process.env.GH_TOKEN }) : new Octokit());
+  const octokitWrite = clients?.write ?? new Octokit({ auth: process.env.GITHUB_TOKEN });
   const owner = process.env.DIRECTORY_OWNER ?? "";
   const repo = process.env.DIRECTORY_REPO ?? "";
   const branch = process.env.DATA_BRANCH ?? "__STORAGE__";
@@ -41,6 +41,10 @@ async function main() {
   await Promise.all(
     repos.map((full) =>
       limit(async () => {
+        const [sourceOwner, sourceRepo] = full.split("/");
+        const { data: repository } = await octokitRead.repos.get({ owner: sourceOwner, repo: sourceRepo });
+        if (repository.private === true) return;
+        if (repository.private !== false) throw new Error(`cannot verify public repository: ${full}`);
         const issues = await fetchIssuesForRepo(octokitRead, full, undefined); // full history
         totalFetched += issues.length;
         for (const it of issues) {
@@ -73,7 +77,9 @@ async function main() {
   console.log(`[backfill] Completed: repos=${repos.length} issues=${totalFetched}`);
 }
 
-main().catch((err) => {
-  console.error(err);
-  process.exit(1);
-});
+if (process.argv[1] && /(?:^|[\\/])backfill\.(?:ts|js|cjs|mjs)$/.test(process.argv[1])) {
+  main().catch((err) => {
+    console.error(err);
+    process.exit(1);
+  });
+}
