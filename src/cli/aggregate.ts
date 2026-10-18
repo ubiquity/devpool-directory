@@ -212,6 +212,12 @@ export async function main(clients?: { write: Octokit; read: Octokit; remove: Oc
   // metadata. Only fresh shard deltas may introduce new creation candidates.
   for (const nodeId of Object.keys(twitterPending)) {
     const issue = issuesMap[nodeId];
+    const pending = twitterPending[nodeId];
+    if (pending.createAttempt || (pending.cleanupOnly && twitterMap[nodeId])) {
+      twitterPending[nodeId] = { ...pending, ...issue, cleanupOnly: pending.cleanupOnly || !issue || issue.state === "closed" ||
+        !issue.labels.some((label: string) => /^Price:/.test(label)) };
+      continue;
+    }
     if (!issue || (issue.state === "open" && (twitterMap[nodeId] || !issue.labels.some((label: string) => /^Price:/.test(label)))) ||
       (issue.state === "closed" && !twitterMap[nodeId])) delete twitterPending[nodeId];
     else twitterPending[nodeId] = issue;
@@ -219,7 +225,14 @@ export async function main(clients?: { write: Octokit; read: Octokit; remove: Oc
   for (const fresh of issues) {
     const issue = issuesMap[fresh.node_id];
     if (issue && ((issue.state === "open" && tweetOnCreate && !twitterMap[issue.node_id] && issue.labels.some((label: string) => /^Price:/.test(label))) ||
-      (issue.state === "closed" && deleteOnComplete && twitterMap[issue.node_id]))) twitterPending[issue.node_id] = issue;
+      (issue.state === "closed" && deleteOnComplete && twitterMap[issue.node_id]))) twitterPending[issue.node_id] = { ...twitterPending[issue.node_id], ...issue };
+  }
+  // Completion may be verified by an exact recovery read even with no delta.
+  if (deleteOnComplete) {
+    for (const issue of [...allIssues.filter((issue) => issue.state === "closed"),
+      ...recovered.cancelledNodeIds.map((node) => issuesPrev?.[node]).filter(Boolean)]) {
+      if (twitterMap[issue.node_id]) twitterPending[issue.node_id] = { ...twitterPending[issue.node_id], ...issue, cleanupOnly: true };
+    }
   }
 
   // Final safety: hard-delete duplicate mirrors by partner URL (keep the oldest issue number per URL).
@@ -392,7 +405,7 @@ Notes:
       writeJson(outDir, "twitter-map.json", map);
       writeJson(outDir, "twitter-pending.json", pending);
       writeJson(outDir, "summary.json", summary);
-      await commitChanges(octokit, owner, repo, branch, "sync: record Twitter receipt", [
+      await commitChanges(octokit, owner, repo, branch, "sync: persist Twitter lifecycle state", [
         { path: "twitter-map.json", content: JSON.stringify(map) },
         { path: "twitter-pending.json", content: JSON.stringify(pending) },
         { path: "summary.json", content: JSON.stringify(summary) }
