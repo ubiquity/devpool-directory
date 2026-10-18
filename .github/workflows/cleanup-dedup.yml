@@ -13,6 +13,8 @@ permissions:
 
 jobs:
   cleanup:
+    # Recovery preserves existing issues; cleanup remains available by explicit dispatch.
+    if: github.event_name == 'workflow_dispatch'
     concurrency:
       group: cleanup-dedup-${{ github.ref }}
       cancel-in-progress: true

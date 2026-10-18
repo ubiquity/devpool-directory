@@ -1,4 +1,4 @@
-name: Run Jest testing suite
+name: Directory sync regressions
 on:
   workflow_dispatch:
   push:
@@ -8,16 +8,11 @@ on:
 
 env:
   NODE_ENV: "test"
-  TWITTER_API_KEY: "<twitter_api_key>"
-  TWITTER_API_KEY_SECRET: "<twitter_api_secret>"
-  TWITTER_ACCESS_TOKEN: "<twitter_access_token>"
-  TWITTER_ACCESS_TOKEN_SECRET: "<twitter_access_token_secret>"
-  DEVPOOL_OWNER_NAME: "ubiquity"
-  DEVPOOL_REPO_NAME: "devpool-directory"
 
 jobs:
   testing:
-    permissions: write-all
+    permissions:
+      contents: read
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -30,9 +25,5 @@ jobs:
 
       - name: Install
         run: npm ci || npm install
-      - name: Jest With Coverage
-        run: npm test --silent --if-present
-
-      - name: Add Jest Report to Summary
-        if: always()
-        run: echo "$(cat test-dashboard.md)" >> $GITHUB_STEP_SUMMARY
+      - name: Run sync regression tests
+        run: npm test
