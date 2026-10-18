@@ -33,6 +33,11 @@ function reader(mirrors: unknown[], sourceRead?: () => Promise<unknown>) {
   } as unknown as Octokit;
 }
 
+function exactIssue(issue: PartnerIssue, outcome: "completed" | "not_planned" = "completed") {
+  return { ...issue, html_url: issue.url, labels: issue.labels.map((name) => ({ name })),
+    assignees: issue.assignees.map((login) => ({ login })), state_reason: issue.state === "closed" ? outcome : null };
+}
+
 test("recovers an existing closed source beyond the first directory page without creating a mirror", async () => {
   const fillers = Array.from({ length: 100 }, (_, i) => ({ ...mirror(i + 1, "", "closed"), pull_request: {} }));
   const recovered = await recoverMirrorState(reader([...fillers, mirror()]), directory, { "source-node": source }, {}, {});
@@ -129,7 +134,7 @@ test("rejects unauthorized authors, noncanonical open links, and unpriced cleanu
   await assert.rejects(recoverMirrorState(reader([mirror()]), directory, { "source-node": { ...source, state: "open", labels: [] } }, {}, {}, new Set(["source-node"])), /separate cleanup/);
 });
 
-async function aggregateFixture(options: { priced?: boolean; outcome?: "completed" | "not_planned"; renamed?: boolean; redirectRepo?: string; allowedRepos?: string[] }, run: (fixture: any) => Promise<void>) {
+async function aggregateFixture(options: { priced?: boolean; outcome?: "completed" | "not_planned"; renamed?: boolean; redirectRepo?: string; allowedRepos?: string[]; exact?: Partial<PartnerIssue> }, run: (fixture: any) => Promise<void>) {
   const cwd = process.cwd();
   const envNames = ["DIRECTORY_OWNER", "DIRECTORY_REPO", "WRITE_TARGET_REPO"] as const;
   const priorEnv = envNames.map((name) => process.env[name]);
@@ -143,7 +148,7 @@ async function aggregateFixture(options: { priced?: boolean; outcome?: "complete
   const saved: Record<string, any> = {
     "issues-map.json": { "source-node": cached }, "index.json": { "source-node": { number: 6165, url: mirrorUrl } },
     "mirror-state.json": { "source-node": { assigned: false, assignees: [], directory_issue_number: 6165, directory_issue_url: mirrorUrl } },
-    "lifetime-map.json": { "source-node": 0 }, "owners-avatars.json": [], "twitter-map.json": {}
+    "lifetime-map.json": { "source-node": 0 }, "owners-avatars.json": [], "twitter-map.json": {}, "twitter-pending.json": {}
   };
   let failPublication = false;
   let pending: any[] = [];
@@ -164,7 +169,7 @@ async function aggregateFixture(options: { priced?: boolean; outcome?: "complete
       updateRef: async () => { if (failPublication) throw new Error("publication failed"); for (const change of pending) saved[change.path] = change.path.endsWith(".json") ? JSON.parse(change.content) : change.content; }
     }
   } as unknown as Octokit;
-  const read = reader([snapshot], async () => ({ data: { node_id: "source-node", html_url: current.url, state: "closed", state_reason: options.outcome ?? "completed", updated_at: source.updated_at } }));
+  const read = reader([snapshot], async () => ({ data: exactIssue({ ...current, state: "closed", ...options.exact }, options.outcome) }));
   (read as any).repos = { get: async () => ({ data: { private: false } }) };
   (read as any).paginate = async () => snapshot.deleted ? [] : [snapshot];
   const remove = { request: async () => { snapshot.deleted = true; return { data: { data: { deleteIssue: { clientMutationId: null } } } }; } } as unknown as Octokit;
@@ -196,6 +201,9 @@ test("aggregate retry after failed publication never reopens a cancelled source"
     assert.equal(snapshot.state, "closed");
     assert.equal(saved["issues-map.json"]["source-node"], undefined);
     assert.equal(saved["lifetime-map.json"]["source-node"], 0);
+    assert.equal(saved["statistics.json"].lifetime.rewardsCompletedUSD, 0);
+    assert.deepEqual(saved["partner-open-issues.json"], []);
+    assert.deepEqual(saved["partner-open-proposals.json"], []);
   });
 });
 
@@ -212,6 +220,55 @@ test("aggregate includes an exact-read completion in its lifetime rollup", async
     await invoke();
     assert.equal(saved["statistics.json"].lifetime.rewardsCompletedUSD, 75);
     assert.equal(saved["statistics.json"].lifetime.tasksCompletedPriced, 1);
+  });
+});
+
+test("aggregate publishes current exact-read metadata and completed price instead of cached values", async () => {
+  const current = { ...source, title: "Updated source task", body: "Current source body", labels: ["Price: 150 USD", "Time: <1 Hour"],
+    assignees: ["current-contributor"], created_at: "2026-10-01T00:00:00Z", updated_at: "2026-10-18T01:00:00Z" };
+  await aggregateFixture({ exact: current }, async ({ invoke, saved, snapshot }: any) => {
+    await invoke();
+    assert.deepEqual(saved["issues-map.json"][source.node_id], current);
+    assert.equal(saved["lifetime-map.json"][source.node_id], 150);
+    assert.equal(saved["statistics.json"].lifetime.rewardsCompletedUSD, 150);
+    assert.equal(saved["statistics.json"].lifetime.tasksCompletedPriced, 1);
+    assert.deepEqual(saved["partner-open-issues.json"], []);
+    assert.deepEqual(saved["partner-open-proposals.json"], []);
+    assert.equal(snapshot.title, current.title);
+    assert.deepEqual(snapshot.labels, current.labels);
+    assert.equal(snapshot.state, "closed");
+    assert.deepEqual(saved["index.json"][source.node_id], { number: 6165, url: mirrorUrl });
+    assert.deepEqual(saved["mirror-state.json"][source.node_id].assignees, current.assignees);
+  });
+});
+
+test("aggregate publishes an omitted exact-read source as an unpriced proposal after its price is removed", async () => {
+  const current = { ...source, state: "open" as const, title: "Current proposal", body: "Proposal body", labels: ["Time: <1 Hour"],
+    assignees: ["proposal-owner"], updated_at: "2026-10-18T02:00:00Z" };
+  await aggregateFixture({ exact: current }, async ({ invoke, saved, snapshot, updates }: any) => {
+    await invoke();
+    assert.deepEqual(saved["issues-map.json"][source.node_id], current);
+    assert.deepEqual(saved["partner-open-issues.json"], []);
+    assert.deepEqual(saved["partner-open-proposals.json"], [current]);
+    assert.equal(saved["statistics.json"].lifetime.rewardsCompletedUSD, 0);
+    assert.equal(saved["statistics.json"].lifetime.tasksCompletedPriced, 0);
+    assert.equal(snapshot.deleted, true);
+    assert.equal(saved["index.json"][source.node_id], undefined);
+    assert.equal(saved["mirror-state.json"][source.node_id].directory_issue_number, undefined);
+    assert.equal(saved["mirror-state.json"][source.node_id].price_label, null);
+    assert.deepEqual(saved["mirror-state.json"][source.node_id].assignees, current.assignees);
+    assert.deepEqual(updates, []);
+  });
+});
+
+test("aggregate excludes an exact-read unpriced completion from lifetime rewards", async () => {
+  await aggregateFixture({ exact: { labels: [] } }, async ({ invoke, saved }: any) => {
+    await invoke();
+    assert.equal(saved["lifetime-map.json"][source.node_id], 0);
+    assert.equal(saved["statistics.json"].lifetime.rewardsCompletedUSD, 0);
+    assert.equal(saved["statistics.json"].lifetime.tasksCompletedPriced, 0);
+    assert.deepEqual(saved["partner-open-issues.json"], []);
+    assert.deepEqual(saved["partner-open-proposals.json"], []);
   });
 });
 
