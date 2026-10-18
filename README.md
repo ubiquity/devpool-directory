@@ -16,6 +16,7 @@ Primary artifacts:
 - owners-avatars.json — { owner, type, avatar_url }[] for badges.
 - partner-pull-requests.json — Partner PRs (state=all).
 - twitter-map.json — node_id -> tweetId.
+- twitter-pending.json — Fresh lifecycle candidates retained until Twitter succeeds.
 - issues-map.json — Persistent map of all known issues (state=all). Large.
 - lifetime-map.json — node_id -> closed priced amount (for totals).
 - sync-metadata.json — Per-repo since/etag hints.
