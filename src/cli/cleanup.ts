@@ -117,7 +117,7 @@ async function main() {
     const pNum = Number(numStr);
 
     // Fetch partner issue
-    let partner: Endpoints["GET /repos/{owner}/{repo}/issues/{issue_number}"]["response"]["data"] | null = null;
+    let partner: Awaited<ReturnType<typeof okRead.issues.get>>["data"] | null = null;
     try {
       const { data } = await okRead.issues.get({ owner: pOwner, repo: pRepo, issue_number: pNum });
       partner = data;
