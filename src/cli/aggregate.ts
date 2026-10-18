@@ -1,7 +1,6 @@
 #!/usr/bin/env -S node --enable-source-maps
 import fs from "node:fs";
 import path from "node:path";
-import { Buffer } from "node:buffer";
 import process from "node:process";
 import { mergeIssues, mergePRs, computeStatistics } from "../artifacts/merge";
 import { writeJson } from "../artifacts/write";
@@ -9,7 +8,9 @@ import { Octokit } from "@octokit/rest";
 import { ensureBranch, commitChanges } from "../storage/git";
 import { computeMirrorStateEntry } from "../artifacts/state";
 import { reconcileMirror } from "../mirror/reconcile";
-import { getOctokitDelete } from "../github/client";
+import { getOctokitDelete, getOctokitRead } from "../github/client";
+import { loadArtifact } from "../storage/load";
+import { recoverMirrorState, applyRecoveredClosures } from "../mirror/recover";
 
 async function main() {
   const shardsDir = path.join(process.cwd(), "shards");
@@ -42,30 +43,6 @@ async function main() {
 
   const issues = mergeIssues(issueChunks);
   const prs = mergePRs(prChunks);
-  // Derive a mirror-like state for statistics directly from issues to decouple from shard writes
-  const mirrorForStats: Record<string, any> = {};
-  for (const it of issues) mirrorForStats[it.node_id] = computeMirrorStateEntry(it, null, undefined);
-  // Restrict published issues file to open + priced items only (initial set; will recompute from issues-map below)
-  const issuesOpenPriced = issues.filter(
-    (i) => i.state === "open" && (i.labels || []).some((l: string) => /^Price:\s*/.test(String(l)))
-  );
-  const stats = computeStatistics(issuesOpenPriced, mirrorForStats);
-  // Lifetime (completed): compute over closed + priced to expose historical totals
-  const issuesClosedPriced = issues.filter(
-    (i) => i.state === "closed" && (i.labels || []).some((l: string) => /^Price:\s*/.test(String(l)))
-  );
-  const life = computeStatistics(issuesClosedPriced, mirrorForStats);
-  (stats as any).lifetime = {
-    rewardsCompletedUSD: life.rewards.completed,
-    tasksCompletedPriced: life.tasks.completed
-  };
-  // Add counts that reflect all closed issues (priced or not) to better match
-  // historical totals displayed in the UI.
-  // Use the persistent issues map (allIssues) for a comprehensive count across runs.
-  // NOTE: This complements tasksCompletedPriced (priced subset) without changing
-  // existing fields used by current consumers.
-  // Merge owners with prior artifact to retain avatars when a shard sees none
-  // Use the GitHub App token for reads/writes to the data branch
   const octokit = new Octokit({ auth: process.env.GITHUB_TOKEN });
   const owner = process.env.DIRECTORY_OWNER ?? "";
   const repo = process.env.DIRECTORY_REPO ?? "";
@@ -76,15 +53,21 @@ async function main() {
     throw new Error(`write-blocked: target ${target} != enforced ${enforced}`);
   }
 
+  const [ownersPrev, issuesPrev, mirrorPrev, indexPrev, twitterPrev, lifetimePrev] = await Promise.all([
+    loadArtifact<any[]>(octokit, owner, repo, "owners-avatars.json", branch),
+    loadArtifact<Record<string, any>>(octokit, owner, repo, "issues-map.json", branch),
+    loadArtifact<Record<string, any>>(octokit, owner, repo, "mirror-state.json", branch),
+    loadArtifact<Record<string, { number: number; url: string }>>(octokit, owner, repo, "index.json", branch),
+    loadArtifact<Record<string, string>>(octokit, owner, repo, "twitter-map.json", branch),
+    loadArtifact<Record<string, number>>(octokit, owner, repo, "lifetime-map.json", branch)
+  ]);
+  if (ownersPrev && !Array.isArray(ownersPrev)) throw new Error("invalid owners artifact");
+  for (const record of [issuesPrev, mirrorPrev, indexPrev, twitterPrev, lifetimePrev]) {
+    if (Array.isArray(record)) throw new Error("invalid record artifact");
+  }
   const ownersMap: Record<string, { owner: string; type: "User" | "Organization"; avatar_url: string }> = {};
   let duplicatesDeleted = 0;
-  try {
-    const { data } = await (octokit as any).repos.getContent({ owner, repo, path: "owners-avatars.json", ref: branch });
-    const prev = JSON.parse(Buffer.from((data as any).content, "base64").toString("utf8"));
-    for (const o of prev) ownersMap[o.owner] = o;
-  } catch {
-    // noop
-  }
+  for (const o of ownersPrev ?? []) ownersMap[o.owner] = o;
   for (const chunk of ownerChunks) for (const o of chunk) ownersMap[o.owner] = o;
   const owners = Object.values(ownersMap).sort((a, b) => a.owner.localeCompare(b.owner));
 
@@ -92,12 +75,12 @@ async function main() {
   for (const ch of syncChunks) Object.assign(syncMeta.perRepo, ch?.perRepo ?? ch);
 
   // Load and update issues map (persistent), then compute open+priced from the full map
-  let issuesMap: Record<string, any> = {};
-  try {
-    const { data } = await (octokit as any).repos.getContent({ owner, repo, path: "issues-map.json", ref: branch });
-    issuesMap = JSON.parse(Buffer.from((data as any).content, "base64").toString("utf8"));
-  } catch { issuesMap = {}; }
+  const issuesMap: Record<string, any> = { ...(issuesPrev ?? {}) };
   for (const it of issues) issuesMap[it.node_id] = it;
+  const directory = { owner, repo };
+  const dry = process.env.DRY_RUN === "true";
+  const recovered = await recoverMirrorState(getOctokitRead(), directory, issuesMap, indexPrev ?? {}, mirrorPrev ?? {}, new Set(issues.map((issue) => issue.node_id)));
+  for (const node of recovered.cancelledNodeIds) delete issuesMap[node];
   const allIssues: any[] = Object.values(issuesMap);
   const issuesOpenPricedFromMap = allIssues.filter((i) => i.state === "open" && (i.labels || []).some((l: string) => /^Price:\s*/.test(String(l))));
   // Open issues without an explicit Price label (proposals)
@@ -105,12 +88,16 @@ async function main() {
     (i) => i.state === "open" && !((i.labels || []).some((l: string) => /^Price:\s*/.test(String(l))))
   );
 
+  const mirrorForStats: Record<string, any> = {};
+  for (const it of allIssues) mirrorForStats[it.node_id] = computeMirrorStateEntry(it, null, undefined);
+  const issuesOpenPriced = issuesOpenPricedFromMap;
+  const stats = computeStatistics(issuesOpenPricedFromMap, mirrorForStats);
   // Compute additional aggregate helpers for UI rendering
   const closedAllCount = allIssues.filter((i) => i.state === "closed").length;
   const projectsOpenPriced = new Set(issuesOpenPricedFromMap.map((i) => `${i.owner}/${i.repo}`)).size;
   const projectsAny = new Set(allIssues.map((i) => `${i.owner}/${i.repo}`)).size;
   const projectsClosedAny = new Set(allIssues.filter((i) => i.state === "closed").map((i) => `${i.owner}/${i.repo}`)).size;
-  (stats as any).lifetime.tasksCompletedAll = closedAllCount;
+  (stats as any).lifetime = { tasksCompletedAll: closedAllCount };
   (stats as any).projects = {
     openPriced: projectsOpenPriced,
     any: projectsAny,
@@ -126,33 +113,23 @@ async function main() {
     ongoingCount: (stats as any).tasks.assigned
   };
 
-  // Single-writer reconciliation in aggregate: rebuild mirror-state and index deterministically
-  let mirrorPrev: Record<string, any> = {};
-  try {
-    const { data } = await (octokit as any).repos.getContent({ owner, repo, path: "mirror-state.json", ref: branch });
-    mirrorPrev = JSON.parse(Buffer.from((data as any).content, "base64").toString("utf8"));
-  } catch {}
-  const indexExisting: Record<string, { number: number; url: string }> = {};
-  for (const [node, e] of Object.entries(mirrorPrev)) {
-    if ((e as any).directory_issue_number && (e as any).directory_issue_url) indexExisting[node] = { number: (e as any).directory_issue_number, url: (e as any).directory_issue_url };
-  }
-  const indexBuilt: Record<string, { number: number; url: string }> = { ...indexExisting };
-  const mirrorStateNew: Record<string, any> = {};
-  const directory = { owner, repo } as const;
-  const dry = process.env.DRY_RUN === "true";
+  // Keep durable identities even when an incremental batch omits their source.
+  const indexBuilt = recovered.index;
+  const mirrorStateNew = recovered.state;
   const okDelete = getOctokitDelete();
+  await applyRecoveredClosures(octokit, directory, recovered.closures, dry);
+  const recoveredClosed = new Set(recovered.closures.map((closure) => closure.nodeId));
+  console.error(`[aggregate] skipping ${recovered.unchangedClosed.size} unchanged closed mirrors`);
   for (const it of allIssues) {
     const isOpen = it.state === "open";
     const hasPrice = (it.labels || []).some((l: string) => /^Price:\s*/.test(String(l)));
-    let dirRef: { number?: number; url?: string } | null = null;
-    try {
+    let dirRef: { number?: number; url?: string } | null = indexBuilt[it.node_id] ?? null;
+    if (!recoveredClosed.has(it.node_id) && !recovered.unchangedClosed.has(it.node_id)) {
       if (isOpen && hasPrice) {
-        const res = await reconcileMirror((octokit as any), directory as any, { node_id: it.node_id, title: it.title, html_url: it.url, state: it.state, labels: it.labels }, indexBuilt, { dryRun: dry });
-        dirRef = res;
-        indexBuilt[it.node_id] = { number: (res as any).number, url: (res as any).url } as any;
+        dirRef = await reconcileMirror(octokit, directory, { node_id: it.node_id, title: it.title, html_url: it.url, state: it.state, labels: it.labels }, indexBuilt, { dryRun: dry });
+        indexBuilt[it.node_id] = { number: dirRef.number!, url: dirRef.url! };
       } else if (!isOpen && indexBuilt[it.node_id]) {
-        const res = await reconcileMirror((octokit as any), directory as any, { node_id: it.node_id, title: it.title, html_url: it.url, state: "closed", labels: it.labels }, indexBuilt, { dryRun: dry });
-        dirRef = res;
+        dirRef = await reconcileMirror(octokit, directory, { node_id: it.node_id, title: it.title, html_url: it.url, state: "closed", labels: it.labels }, indexBuilt, { dryRun: dry });
       } else if (!hasPrice && indexBuilt[it.node_id]) {
         // Unpriced (open or closed): remove any existing mirror to preserve the
         // invariant that the directory mirrors only open + priced partner issues.
@@ -182,22 +159,13 @@ async function main() {
           // ignore and continue
         }
       }
-    } catch {
-      // best-effort
     }
     mirrorStateNew[it.node_id] = computeMirrorStateEntry(it, dirRef, undefined);
   }
 
   // Seed twitter map from existing artifact on data branch, then merge deltas
 
-  let twitterMap: Record<string, string> = {};
-  try {
-    const { data } = await (octokit as any).repos.getContent({ owner, repo, path: "twitter-map.json", ref: branch });
-    const content = Buffer.from((data as any).content, "base64").toString("utf8");
-    twitterMap = JSON.parse(content || "{}");
-  } catch {
-    twitterMap = {};
-  }
+  const twitterMap: Record<string, string> = { ...(twitterPrev ?? {}) };
   for (const d of twitterDeltas) {
     if (d && typeof d === "object") {
       if (d.creates || d.deletes) {
@@ -250,14 +218,8 @@ async function main() {
 
   // Lifetime completed rollup (closed+priced) via persistent map
   // Load prior lifetime map (node_id -> amountUSD), update only changed issues, then sum
-  let lifetimeMap: Record<string, number> = {};
-  try {
-    const { data } = await (octokit as any).repos.getContent({ owner, repo, path: "lifetime-map.json", ref: branch });
-    const content = Buffer.from((data as any).content, "base64").toString("utf8");
-    lifetimeMap = JSON.parse(content || "{}");
-  } catch {
-    lifetimeMap = {};
-  }
+  const lifetimeMap: Record<string, number> = { ...(lifetimePrev ?? {}) };
+  for (const node of recovered.cancelledNodeIds) lifetimeMap[node] = 0;
   const parsePrice = (labels: string[]): number => {
     const raw = (labels || []).find((l: string) => /^Price:\s*/.test(String(l)));
     if (!raw) return 0;
