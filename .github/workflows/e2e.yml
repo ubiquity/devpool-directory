@@ -54,12 +54,8 @@ jobs:
           DIRECTORY_REPO: ${{ github.event.inputs.directory_repo }}
           WRITE_TARGET_REPO: ${{ github.repository_owner }}/${{ github.event.inputs.directory_repo }}
           CONFIG_PATH: config/e2e.config.json
-          TWEET_ON_CREATE: "true"
-          DELETE_TWEET_ON_COMPLETE: "true"
-          TWITTER_API_KEY: ${{ secrets.TWITTER_API_KEY }}
-          TWITTER_API_KEY_SECRET: ${{ secrets.TWITTER_API_KEY_SECRET }}
-          TWITTER_ACCESS_TOKEN: ${{ secrets.TWITTER_ACCESS_TOKEN }}
-          TWITTER_ACCESS_TOKEN_SECRET: ${{ secrets.TWITTER_ACCESS_TOKEN_SECRET }}
+          TWEET_ON_CREATE: "false"
+          DELETE_TWEET_ON_COMPLETE: "false"
 
       - uses: actions/upload-artifact@v4
         with:
@@ -74,6 +70,8 @@ jobs:
           DIRECTORY_OWNER: ${{ github.repository_owner }}
           DIRECTORY_REPO: ${{ github.event.inputs.directory_repo }}
           DATA_BRANCH: __STORAGE__
+          TWEET_ON_CREATE: "false"
+          DELETE_TWEET_ON_COMPLETE: "false"
 
       - name: Summary
         run: node dist/bin/summary.cjs >> $GITHUB_STEP_SUMMARY
