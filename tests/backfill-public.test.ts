@@ -8,12 +8,13 @@ import { main as backfill } from "../src/cli/backfill";
 
 async function fixture(options: { visibility?: unknown; visibilityError?: boolean; publicationError?: boolean }, run: (state: any) => Promise<void>) {
   const cwd = process.cwd();
-  const names = ["CONFIG_PATH", "DIRECTORY_OWNER", "DIRECTORY_REPO", "DATA_BRANCH", "DRY_RUN"] as const;
+  const names = ["CONFIG_PATH", "DIRECTORY_OWNER", "DIRECTORY_REPO", "WRITE_TARGET_REPO", "DATA_BRANCH", "DRY_RUN"] as const;
   const previous = names.map((name) => process.env[name]);
   const scratch = fs.mkdtempSync(path.join(os.tmpdir(), "directory-backfill-public-"));
   process.env.CONFIG_PATH = path.join(scratch, "config.json");
   process.env.DIRECTORY_OWNER = "devpool-directory";
   process.env.DIRECTORY_REPO = "devpool-directory";
+  process.env.WRITE_TARGET_REPO = "devpool-directory/devpool-directory";
   process.env.DATA_BRANCH = "__STORAGE__";
   delete process.env.DRY_RUN;
   fs.writeFileSync(process.env.CONFIG_PATH, JSON.stringify({ include: ["partner"], exclude: [] }));
@@ -122,3 +123,17 @@ test("a failed historical seed publication leaves the prior maps intact", async 
     assert.deepEqual(saved, before);
   });
 });
+
+for (const guard of [undefined, "devpool-directory/another-repository"]) {
+  test(`historical backfill blocks a ${guard === undefined ? "missing" : "mismatched"} write target`, async () => {
+    await fixture({}, async ({ invoke, saved, fetched, commits }: any) => {
+      if (guard === undefined) delete process.env.WRITE_TARGET_REPO;
+      else process.env.WRITE_TARGET_REPO = guard;
+      const before = structuredClone(saved);
+      await assert.rejects(invoke(), /write-blocked: WRITE_TARGET_REPO must equal devpool-directory\/devpool-directory/);
+      assert.deepEqual(fetched, []);
+      assert.deepEqual(commits, []);
+      assert.deepEqual(saved, before);
+    });
+  });
+}

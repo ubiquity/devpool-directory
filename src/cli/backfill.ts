@@ -24,6 +24,8 @@ export async function main(clients?: { read: Octokit; write: Octokit }) {
   const branch = process.env.DATA_BRANCH ?? "__STORAGE__";
 
   if (!owner || !repo) throw new Error("DIRECTORY_OWNER and DIRECTORY_REPO must be set");
+  const target = `${owner}/${repo}`;
+  if (process.env.WRITE_TARGET_REPO !== target) throw new Error(`write-blocked: WRITE_TARGET_REPO must equal ${target}`);
 
   const issuesMap = await loadArtifact<Record<string, any>>(octokitWrite, owner, repo, "issues-map.json", branch) ?? {};
   const lifetimeMap = await loadArtifact<Record<string, number>>(octokitWrite, owner, repo, "lifetime-map.json", branch) ?? {};
