@@ -12,7 +12,7 @@ import { getOctokitDelete, getOctokitRead } from "../github/client";
 import { loadArtifact } from "../storage/load";
 import { recoverMirrorState, applyRecoveredClosures } from "../mirror/recover";
 
-async function main() {
+export async function main(clients?: { write: Octokit; read: Octokit; remove: Octokit }) {
   const shardsDir = path.join(process.cwd(), "shards");
   const shardDirs = fs.existsSync(shardsDir) ? fs.readdirSync(shardsDir) : [];
 
@@ -43,7 +43,7 @@ async function main() {
 
   const issues = mergeIssues(issueChunks);
   const prs = mergePRs(prChunks);
-  const octokit = new Octokit({ auth: process.env.GITHUB_TOKEN });
+  const octokit = clients?.write ?? new Octokit({ auth: process.env.GITHUB_TOKEN });
   const owner = process.env.DIRECTORY_OWNER ?? "";
   const repo = process.env.DIRECTORY_REPO ?? "";
   const branch = process.env.DATA_BRANCH ?? "__STORAGE__";
@@ -79,7 +79,7 @@ async function main() {
   for (const it of issues) issuesMap[it.node_id] = it;
   const directory = { owner, repo };
   const dry = process.env.DRY_RUN === "true";
-  const recovered = await recoverMirrorState(getOctokitRead(), directory, issuesMap, indexPrev ?? {}, mirrorPrev ?? {}, new Set(issues.map((issue) => issue.node_id)));
+  const recovered = await recoverMirrorState(clients?.read ?? getOctokitRead(), directory, issuesMap, indexPrev ?? {}, mirrorPrev ?? {}, new Set(issues.map((issue) => issue.node_id)));
   for (const node of recovered.cancelledNodeIds) delete issuesMap[node];
   const allIssues: any[] = Object.values(issuesMap);
   const issuesOpenPricedFromMap = allIssues.filter((i) => i.state === "open" && (i.labels || []).some((l: string) => /^Price:\s*/.test(String(l))));
@@ -116,7 +116,7 @@ async function main() {
   // Keep durable identities even when an incremental batch omits their source.
   const indexBuilt = recovered.index;
   const mirrorStateNew = recovered.state;
-  const okDelete = getOctokitDelete();
+  const okDelete = clients?.remove ?? getOctokitDelete();
   await applyRecoveredClosures(octokit, directory, recovered.closures, dry);
   const recoveredClosed = new Set(recovered.closures.map((closure) => closure.nodeId));
   console.error(`[aggregate] skipping ${recovered.unchangedClosed.size} unchanged closed mirrors`);
@@ -145,8 +145,12 @@ async function main() {
                   query: "mutation($id:ID!){ deleteIssue(input:{issueId:$id}){ clientMutationId } }",
                   variables: { id: nodeId },
                 });
-                // Remove from in-memory index so later iterations do not reference it
+                let deleted = false;
+                try { await octokit.issues.get({ owner, repo, issue_number: dirIssueNum }); }
+                catch (error: any) { if (error?.status !== 404) throw error; deleted = true; }
+                if (!deleted) throw new Error(`mirror deletion not confirmed: #${dirIssueNum}`);
                 delete indexBuilt[it.node_id];
+                dirRef = null;
               } catch {
                 // best-effort; do not fallback to close to avoid violating invariants
               }
@@ -154,6 +158,7 @@ async function main() {
           } else {
             // Dry run: pretend it's removed from the index
             delete indexBuilt[it.node_id];
+            dirRef = null;
           }
         } catch {
           // ignore and continue
@@ -226,7 +231,7 @@ async function main() {
     const n = parseInt(String(raw).replace(/[^0-9]/g, ""), 10);
     return Number.isFinite(n) ? n : 0;
   };
-  for (const it of issues) {
+  for (const it of [...issues, ...recovered.completedIssues]) {
     if (it.state === "closed") {
       lifetimeMap[it.node_id] = parsePrice(it.labels);
     } else {
@@ -338,7 +343,10 @@ Notes:
   ]);
 }
 
-main().catch((err) => {
-  console.error(err);
-  process.exit(1);
-});
+// Source, compiled and bundled CLI entries retain their existing aggregate filename.
+if (process.argv[1] && /(?:^|[\\/])aggregate\.(?:ts|js|cjs|mjs)$/.test(process.argv[1])) {
+  main().catch((err) => {
+    console.error(err);
+    process.exit(1);
+  });
+}

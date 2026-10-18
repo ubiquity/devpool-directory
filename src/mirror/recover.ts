@@ -4,7 +4,7 @@ import type { IndexMap } from "./reconcile";
 import pLimit from "p-limit";
 
 type Directory = { owner: string; repo: string };
-type Closure = { number: number; nodeId: string; reason: "completed" | "not_planned" };
+type Closure = { number: number; nodeId: string; reason: "completed" | "not_planned"; body?: string };
 
 function partnerUrl(body: string): string | null {
   const canonical = body.trim().replace("https://www.github.com/", "https://github.com/");
@@ -43,31 +43,53 @@ export async function recoverMirrorState(
     if (kept) console.warn(`[recover] duplicate mirrors for ${url}; preserving both issues`);
   }
   const knownByUrl = new Map(Object.values(issues).map((issue) => [issue.url, issue]));
+  const nodeByMirror = new Map(Object.entries(index).map(([node, entry]) => [entry.number, node]));
   const closures: Closure[] = [];
+  const completedIssues: PartnerIssue[] = [];
   const cancelledNodeIds: string[] = [];
   const unchangedClosed = new Set<string>();
   const limit = pLimit(6);
   await Promise.all(Array.from(byUrl, ([url, mirror]) => limit(async () => {
-    let source = knownByUrl.get(url);
-    let nodeId = source?.node_id;
+    const savedNode = nodeByMirror.get(mirror.number);
+    let source = knownByUrl.get(url) ?? (savedNode ? issues[savedNode] : undefined);
+    let nodeId = source?.node_id ?? savedNode;
+    let redirectedBody: string | undefined;
     let reason: Closure["reason"] = "completed";
-    if (mirror.state === "open" && (!source || (source.state === "open" && !fetchedNodeIds.has(source.node_id)))) {
+    if ((!source && mirror.state === "open") || (source?.state === "open" && !fetchedNodeIds.has(source.node_id)) || (source && source.url !== url)) {
       const match = /^https:\/\/github\.com\/([^/]+)\/([^/]+)\/issues\/(\d+)$/.exec(url)!;
       const data = await read.issues.get({ owner: match[1], repo: match[2], issue_number: Number(match[3]) })
         .then((response) => response.data)
         .catch((cause) => { throw new Error(`cannot verify source of mirror #${mirror.number}: ${url}`, { cause }); });
-      if (data.pull_request || partnerUrl(data.html_url) !== url || !data.node_id) {
+      const canonical = partnerUrl(data.html_url);
+      if (data.pull_request || !canonical || !data.node_id || (nodeId && nodeId !== data.node_id)) {
         throw new Error(`source identity changed for mirror #${mirror.number}`);
       }
+      if (canonical !== url) {
+        if (!nodeId || nodeId !== data.node_id) throw new Error(`unverified source redirect for mirror #${mirror.number}`);
+        const destination = /^https:\/\/github\.com\/([^/]+)\/([^/]+)\/issues\/\d+$/.exec(canonical)!;
+        const fresh = issues[nodeId];
+        // Freshly ingested sources already passed public repository discovery. Cached
+        // identities may follow same-owner renames only after a public visibility read.
+        if (!fresh || !fetchedNodeIds.has(nodeId) || fresh.url !== canonical) {
+          if (destination[1] !== match[1]) throw new Error(`source redirect leaves configured scope: ${url}`);
+          const { data: repository } = await read.repos.get({ owner: destination[1], repo: destination[2] });
+          if (repository.private !== false) throw new Error(`source redirect is not public: ${url}`);
+        }
+        redirectedBody = canonical;
+        if (source) {
+          source = { ...source, owner: destination[1], repo: destination[2], url: canonical };
+          issues[nodeId] = source;
+        }
+      }
       nodeId = data.node_id;
-      if (source && source.node_id !== nodeId) throw new Error(`source node changed for mirror #${mirror.number}`);
       if (data.state === "closed") {
         reason = data.state_reason === "not_planned" ? "not_planned" : "completed";
-        closures.push({ number: mirror.number, nodeId, reason });
+        closures.push({ number: mirror.number, nodeId, reason, ...(redirectedBody ? { body: redirectedBody } : {}) });
         if (reason === "not_planned") cancelledNodeIds.push(nodeId);
         else if (source) {
           source = { ...source, state: "closed", updated_at: data.updated_at };
           issues[nodeId] = source;
+          completedIssues.push(source);
         }
       } else if (!source) {
         throw new Error(`open source is absent from sync history: ${url}`);
@@ -89,13 +111,13 @@ export async function recoverMirrorState(
       throw new Error(`unpriced mirror requires separate cleanup: #${mirror.number}`);
     }
   })));
-  return { index, state, closures, cancelledNodeIds, unchangedClosed };
+  return { index, state, closures, cancelledNodeIds, unchangedClosed, completedIssues };
 }
 
 export async function applyRecoveredClosures(write: Octokit, directory: Directory, closures: Closure[], dryRun: boolean) {
   const target = `${directory.owner}/${directory.repo}`;
   if (process.env.WRITE_TARGET_REPO && process.env.WRITE_TARGET_REPO !== target) throw new Error(`write-blocked: target ${target}`);
   for (const closure of closures) {
-    if (!dryRun) await write.issues.update({ ...directory, issue_number: closure.number, state: "closed", state_reason: closure.reason });
+    if (!dryRun) await write.issues.update({ ...directory, issue_number: closure.number, state: "closed", state_reason: closure.reason, ...(closure.body ? { body: closure.body } : {}) });
   }
 }
