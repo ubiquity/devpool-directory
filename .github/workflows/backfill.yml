@@ -7,6 +7,10 @@ permissions:
   contents: write
   issues: read
 
+concurrency:
+  group: directory-sync-__STORAGE__
+  cancel-in-progress: false
+
 jobs:
   backfill:
     runs-on: ubuntu-latest
@@ -37,6 +41,7 @@ jobs:
           GH_TOKEN: ${{ secrets.GH_TOKEN }}
           DIRECTORY_OWNER: ${{ github.repository_owner }}
           DIRECTORY_REPO: ${{ github.event.repository.name }}
+          WRITE_TARGET_REPO: ${{ github.repository_owner }}/${{ github.event.repository.name }}
           DATA_BRANCH: __STORAGE__
           BACKFILL_CONCURRENCY: '6'
         run: node dist/bin/backfill.cjs
@@ -44,7 +49,11 @@ jobs:
       - name: Aggregate after backfill
         env:
           GITHUB_TOKEN: ${{ steps.app_token.outputs.token }}
+          GH_TOKEN: ${{ secrets.GH_TOKEN }}
           DIRECTORY_OWNER: ${{ github.repository_owner }}
           DIRECTORY_REPO: ${{ github.event.repository.name }}
+          WRITE_TARGET_REPO: ${{ github.repository_owner }}/${{ github.event.repository.name }}
           DATA_BRANCH: __STORAGE__
+          TWEET_ON_CREATE: 'false'
+          DELETE_TWEET_ON_COMPLETE: 'false'
         run: node dist/bin/aggregate.cjs

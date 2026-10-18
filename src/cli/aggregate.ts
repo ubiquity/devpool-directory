@@ -11,10 +11,17 @@ import { reconcileMirror } from "../mirror/reconcile";
 import { getOctokitDelete, getOctokitRead } from "../github/client";
 import { loadArtifact } from "../storage/load";
 import { recoverMirrorState, applyRecoveredClosures } from "../mirror/recover";
+import { getTwitterClient } from "../twitter/client";
+import { applyTwitterLifecycle, type TwitterPending } from "../twitter/sync-lifecycle";
+import type { TwitterApi } from "twitter-api-v2";
+import { loadConfig } from "../config/load";
+import { discoverRepos } from "../discovery";
+import type { PartnerPullRequest } from "../artifacts/types";
 
-export async function main(clients?: { write: Octokit; read: Octokit; remove: Octokit }) {
+export async function main(clients?: { write: Octokit; read: Octokit; remove: Octokit; twitter?: TwitterApi }) {
   const shardsDir = path.join(process.cwd(), "shards");
-  const shardDirs = fs.existsSync(shardsDir) ? fs.readdirSync(shardsDir) : [];
+  const hasShardInputs = fs.existsSync(shardsDir);
+  const shardDirs = hasShardInputs ? fs.readdirSync(shardsDir) : [];
 
   const issueChunks: any[] = [];
   const prChunks: any[] = [];
@@ -25,6 +32,7 @@ export async function main(clients?: { write: Octokit; read: Octokit; remove: Oc
   let tweetsCreated = 0;
   let tweetsDeleted = 0;
   const shardIdSet = new Set<number>();
+  const syncShardIdSet = new Set<number>();
 
   for (const d of shardDirs) {
     const dir = path.join(shardsDir, d);
@@ -37,12 +45,17 @@ export async function main(clients?: { write: Octokit; read: Octokit; remove: Oc
       if (f.endsWith("-sync-meta.json")) syncChunks.push(JSON.parse(fs.readFileSync(path.join(dir, f), "utf8")));
       if (f.endsWith("-twitter-delta.json")) twitterDeltas.push(JSON.parse(fs.readFileSync(path.join(dir, f), "utf8")));
       const m = f.match(/^shard-(\d+)-/);
-      if (m) shardIdSet.add(Number(m[1]));
+      if (m) {
+        shardIdSet.add(Number(m[1]));
+        if (f.endsWith("-sync-meta.json")) syncShardIdSet.add(Number(m[1]));
+      }
     }
+  }
+  if (hasShardInputs && (!shardIdSet.size || Array.from(shardIdSet).some((id) => !syncShardIdSet.has(id)))) {
+    throw new Error("missing shard sync metadata");
   }
 
   const issues = mergeIssues(issueChunks);
-  const prs = mergePRs(prChunks);
   const octokit = clients?.write ?? new Octokit({ auth: process.env.GITHUB_TOKEN });
   const owner = process.env.DIRECTORY_OWNER ?? "";
   const repo = process.env.DIRECTORY_REPO ?? "";
@@ -52,17 +65,21 @@ export async function main(clients?: { write: Octokit; read: Octokit; remove: Oc
   if (enforced && enforced !== target) {
     throw new Error(`write-blocked: target ${target} != enforced ${enforced}`);
   }
+  const prs = hasShardInputs ? mergePRs(prChunks)
+    : await loadArtifact<PartnerPullRequest[]>(octokit, owner, repo, "partner-pull-requests.json", branch) ?? [];
+  if (!Array.isArray(prs)) throw new Error("invalid pull requests artifact");
 
-  const [ownersPrev, issuesPrev, mirrorPrev, indexPrev, twitterPrev, lifetimePrev] = await Promise.all([
+  const [ownersPrev, issuesPrev, mirrorPrev, indexPrev, twitterPrev, lifetimePrev, twitterPendingPrev] = await Promise.all([
     loadArtifact<any[]>(octokit, owner, repo, "owners-avatars.json", branch),
     loadArtifact<Record<string, any>>(octokit, owner, repo, "issues-map.json", branch),
     loadArtifact<Record<string, any>>(octokit, owner, repo, "mirror-state.json", branch),
     loadArtifact<Record<string, { number: number; url: string }>>(octokit, owner, repo, "index.json", branch),
     loadArtifact<Record<string, string>>(octokit, owner, repo, "twitter-map.json", branch),
-    loadArtifact<Record<string, number>>(octokit, owner, repo, "lifetime-map.json", branch)
+    loadArtifact<Record<string, number>>(octokit, owner, repo, "lifetime-map.json", branch),
+    loadArtifact<TwitterPending>(octokit, owner, repo, "twitter-pending.json", branch)
   ]);
   if (ownersPrev && !Array.isArray(ownersPrev)) throw new Error("invalid owners artifact");
-  for (const record of [issuesPrev, mirrorPrev, indexPrev, twitterPrev, lifetimePrev]) {
+  for (const record of [issuesPrev, mirrorPrev, indexPrev, twitterPrev, lifetimePrev, twitterPendingPrev]) {
     if (Array.isArray(record)) throw new Error("invalid record artifact");
   }
   const ownersMap: Record<string, { owner: string; type: "User" | "Organization"; avatar_url: string }> = {};
@@ -71,15 +88,20 @@ export async function main(clients?: { write: Octokit; read: Octokit; remove: Oc
   for (const chunk of ownerChunks) for (const o of chunk) ownersMap[o.owner] = o;
   const owners = Object.values(ownersMap).sort((a, b) => a.owner.localeCompare(b.owner));
 
-  const syncMeta = { perRepo: {} as Record<string, any> };
+  // Backfill has no shard deltas and must preserve the last successful watermarks.
+  const syncMeta = hasShardInputs ? { perRepo: {} as Record<string, any> }
+    : await loadArtifact<{ perRepo: Record<string, any> }>(octokit, owner, repo, "sync-metadata.json", branch) ?? { perRepo: {} };
+  if (!syncMeta.perRepo || typeof syncMeta.perRepo !== "object" || Array.isArray(syncMeta.perRepo)) throw new Error("invalid sync metadata artifact");
   for (const ch of syncChunks) Object.assign(syncMeta.perRepo, ch?.perRepo ?? ch);
+  const read = clients?.read ?? getOctokitRead();
+  const allowedRepos = new Set(hasShardInputs ? Object.keys(syncMeta.perRepo) : await discoverRepos(read, loadConfig()));
 
   // Load and update issues map (persistent), then compute open+priced from the full map
   const issuesMap: Record<string, any> = { ...(issuesPrev ?? {}) };
   for (const it of issues) issuesMap[it.node_id] = it;
   const directory = { owner, repo };
   const dry = process.env.DRY_RUN === "true";
-  const recovered = await recoverMirrorState(clients?.read ?? getOctokitRead(), directory, issuesMap, indexPrev ?? {}, mirrorPrev ?? {}, new Set(issues.map((issue) => issue.node_id)), new Set(Object.keys(syncMeta.perRepo)));
+  const recovered = await recoverMirrorState(read, directory, issuesMap, indexPrev ?? {}, mirrorPrev ?? {}, new Set(issues.map((issue) => issue.node_id)), allowedRepos);
   for (const node of recovered.cancelledNodeIds) delete issuesMap[node];
   const allIssues: any[] = Object.values(issuesMap);
   const issuesOpenPricedFromMap = allIssues.filter((i) => i.state === "open" && (i.labels || []).some((l: string) => /^Price:\s*/.test(String(l))));
@@ -186,6 +208,37 @@ export async function main(clients?: { write: Octokit; read: Octokit; remove: Oc
     }
   }
 
+  const tweetOnCreate = process.env.TWEET_ON_CREATE !== "false";
+  const deleteOnComplete = process.env.DELETE_TWEET_ON_COMPLETE !== "false";
+  const twitterPending: TwitterPending = { ...(twitterPendingPrev ?? {}) };
+  // Retain failed actions across incremental omissions, using verified current
+  // metadata. Only fresh shard deltas may introduce new creation candidates.
+  for (const nodeId of Object.keys(twitterPending)) {
+    const issue = issuesMap[nodeId];
+    const pending = twitterPending[nodeId];
+    if (pending.createAttempt || (pending.cleanupOnly && twitterMap[nodeId])) {
+      const cleanupOnly = !issue || issue.state === "closed" || !issue.labels.some((label: string) => /^Price:/.test(label));
+      if (!cleanupOnly && !pending.createAttempt) delete twitterPending[nodeId];
+      else twitterPending[nodeId] = { ...pending, ...issue, cleanupOnly };
+      continue;
+    }
+    if (!issue || (issue.state === "open" && (twitterMap[nodeId] || !issue.labels.some((label: string) => /^Price:/.test(label)))) ||
+      (issue.state === "closed" && !twitterMap[nodeId])) delete twitterPending[nodeId];
+    else twitterPending[nodeId] = issue;
+  }
+  for (const fresh of issues) {
+    const issue = issuesMap[fresh.node_id];
+    if (issue && ((issue.state === "open" && tweetOnCreate && !twitterMap[issue.node_id] && issue.labels.some((label: string) => /^Price:/.test(label))) ||
+      (issue.state === "closed" && deleteOnComplete && twitterMap[issue.node_id]))) twitterPending[issue.node_id] = { ...twitterPending[issue.node_id], ...issue };
+  }
+  // Completion may be verified by an exact recovery read even with no delta.
+  if (deleteOnComplete) {
+    for (const issue of [...allIssues.filter((issue) => issue.state === "closed"),
+      ...recovered.cancelledNodeIds.map((node) => issuesPrev?.[node]).filter(Boolean)]) {
+      if (twitterMap[issue.node_id]) twitterPending[issue.node_id] = { ...twitterPending[issue.node_id], ...issue, cleanupOnly: true };
+    }
+  }
+
   // Final safety: hard-delete duplicate mirrors by partner URL (keep the oldest issue number per URL).
   // Targeted search per URL, opt-in via FINAL_DEDUP=true to avoid rate-limit issues by default.
   if (process.env.FINAL_DEDUP === "true") {
@@ -254,6 +307,7 @@ export async function main(clients?: { write: Octokit; read: Octokit; remove: Oc
   writeJson(outDir, "statistics.json", stats);
   writeJson(outDir, "sync-metadata.json", syncMeta);
   writeJson(outDir, "twitter-map.json", twitterMap);
+  writeJson(outDir, "twitter-pending.json", twitterPending);
   writeJson(outDir, "index.json", indexBuilt);
   writeJson(outDir, "issues-map.json", issuesMap);
   writeJson(outDir, "lifetime-map.json", lifetimeMap);
@@ -277,6 +331,7 @@ Primary artifacts:
 - owners-avatars.json — { owner, type, avatar_url }[] for badges.
 - partner-pull-requests.json — Partner PRs (state=all).
 - twitter-map.json — node_id -> tweetId.
+- twitter-pending.json — Fresh lifecycle candidates retained until Twitter succeeds.
 - issues-map.json — Persistent map of all known issues (state=all). Large.
 - lifetime-map.json — node_id -> closed priced amount (for totals).
 - sync-metadata.json — Per-repo since/etag hints.
@@ -316,6 +371,7 @@ Notes:
       "statistics.json",
       "sync-metadata.json",
       "twitter-map.json",
+      "twitter-pending.json",
       "index.json",
       "summary.json",
       "README.md"
@@ -335,12 +391,31 @@ Notes:
     { path: "statistics.json", content: JSON.stringify(stats) },
     { path: "sync-metadata.json", content: JSON.stringify(syncMeta) },
     { path: "twitter-map.json", content: JSON.stringify(twitterMap) },
+    { path: "twitter-pending.json", content: JSON.stringify(twitterPending) },
     { path: "index.json", content: JSON.stringify(indexBuilt) },
     { path: "summary.json", content: JSON.stringify(summary) },
     { path: "lifetime-map.json", content: JSON.stringify(lifetimeMap) },
     { path: "issues-map.json", content: JSON.stringify(issuesMap) },
     { path: "README.md", content: storageReadme }
   ]);
+
+  // Shards never post. Publish source state and retry candidates before any
+  // external action, then commit each successful receipt before the next one.
+  await applyTwitterLifecycle({
+    client: clients ? clients.twitter : getTwitterClient(), pending: twitterPending, twitterMap, tweetOnCreate, deleteOnComplete,
+    persist: async (map, pending, counts) => {
+      summary.tweetsCreated = tweetsCreated + counts.created;
+      summary.tweetsDeleted = tweetsDeleted + counts.deleted;
+      writeJson(outDir, "twitter-map.json", map);
+      writeJson(outDir, "twitter-pending.json", pending);
+      writeJson(outDir, "summary.json", summary);
+      await commitChanges(octokit, owner, repo, branch, "sync: persist Twitter lifecycle state", [
+        { path: "twitter-map.json", content: JSON.stringify(map) },
+        { path: "twitter-pending.json", content: JSON.stringify(pending) },
+        { path: "summary.json", content: JSON.stringify(summary) }
+      ]);
+    }
+  });
 }
 
 // Source, compiled and bundled CLI entries retain their existing aggregate filename.

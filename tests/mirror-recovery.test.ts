@@ -26,11 +26,17 @@ function mirror(number = 6165, body = sourceUrl, state = "open") {
 function reader(mirrors: unknown[], sourceRead?: () => Promise<unknown>) {
   return {
     issues: { listForRepo: () => {}, get: sourceRead ?? (async () => { throw new Error("unexpected source read"); }) },
+    repos: { get: async () => ({ data: { private: false } }) },
     paginate: async (_method: unknown, args: unknown) => {
       assert.deepEqual(args, { ...directory, state: "all", per_page: 100 });
       return mirrors;
     }
   } as unknown as Octokit;
+}
+
+function exactIssue(issue: PartnerIssue, outcome: "completed" | "not_planned" = "completed") {
+  return { ...issue, html_url: issue.url, labels: issue.labels.map((name) => ({ name })),
+    assignees: issue.assignees.map((login) => ({ login })), state_reason: issue.state === "closed" ? outcome : null };
 }
 
 test("recovers an existing closed source beyond the first directory page without creating a mirror", async () => {
@@ -129,30 +135,36 @@ test("rejects unauthorized authors, noncanonical open links, and unpriced cleanu
   await assert.rejects(recoverMirrorState(reader([mirror()]), directory, { "source-node": { ...source, state: "open", labels: [] } }, {}, {}, new Set(["source-node"])), /separate cleanup/);
 });
 
-async function aggregateFixture(options: { priced?: boolean; outcome?: "completed" | "not_planned"; renamed?: boolean; redirectRepo?: string; allowedRepos?: string[] }, run: (fixture: any) => Promise<void>) {
+async function aggregateFixture(options: { priced?: boolean; outcome?: "completed" | "not_planned"; renamed?: boolean; redirectRepo?: string; allowedRepos?: string[]; exact?: Partial<PartnerIssue>; noShards?: boolean; discoveredRepos?: string[]; exclude?: string[]; repositoryPrivate?: boolean | null; visibilityError?: boolean; discoveryError?: boolean }, run: (fixture: any) => Promise<void>) {
   const cwd = process.cwd();
-  const envNames = ["DIRECTORY_OWNER", "DIRECTORY_REPO", "WRITE_TARGET_REPO"] as const;
+  const envNames = ["DIRECTORY_OWNER", "DIRECTORY_REPO", "WRITE_TARGET_REPO", "CONFIG_PATH"] as const;
   const priorEnv = envNames.map((name) => process.env[name]);
   process.env.DIRECTORY_OWNER = directory.owner;
   process.env.DIRECTORY_REPO = directory.repo;
   process.env.WRITE_TARGET_REPO = `${directory.owner}/${directory.repo}`;
   const scratch = fs.mkdtempSync(path.join(os.tmpdir(), "directory-aggregate-regression-"));
+  process.env.CONFIG_PATH = path.join(scratch, "config.json");
+  fs.writeFileSync(process.env.CONFIG_PATH, JSON.stringify({ include: ["ubiquity"], exclude: options.exclude ?? [] }));
   const cached = { ...source, state: "open", labels: options.priced === false ? [] : source.labels };
   const current = { ...cached, ...(options.redirectRepo ? { repo: options.redirectRepo, url: sourceUrl.replace("ai.ubq.fi", options.redirectRepo) } : {}), ...(options.renamed ? { owner: "ubiquity", repo: "renamed-ai", url: sourceUrl.replace("ai.ubq.fi", "renamed-ai") } : {}) };
   const snapshot: any = { ...mirror(), node_id: "mirror-node", title: source.title, labels: cached.labels };
   const saved: Record<string, any> = {
-    "issues-map.json": { "source-node": cached }, "index.json": { "source-node": { number: 6165, url: mirrorUrl } },
+    "issues-map.json": { "source-node": options.noShards ? current : cached }, "index.json": { "source-node": { number: 6165, url: mirrorUrl } },
     "mirror-state.json": { "source-node": { assigned: false, assignees: [], directory_issue_number: 6165, directory_issue_url: mirrorUrl } },
-    "lifetime-map.json": { "source-node": 0 }, "owners-avatars.json": [], "twitter-map.json": {}
+    "lifetime-map.json": { "source-node": 0 }, "owners-avatars.json": [], "twitter-map.json": {}, "twitter-pending.json": {}, "partner-pull-requests.json": [],
+    "sync-metadata.json": { perRepo: { "ubiquity/ai.ubq.fi": { lastSyncISO: "2026-10-17T00:00:00Z", etag: "previous-etag" } } }
   };
   let failPublication = false;
   let pending: any[] = [];
   const updates: any[] = [];
+  const creates: any[] = [];
+  const scopeReads: any[] = [];
+  const publicReads: any[] = [];
   const issues = {
     get: async () => { if (snapshot.deleted) throw Object.assign(new Error("deleted"), { status: 404 }); return { data: snapshot }; },
     update: async (args: any) => { if (snapshot.deleted || args.issue_number !== snapshot.number) throw Object.assign(new Error("deleted identity"), { status: 404 }); updates.push(args); Object.assign(snapshot, args); return { data: snapshot }; },
     listForRepo: async () => ({ data: snapshot.deleted ? [] : [snapshot] }),
-    create: async (args: any) => { Object.assign(snapshot, args, { number: 6166, node_id: "new-mirror", html_url: mirrorUrl.replace("6165", "6166"), deleted: false }); return { data: snapshot }; }
+    create: async (args: any) => { creates.push(args); Object.assign(snapshot, args, { number: 6166, node_id: "new-mirror", html_url: mirrorUrl.replace("6165", "6166"), deleted: false }); return { data: snapshot }; }
   };
   const write = {
     issues, rest: { issues, search: { issuesAndPullRequests: async () => ({ data: { items: [] } }) } },
@@ -164,21 +176,55 @@ async function aggregateFixture(options: { priced?: boolean; outcome?: "complete
       updateRef: async () => { if (failPublication) throw new Error("publication failed"); for (const change of pending) saved[change.path] = change.path.endsWith(".json") ? JSON.parse(change.content) : change.content; }
     }
   } as unknown as Octokit;
-  const read = reader([snapshot], async () => ({ data: { node_id: "source-node", html_url: current.url, state: "closed", state_reason: options.outcome ?? "completed", updated_at: source.updated_at } }));
-  (read as any).repos = { get: async () => ({ data: { private: false } }) };
-  (read as any).paginate = async () => snapshot.deleted ? [] : [snapshot];
+  const read = reader([snapshot], async () => ({ data: exactIssue({ ...current, state: "closed", ...options.exact }, options.outcome) }));
+  (read as any).repos = { listForOrg: () => {}, get: async (args: unknown) => { publicReads.push(args); if (options.visibilityError) throw new Error("visibility unavailable"); return { data: { private: options.repositoryPrivate === undefined ? false : options.repositoryPrivate } }; } };
+  (read as any).paginate = async (method: unknown, args: unknown) => {
+    if (method === read.repos.listForOrg) {
+      scopeReads.push(args);
+      if (options.discoveryError) throw new Error("discovery failed");
+      return (options.discoveredRepos ?? ["ubiquity/ai.ubq.fi", "ubiquity/renamed-ai"]).map((full) => ({ name: full.split("/")[1] }));
+    }
+    return snapshot.deleted ? [] : [snapshot];
+  };
   const remove = { request: async () => { snapshot.deleted = true; return { data: { data: { deleteIssue: { clientMutationId: null } } } }; } } as unknown as Octokit;
-  fs.mkdirSync(path.join(scratch, "shards", "shard-0"), { recursive: true });
-  fs.writeFileSync(path.join(scratch, "shards", "shard-0", "shard-0-issues.json"), JSON.stringify(options.priced === false || options.renamed ? [current] : []));
-  fs.writeFileSync(path.join(scratch, "shards", "shard-0", "shard-0-sync-meta.json"), JSON.stringify(Object.fromEntries((options.allowedRepos ?? ["ubiquity/ai.ubq.fi", ...(options.renamed ? ["ubiquity/renamed-ai"] : [])]).map((repo) => [repo, { lastSyncISO: "2026-10-18T00:00:00Z" }]))));
+  if (!options.noShards) {
+    fs.mkdirSync(path.join(scratch, "shards", "shard-0"), { recursive: true });
+    fs.writeFileSync(path.join(scratch, "shards", "shard-0", "shard-0-issues.json"), JSON.stringify(options.priced === false || options.renamed ? [current] : []));
+    fs.writeFileSync(path.join(scratch, "shards", "shard-0", "shard-0-sync-meta.json"), JSON.stringify(Object.fromEntries((options.allowedRepos ?? ["ubiquity/ai.ubq.fi", ...(options.renamed ? ["ubiquity/renamed-ai"] : [])]).map((repo) => [repo, { lastSyncISO: "2026-10-18T00:00:00Z" }]))));
+  }
   process.chdir(scratch);
-  try { await run({ saved, snapshot, updates, closeSource: () => { current.state = "closed"; fs.writeFileSync(path.join(scratch, "shards", "shard-0", "shard-0-issues.json"), JSON.stringify([current])); }, reprice: () => { current.labels = source.labels; fs.writeFileSync(path.join(scratch, "shards", "shard-0", "shard-0-issues.json"), JSON.stringify([current])); }, invoke: () => aggregate({ write, read, remove }), fail: (value: boolean) => { failPublication = value; } }); }
+  try { await run({ saved, snapshot, updates, creates, scopeReads, publicReads, scratch, closeSource: () => { current.state = "closed"; fs.writeFileSync(path.join(scratch, "shards", "shard-0", "shard-0-issues.json"), JSON.stringify([current])); }, reprice: () => { current.labels = source.labels; fs.writeFileSync(path.join(scratch, "shards", "shard-0", "shard-0-issues.json"), JSON.stringify([current])); }, invoke: () => aggregate({ write, read, remove }), fail: (value: boolean) => { failPublication = value; } }); }
   finally {
     process.chdir(cwd);
     envNames.forEach((name, i) => { if (priorEnv[i] === undefined) delete process.env[name]; else process.env[name] = priorEnv[i]; });
     fs.rmSync(scratch, { recursive: true, force: true });
   }
 }
+
+for (const options of [{ repositoryPrivate: true }, { repositoryPrivate: null }, { visibilityError: true }]) {
+  test(`same-URL cached recovery rejects unverified public visibility ${JSON.stringify(options)} before publishing metadata`, async () => {
+    await aggregateFixture({ ...options, exact: { state: "open", title: "Private title", body: "Private body", assignees: ["private-owner"], labels: ["Price: 150 USD"] } }, async ({ invoke, saved, snapshot, updates, creates, publicReads }: any) => {
+      const before = structuredClone(saved);
+      const mirrorBefore = structuredClone(snapshot);
+      await assert.rejects(invoke(), /not public|visibility unavailable/);
+      assert.deepEqual(publicReads, [{ owner: "ubiquity", repo: "ai.ubq.fi" }]);
+      assert.deepEqual(saved, before);
+      assert.deepEqual(snapshot, mirrorBefore);
+      assert.deepEqual(updates, []);
+      assert.deepEqual(creates, []);
+    });
+  });
+}
+
+test("same-URL cached recovery publishes refreshed metadata only after verified public visibility", async () => {
+  await aggregateFixture({ exact: { state: "open", title: "Verified public title", body: "Verified public body" } }, async ({ invoke, saved, snapshot, publicReads }: any) => {
+    await invoke();
+    assert.deepEqual(publicReads, [{ owner: "ubiquity", repo: "ai.ubq.fi" }]);
+    assert.equal(saved["issues-map.json"][source.node_id].body, "Verified public body");
+    assert.equal(saved["partner-open-issues.json"][0].title, "Verified public title");
+    assert.equal(snapshot.title, "Verified public title");
+  });
+});
 
 test("aggregate does not persist a mirror identity after a confirmed hard deletion", async () => {
   await aggregateFixture({ priced: false }, async ({ invoke, saved }: any) => {
@@ -196,6 +242,9 @@ test("aggregate retry after failed publication never reopens a cancelled source"
     assert.equal(snapshot.state, "closed");
     assert.equal(saved["issues-map.json"]["source-node"], undefined);
     assert.equal(saved["lifetime-map.json"]["source-node"], 0);
+    assert.equal(saved["statistics.json"].lifetime.rewardsCompletedUSD, 0);
+    assert.deepEqual(saved["partner-open-issues.json"], []);
+    assert.deepEqual(saved["partner-open-proposals.json"], []);
   });
 });
 
@@ -212,6 +261,55 @@ test("aggregate includes an exact-read completion in its lifetime rollup", async
     await invoke();
     assert.equal(saved["statistics.json"].lifetime.rewardsCompletedUSD, 75);
     assert.equal(saved["statistics.json"].lifetime.tasksCompletedPriced, 1);
+  });
+});
+
+test("aggregate publishes current exact-read metadata and completed price instead of cached values", async () => {
+  const current = { ...source, title: "Updated source task", body: "Current source body", labels: ["Price: 150 USD", "Time: <1 Hour"],
+    assignees: ["current-contributor"], created_at: "2026-10-01T00:00:00Z", updated_at: "2026-10-18T01:00:00Z" };
+  await aggregateFixture({ exact: current }, async ({ invoke, saved, snapshot }: any) => {
+    await invoke();
+    assert.deepEqual(saved["issues-map.json"][source.node_id], current);
+    assert.equal(saved["lifetime-map.json"][source.node_id], 150);
+    assert.equal(saved["statistics.json"].lifetime.rewardsCompletedUSD, 150);
+    assert.equal(saved["statistics.json"].lifetime.tasksCompletedPriced, 1);
+    assert.deepEqual(saved["partner-open-issues.json"], []);
+    assert.deepEqual(saved["partner-open-proposals.json"], []);
+    assert.equal(snapshot.title, current.title);
+    assert.deepEqual(snapshot.labels, current.labels);
+    assert.equal(snapshot.state, "closed");
+    assert.deepEqual(saved["index.json"][source.node_id], { number: 6165, url: mirrorUrl });
+    assert.deepEqual(saved["mirror-state.json"][source.node_id].assignees, current.assignees);
+  });
+});
+
+test("aggregate publishes an omitted exact-read source as an unpriced proposal after its price is removed", async () => {
+  const current = { ...source, state: "open" as const, title: "Current proposal", body: "Proposal body", labels: ["Time: <1 Hour"],
+    assignees: ["proposal-owner"], updated_at: "2026-10-18T02:00:00Z" };
+  await aggregateFixture({ exact: current }, async ({ invoke, saved, snapshot, updates }: any) => {
+    await invoke();
+    assert.deepEqual(saved["issues-map.json"][source.node_id], current);
+    assert.deepEqual(saved["partner-open-issues.json"], []);
+    assert.deepEqual(saved["partner-open-proposals.json"], [current]);
+    assert.equal(saved["statistics.json"].lifetime.rewardsCompletedUSD, 0);
+    assert.equal(saved["statistics.json"].lifetime.tasksCompletedPriced, 0);
+    assert.equal(snapshot.deleted, true);
+    assert.equal(saved["index.json"][source.node_id], undefined);
+    assert.equal(saved["mirror-state.json"][source.node_id].directory_issue_number, undefined);
+    assert.equal(saved["mirror-state.json"][source.node_id].price_label, null);
+    assert.deepEqual(saved["mirror-state.json"][source.node_id].assignees, current.assignees);
+    assert.deepEqual(updates, []);
+  });
+});
+
+test("aggregate excludes an exact-read unpriced completion from lifetime rewards", async () => {
+  await aggregateFixture({ exact: { labels: [] } }, async ({ invoke, saved }: any) => {
+    await invoke();
+    assert.equal(saved["lifetime-map.json"][source.node_id], 0);
+    assert.equal(saved["statistics.json"].lifetime.rewardsCompletedUSD, 0);
+    assert.equal(saved["statistics.json"].lifetime.tasksCompletedPriced, 0);
+    assert.deepEqual(saved["partner-open-issues.json"], []);
+    assert.deepEqual(saved["partner-open-proposals.json"], []);
   });
 });
 
@@ -272,5 +370,140 @@ test("aggregate closing a source after deletion and failed publication does not 
     assert.equal(snapshot.deleted, true);
     assert.equal(saved["index.json"]["source-node"], undefined);
     assert.equal(saved["mirror-state.json"]["source-node"].directory_issue_number, undefined);
+  });
+});
+
+test("backfill aggregation discovers a public rename without shards and preserves identity and watermarks on retry", async () => {
+  await aggregateFixture({ noShards: true, renamed: true }, async ({ invoke, saved, snapshot, creates, updates, scopeReads, publicReads, scratch }: any) => {
+    assert.equal(fs.existsSync(path.join(scratch, "shards")), false);
+    const watermarks = structuredClone(saved["sync-metadata.json"]);
+    await invoke();
+    assert.deepEqual(saved["index.json"][source.node_id], { number: 6165, url: mirrorUrl });
+    assert.equal(saved["mirror-state.json"][source.node_id].directory_issue_number, 6165);
+    assert.equal(saved["issues-map.json"][source.node_id].url, sourceUrl.replace("ai.ubq.fi", "renamed-ai"));
+    assert.equal(snapshot.body, sourceUrl.replace("ai.ubq.fi", "renamed-ai"));
+    assert.equal(snapshot.node_id, "mirror-node");
+    assert.equal(snapshot.state, "closed");
+    assert.deepEqual(publicReads, [{ owner: "ubiquity", repo: "renamed-ai" }]);
+    assert.deepEqual(saved["sync-metadata.json"], watermarks);
+    const writes = updates.length;
+    await invoke();
+    assert.equal(updates.length, writes);
+    assert.equal(scopeReads.length, 2);
+    assert.deepEqual(creates, []);
+    assert.deepEqual(saved["sync-metadata.json"], watermarks);
+    assert.equal(saved["index.json"][source.node_id].number, 6165);
+  });
+});
+
+for (const { name, options, expected } of [
+  { name: "excluded", options: { exclude: ["ubiquity/renamed-ai"] }, expected: /configured scope/ },
+  { name: "private", options: { repositoryPrivate: true }, expected: /not public/ },
+  { name: "unknown visibility", options: { repositoryPrivate: null }, expected: /not public/ },
+  { name: "unknown scope", options: { discoveredRepos: ["ubiquity/ai.ubq.fi"] }, expected: /configured scope/ },
+  { name: "mismatched node", options: { exact: { node_id: "another-node" } }, expected: /identity changed/ },
+  { name: "failed discovery", options: { discoveryError: true }, expected: /discovery failed/ }
+]) {
+  test(`backfill aggregation rejects ${name} redirects before publication`, async () => {
+    await aggregateFixture({ noShards: true, renamed: true, ...options }, async ({ invoke, saved, updates, creates }: any) => {
+      saved["sync-metadata.json"].perRepo["ubiquity/renamed-ai"] = { lastSyncISO: "2026-10-17T00:00:00Z" };
+      const before = structuredClone(saved);
+      await assert.rejects(invoke(), expected);
+      assert.deepEqual(saved, before);
+      assert.deepEqual(updates, []);
+      assert.deepEqual(creates, []);
+    });
+  });
+}
+
+for (const input of ["empty tree", "missing metadata", "another incomplete shard"]) {
+  test(`aggregate rejects ${input} instead of using backfill discovery`, async () => {
+    await aggregateFixture({ noShards: input === "empty tree", renamed: true }, async ({ invoke, saved, updates, scopeReads, scratch }: any) => {
+      if (input === "empty tree") fs.mkdirSync(path.join(scratch, "shards"));
+      else if (input === "missing metadata") fs.rmSync(path.join(scratch, "shards", "shard-0", "shard-0-sync-meta.json"));
+      else {
+        fs.mkdirSync(path.join(scratch, "shards", "shard-1"));
+        fs.writeFileSync(path.join(scratch, "shards", "shard-1", "shard-1-issues.json"), "[]");
+      }
+      const before = structuredClone(saved);
+      await assert.rejects(invoke(), /missing shard sync metadata/);
+      assert.deepEqual(saved, before);
+      assert.deepEqual(scopeReads, []);
+      assert.deepEqual(updates, []);
+    });
+  });
+}
+
+test("backfill aggregation restores missing mappings and completes the existing mirror", async () => {
+  await aggregateFixture({ noShards: true }, async ({ invoke, saved, snapshot, creates }: any) => {
+    saved["index.json"] = {};
+    saved["mirror-state.json"] = {};
+    saved["issues-map.json"][source.node_id] = source;
+    await invoke();
+    assert.deepEqual(saved["index.json"][source.node_id], { number: 6165, url: mirrorUrl });
+    assert.equal(saved["mirror-state.json"][source.node_id].directory_issue_number, 6165);
+    assert.equal(snapshot.state, "closed");
+    assert.deepEqual(creates, []);
+  });
+});
+
+test("backfill aggregation publishes an empty source set without clearing watermarks", async () => {
+  await aggregateFixture({ noShards: true }, async ({ invoke, saved, snapshot }: any) => {
+    saved["issues-map.json"] = {};
+    saved["index.json"] = {};
+    saved["mirror-state.json"] = {};
+    snapshot.deleted = true;
+    const watermarks = structuredClone(saved["sync-metadata.json"]);
+    await invoke();
+    assert.deepEqual(saved["partner-open-issues.json"], []);
+    assert.deepEqual(saved["partner-open-proposals.json"], []);
+    assert.deepEqual(saved["index.json"], {});
+    assert.deepEqual(saved["sync-metadata.json"], watermarks);
+  });
+});
+
+test("backfill aggregation rejects invalid saved watermarks instead of replacing them", async () => {
+  await aggregateFixture({ noShards: true }, async ({ invoke, saved, updates }: any) => {
+    saved["sync-metadata.json"] = { perRepo: [] };
+    await assert.rejects(invoke(), /invalid sync metadata artifact/);
+    assert.deepEqual(saved["sync-metadata.json"], { perRepo: [] });
+    assert.deepEqual(updates, []);
+  });
+});
+
+test("backfill aggregation preserves published pull requests on repeated runs without shards", async () => {
+  await aggregateFixture({ noShards: true }, async ({ invoke, saved }: any) => {
+    const prs = [{ owner: source.owner, repo: source.repo, number: 740, state: "open", title: "Existing pull request",
+      url: "https://github.com/ubiquity/ai.ubq.fi/pull/740", created_at: source.created_at, updated_at: source.updated_at }];
+    saved["partner-pull-requests.json"] = structuredClone(prs);
+    await invoke();
+    assert.deepEqual(saved["partner-pull-requests.json"], prs);
+    assert.equal(saved["summary.json"].prs, 1);
+    await invoke();
+    assert.deepEqual(saved["partner-pull-requests.json"], prs);
+    assert.equal(saved["summary.json"].prs, 1);
+  });
+});
+
+test("backfill aggregation rejects a non-array pull request artifact before mirror or artifact writes", async () => {
+  await aggregateFixture({ noShards: true }, async ({ invoke, saved, updates, creates }: any) => {
+    saved["partner-pull-requests.json"] = { invalid: true };
+    const before = structuredClone(saved);
+    await assert.rejects(invoke(), /invalid pull requests artifact/);
+    assert.deepEqual(saved, before);
+    assert.deepEqual(updates, []);
+    assert.deepEqual(creates, []);
+  });
+});
+
+test("matrix aggregation publishes shard pull requests instead of loading the prior artifact", async () => {
+  await aggregateFixture({}, async ({ invoke, saved, scratch }: any) => {
+    const prs = [{ owner: source.owner, repo: source.repo, number: 741, state: "closed", title: "Fresh pull request",
+      url: "https://github.com/ubiquity/ai.ubq.fi/pull/741", created_at: source.created_at, updated_at: source.updated_at }];
+    saved["partner-pull-requests.json"] = { invalid: true };
+    fs.writeFileSync(path.join(scratch, "shards", "shard-0", "shard-0-prs.json"), JSON.stringify(prs));
+    await invoke();
+    assert.deepEqual(saved["partner-pull-requests.json"], prs);
+    assert.equal(saved["summary.json"].prs, 1);
   });
 });
