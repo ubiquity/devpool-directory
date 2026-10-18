@@ -5,6 +5,7 @@ import { loadConfig } from "../config/load.js";
 import { discoverRepos } from "../discovery.js";
 import { fetchIssuesForRepo } from "../fetch.js";
 import { ensureBranch, commitChanges } from "../storage/git.js";
+import { loadArtifact } from "../storage/load.js";
 
 async function main() {
   const cfg = loadConfig();
@@ -24,17 +25,8 @@ async function main() {
 
   if (!owner || !repo) throw new Error("DIRECTORY_OWNER and DIRECTORY_REPO must be set");
 
-  // Load existing issues-map and lifetime-map from the data branch (best-effort)
-  let issuesMap: Record<string, any> = {};
-  let lifetimeMap: Record<string, number> = {};
-  try {
-    const { data } = await (octokitWrite as any).repos.getContent({ owner, repo, path: "issues-map.json", ref: branch });
-    issuesMap = JSON.parse(Buffer.from((data as any).content, "base64").toString("utf8"));
-  } catch {}
-  try {
-    const { data } = await (octokitWrite as any).repos.getContent({ owner, repo, path: "lifetime-map.json", ref: branch });
-    lifetimeMap = JSON.parse(Buffer.from((data as any).content, "base64").toString("utf8"));
-  } catch {}
+  const issuesMap = await loadArtifact<Record<string, any>>(octokitWrite, owner, repo, "issues-map.json", branch) ?? {};
+  const lifetimeMap = await loadArtifact<Record<string, number>>(octokitWrite, owner, repo, "lifetime-map.json", branch) ?? {};
 
   const limit = pLimit(Math.max(2, Number(process.env.BACKFILL_CONCURRENCY || "6")));
   let totalFetched = 0;

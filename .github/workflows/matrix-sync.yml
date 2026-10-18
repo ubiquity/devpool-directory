@@ -16,10 +16,10 @@ permissions:
   issues: write
   actions: read
 
-# Avoid auto-cancelling manual runs; allow overlapping while we test
+# Serialize scheduled and manual runs so recovery can finish publishing.
 concurrency:
   group: directory-sync-${{ github.ref }}
-  cancel-in-progress: true
+  cancel-in-progress: false
 
 jobs:
   plan:
@@ -44,11 +44,20 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          set -e
+          set -euo pipefail
           fetch_content() {
-            local path="$1"; local out="$2"; local c;
-            c=$(gh api repos/${{ github.repository }}/contents/$path?ref=__STORAGE__ --jq '.content' 2>/dev/null || true)
-            if [ -n "$c" ] && [ "$c" != "null" ]; then echo "$c" | base64 -d > "$out"; fi
+            local path="$1"; local out="$2";
+            if gh api -H "Accept: application/vnd.github.raw+json" \
+              "repos/${{ github.repository }}/contents/$path?ref=__STORAGE__" > "$out" 2> "$out.error"; then
+              jq -e . "$out" > /dev/null
+            elif grep -q '(HTTP 404)' "$out.error"; then
+              rm -f "$out"
+            else
+              cat "$out.error" >&2
+              rm -f "$out.error"
+              return 1
+            fi
+            rm -f "$out.error"
           }
           fetch_content index.json index.json
           fetch_content twitter-map.json twitter-map.json
@@ -74,12 +83,13 @@ jobs:
             index.json
             twitter-map.json
             sync-metadata.json
+            issues-map.json
+            lifetime-map.json
 
   sync-shard:
     needs: plan
     runs-on: ubuntu-latest
     timeout-minutes: 15
-    continue-on-error: true
     strategy:
       matrix: ${{ fromJson(needs.plan.outputs.matrix_json) }}
       # Drive parallelism from plan (caps at OSS default 256)
@@ -122,8 +132,9 @@ jobs:
           FULL_RESYNC: ${{ inputs.full_resync }}
           USE_GRAPHQL: "true"
           MIRRORS_IN_AGGREGATE: "true"
-          TWEET_ON_CREATE: "true"
-          DELETE_TWEET_ON_COMPLETE: "true"
+          # Full recovery refreshes history without replaying Twitter lifecycle actions.
+          TWEET_ON_CREATE: ${{ inputs.full_resync != 'true' && inputs.full_resync != true }}
+          DELETE_TWEET_ON_COMPLETE: ${{ inputs.full_resync != 'true' && inputs.full_resync != true }}
           TWITTER_API_KEY: ${{ secrets.TWITTER_API_KEY }}
           TWITTER_API_KEY_SECRET: ${{ secrets.TWITTER_API_KEY_SECRET }}
           TWITTER_ACCESS_TOKEN: ${{ secrets.TWITTER_ACCESS_TOKEN }}
@@ -132,7 +143,7 @@ jobs:
         with:
           name: shard-${{ matrix.shard_id }}
           path: out/shard-${{ matrix.shard_id }}-*.json
-          if-no-files-found: ignore
+          if-no-files-found: error
 
   aggregate:
     needs: [plan, sync-shard]
@@ -157,11 +168,12 @@ jobs:
       - name: Aggregate & write artifacts
         run: bun src/cli/aggregate.ts
         env:
-          # Prefer PAT for repo contents writes; fallback is App token
+          # PAT is for partner reads; repository writes use the App token.
           GH_TOKEN: ${{ secrets.GH_TOKEN }}
           GITHUB_TOKEN: ${{ steps.app_token.outputs.token }}
           DIRECTORY_OWNER: ${{ github.repository_owner }}
           DIRECTORY_REPO: ${{ github.event.repository.name }}
+          WRITE_TARGET_REPO: ${{ github.repository_owner }}/${{ github.event.repository.name }}
           DATA_BRANCH: __STORAGE__
 
   summary:

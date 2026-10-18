@@ -1,6 +1,7 @@
 #!/usr/bin/env -S node --enable-source-maps
 import { getOctokitRead, getRateRemaining } from "../github/client";
 import { loadConfig } from "../config/load";
+import { loadArtifact } from "../storage/load";
 import { discoverRepos } from "../discovery";
 import fs from "node:fs";
 import path from "node:path";
@@ -15,16 +16,6 @@ function fastHash(str: string): number {
     hash = ((hash << 5) + hash) ^ str.charCodeAt(i);
   }
   return Math.abs(hash >>> 0);
-}
-
-async function tryLoadJsonFromStorage<T = any>(octokit: any, owner: string, repo: string, path: string, ref: string): Promise<T | null> {
-  try {
-    const { data } = await octokit.repos.getContent({ owner, repo, path, ref });
-    const content = Buffer.from((data as any).content, "base64").toString("utf8");
-    return JSON.parse(content || "null");
-  } catch {
-    return null;
-  }
 }
 
 function getRepoContext(): { owner: string; repo: string } | null {
@@ -114,7 +105,7 @@ async function main() {
   for (const r of repos) weights.set(r, 1); // base weight
   if (ctx) {
     const branch = cfg.data_branch || "__STORAGE__";
-    const openPriced = await tryLoadJsonFromStorage<any[]>(octokit, ctx.owner, ctx.repo, "partner-open-issues.json", branch);
+    const openPriced = await loadArtifact<any[]>(octokit, ctx.owner, ctx.repo, "partner-open-issues.json", branch);
     if (Array.isArray(openPriced)) {
       // Count open+priced per repo
       for (const it of openPriced) {
