@@ -48,7 +48,7 @@ test("recovers an existing closed source beyond the first directory page without
 test("preserves saved identities and mirror state across an omitted incremental issue", async () => {
   const saved = { absent: { number: 10, url: "https://github.com/devpool-directory/devpool-directory/issues/10" } };
   const previous = { absent: { assigned: true, assignees: ["owner"], directory_issue_number: 10, directory_issue_url: saved.absent.url } };
-  const recovered = await recoverMirrorState(reader([]), directory, {}, saved, previous);
+  const recovered = await recoverMirrorState(reader([mirror(10, sourceUrl, "closed")]), directory, {}, saved, previous);
   assert.deepEqual(recovered.index, saved);
   assert.deepEqual(recovered.state, previous);
   assert.notEqual(recovered.index, saved);
@@ -129,7 +129,7 @@ test("rejects unauthorized authors, noncanonical open links, and unpriced cleanu
   await assert.rejects(recoverMirrorState(reader([mirror()]), directory, { "source-node": { ...source, state: "open", labels: [] } }, {}, {}, new Set(["source-node"])), /separate cleanup/);
 });
 
-async function aggregateFixture(options: { priced?: boolean; outcome?: "completed" | "not_planned"; renamed?: boolean }, run: (fixture: any) => Promise<void>) {
+async function aggregateFixture(options: { priced?: boolean; outcome?: "completed" | "not_planned"; renamed?: boolean; redirectRepo?: string; allowedRepos?: string[] }, run: (fixture: any) => Promise<void>) {
   const cwd = process.cwd();
   const envNames = ["DIRECTORY_OWNER", "DIRECTORY_REPO", "WRITE_TARGET_REPO"] as const;
   const priorEnv = envNames.map((name) => process.env[name]);
@@ -138,7 +138,7 @@ async function aggregateFixture(options: { priced?: boolean; outcome?: "complete
   process.env.WRITE_TARGET_REPO = `${directory.owner}/${directory.repo}`;
   const scratch = fs.mkdtempSync(path.join(os.tmpdir(), "directory-aggregate-regression-"));
   const cached = { ...source, state: "open", labels: options.priced === false ? [] : source.labels };
-  const current = { ...cached, ...(options.renamed ? { owner: "ubiquity", repo: "renamed-ai", url: sourceUrl.replace("ai.ubq.fi", "renamed-ai") } : {}) };
+  const current = { ...cached, ...(options.redirectRepo ? { repo: options.redirectRepo, url: sourceUrl.replace("ai.ubq.fi", options.redirectRepo) } : {}), ...(options.renamed ? { owner: "ubiquity", repo: "renamed-ai", url: sourceUrl.replace("ai.ubq.fi", "renamed-ai") } : {}) };
   const snapshot: any = { ...mirror(), node_id: "mirror-node", title: source.title, labels: cached.labels };
   const saved: Record<string, any> = {
     "issues-map.json": { "source-node": cached }, "index.json": { "source-node": { number: 6165, url: mirrorUrl } },
@@ -150,10 +150,12 @@ async function aggregateFixture(options: { priced?: boolean; outcome?: "complete
   const updates: any[] = [];
   const issues = {
     get: async () => { if (snapshot.deleted) throw Object.assign(new Error("deleted"), { status: 404 }); return { data: snapshot }; },
-    update: async (args: any) => { updates.push(args); Object.assign(snapshot, args); return { data: snapshot }; }
+    update: async (args: any) => { if (snapshot.deleted || args.issue_number !== snapshot.number) throw Object.assign(new Error("deleted identity"), { status: 404 }); updates.push(args); Object.assign(snapshot, args); return { data: snapshot }; },
+    listForRepo: async () => ({ data: snapshot.deleted ? [] : [snapshot] }),
+    create: async (args: any) => { Object.assign(snapshot, args, { number: 6166, node_id: "new-mirror", html_url: mirrorUrl.replace("6165", "6166"), deleted: false }); return { data: snapshot }; }
   };
   const write = {
-    issues, rest: { issues },
+    issues, rest: { issues, search: { issuesAndPullRequests: async () => ({ data: { items: [] } }) } },
     repos: { getContent: async ({ path: name }: any) => ({ data: { content: Buffer.from(JSON.stringify(saved[name])).toString("base64"), encoding: "base64" } }) },
     git: {
       getRef: async () => ({ data: { object: { sha: "old" } } }), getCommit: async () => ({ data: { tree: { sha: "tree" } } }),
@@ -164,11 +166,13 @@ async function aggregateFixture(options: { priced?: boolean; outcome?: "complete
   } as unknown as Octokit;
   const read = reader([snapshot], async () => ({ data: { node_id: "source-node", html_url: current.url, state: "closed", state_reason: options.outcome ?? "completed", updated_at: source.updated_at } }));
   (read as any).repos = { get: async () => ({ data: { private: false } }) };
+  (read as any).paginate = async () => snapshot.deleted ? [] : [snapshot];
   const remove = { request: async () => { snapshot.deleted = true; return { data: { data: { deleteIssue: { clientMutationId: null } } } }; } } as unknown as Octokit;
   fs.mkdirSync(path.join(scratch, "shards", "shard-0"), { recursive: true });
   fs.writeFileSync(path.join(scratch, "shards", "shard-0", "shard-0-issues.json"), JSON.stringify(options.priced === false || options.renamed ? [current] : []));
+  fs.writeFileSync(path.join(scratch, "shards", "shard-0", "shard-0-sync-meta.json"), JSON.stringify(Object.fromEntries((options.allowedRepos ?? ["ubiquity/ai.ubq.fi", ...(options.renamed ? ["ubiquity/renamed-ai"] : [])]).map((repo) => [repo, { lastSyncISO: "2026-10-18T00:00:00Z" }]))));
   process.chdir(scratch);
-  try { await run({ saved, snapshot, updates, invoke: () => aggregate({ write, read, remove }), fail: (value: boolean) => { failPublication = value; } }); }
+  try { await run({ saved, snapshot, updates, closeSource: () => { current.state = "closed"; fs.writeFileSync(path.join(scratch, "shards", "shard-0", "shard-0-issues.json"), JSON.stringify([current])); }, reprice: () => { current.labels = source.labels; fs.writeFileSync(path.join(scratch, "shards", "shard-0", "shard-0-issues.json"), JSON.stringify([current])); }, invoke: () => aggregate({ write, read, remove }), fail: (value: boolean) => { failPublication = value; } }); }
   finally {
     process.chdir(cwd);
     envNames.forEach((name, i) => { if (priorEnv[i] === undefined) delete process.env[name]; else process.env[name] = priorEnv[i]; });
@@ -221,6 +225,52 @@ test("cached redirects require a stable node and a public destination inside the
   ] as const) {
     const read = reader([mirror()], async () => ({ data: { node_id: node, html_url: url, state: "closed", state_reason: "completed" } }));
     (read as any).repos = { get: async () => ({ data: { private: privateRepo } }) };
-    await assert.rejects(recoverMirrorState(read, directory, issues, saved, {}), expected);
+    await assert.rejects(recoverMirrorState(read, directory, issues, saved, {}, new Set(), new Set(["ubiquity/renamed-ai", "outside-owner/ai.ubq.fi"])), expected);
   }
+});
+
+
+test("aggregate repricing after deletion and failed publication never reuses a ghost identity", async () => {
+  await aggregateFixture({ priced: false }, async ({ invoke, fail, reprice, snapshot, saved }: any) => {
+    fail(true); await assert.rejects(invoke(), /publication failed/);
+    assert.equal(snapshot.deleted, true);
+    fail(false); reprice(); await invoke();
+    assert.equal(snapshot.deleted, false);
+    assert.equal(saved["index.json"]["source-node"].number, 6166);
+    assert.equal(saved["mirror-state.json"]["source-node"].directory_issue_number, 6166);
+  });
+});
+
+test("aggregate rejects excluded same-owner public redirect destinations", async () => {
+  await aggregateFixture({ redirectRepo: "hackbar", allowedRepos: ["ubiquity/ai.ubq.fi"] }, async ({ invoke, updates }: any) => {
+    await assert.rejects(invoke(), /configured scope/);
+    assert.deepEqual(updates, []);
+  });
+});
+
+test("confirmed missing identities clear both maps without mutating prior metadata", async () => {
+  const saved = { "source-node": { number: 6165, url: mirrorUrl } };
+  const previous = { "source-node": { assigned: true, assignees: ["owner"], price_label: "Price: 75 USD", directory_issue_number: 6165, directory_issue_url: mirrorUrl } };
+  const recovered = await recoverMirrorState(reader([]), directory, { "source-node": source }, saved, previous);
+  assert.equal(recovered.index["source-node"], undefined);
+  assert.deepEqual(recovered.state["source-node"], { assigned: true, assignees: ["owner"], price_label: "Price: 75 USD" });
+  assert.equal(saved["source-node"].number, 6165);
+  assert.equal(previous["source-node"].directory_issue_number, 6165);
+});
+
+test("redirects fail closed when no current discovery scope is supplied", async () => {
+  const saved = { "source-node": { number: 6165, url: mirrorUrl } };
+  const read = reader([mirror()], async () => ({ data: { node_id: "source-node", html_url: sourceUrl.replace("ai.ubq.fi", "renamed-ai"), state: "closed" } }));
+  await assert.rejects(recoverMirrorState(read, directory, { "source-node": { ...source, state: "open" } }, saved, {}), /configured scope/);
+});
+
+
+test("aggregate closing a source after deletion and failed publication does not PATCH its ghost", async () => {
+  await aggregateFixture({ priced: false }, async ({ invoke, fail, closeSource, snapshot, saved }: any) => {
+    fail(true); await assert.rejects(invoke(), /publication failed/);
+    fail(false); closeSource(); await invoke();
+    assert.equal(snapshot.deleted, true);
+    assert.equal(saved["index.json"]["source-node"], undefined);
+    assert.equal(saved["mirror-state.json"]["source-node"].directory_issue_number, undefined);
+  });
 });

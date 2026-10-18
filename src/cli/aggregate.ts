@@ -79,7 +79,7 @@ export async function main(clients?: { write: Octokit; read: Octokit; remove: Oc
   for (const it of issues) issuesMap[it.node_id] = it;
   const directory = { owner, repo };
   const dry = process.env.DRY_RUN === "true";
-  const recovered = await recoverMirrorState(clients?.read ?? getOctokitRead(), directory, issuesMap, indexPrev ?? {}, mirrorPrev ?? {}, new Set(issues.map((issue) => issue.node_id)));
+  const recovered = await recoverMirrorState(clients?.read ?? getOctokitRead(), directory, issuesMap, indexPrev ?? {}, mirrorPrev ?? {}, new Set(issues.map((issue) => issue.node_id)), new Set(Object.keys(syncMeta.perRepo)));
   for (const node of recovered.cancelledNodeIds) delete issuesMap[node];
   const allIssues: any[] = Object.values(issuesMap);
   const issuesOpenPricedFromMap = allIssues.filter((i) => i.state === "open" && (i.labels || []).some((l: string) => /^Price:\s*/.test(String(l))));

@@ -17,7 +17,8 @@ export async function recoverMirrorState(
   issues: Record<string, PartnerIssue>,
   savedIndex: IndexMap,
   previous: MirrorState,
-  fetchedNodeIds: ReadonlySet<string> = new Set()
+  fetchedNodeIds: ReadonlySet<string> = new Set(),
+  allowedRepos: ReadonlySet<string> = new Set()
 ) {
   const index: IndexMap = { ...savedIndex };
   const state: MirrorState = { ...previous };
@@ -27,6 +28,20 @@ export async function recoverMirrorState(
     }
   }
   const mirrors = await read.paginate(read.issues.listForRepo, { ...directory, state: "all", per_page: 100 });
+  // A completed listing confirms absence without one API read per saved link.
+  const liveNumbers = new Set(mirrors.filter((mirror) => !mirror.pull_request).map((mirror) => mirror.number));
+  for (const [node, entry] of Object.entries(index)) {
+    if (!liveNumbers.has(entry.number)) delete index[node];
+  }
+  for (const [node, entry] of Object.entries(state)) {
+    if (entry.directory_issue_number && !liveNumbers.has(entry.directory_issue_number)) {
+      state[node] = { ...entry };
+      delete state[node].directory_issue_number;
+      delete state[node].directory_issue_url;
+    } else if (!index[node] && entry.directory_issue_number && entry.directory_issue_url) {
+      index[node] = { number: entry.directory_issue_number, url: entry.directory_issue_url };
+    }
+  }
   const byUrl = new Map<string, (typeof mirrors)[number]>();
   for (const mirror of mirrors) {
     if (mirror.pull_request) continue;
@@ -67,6 +82,7 @@ export async function recoverMirrorState(
       if (canonical !== url) {
         if (!nodeId || nodeId !== data.node_id) throw new Error(`unverified source redirect for mirror #${mirror.number}`);
         const destination = /^https:\/\/github\.com\/([^/]+)\/([^/]+)\/issues\/\d+$/.exec(canonical)!;
+        if (!allowedRepos.has(`${destination[1]}/${destination[2]}`)) throw new Error(`source redirect leaves configured scope: ${url}`);
         const fresh = issues[nodeId];
         // Freshly ingested sources already passed public repository discovery. Cached
         // identities may follow same-owner renames only after a public visibility read.
