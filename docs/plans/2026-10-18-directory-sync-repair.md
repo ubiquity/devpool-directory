@@ -65,3 +65,9 @@ Complete only after canonical publication and production acceptance. Record exac
 ```
 
 Goal: As orchestrator, use canonical worktree 2026-10-18-directory-sync-repair-geb1be54d99 at /home/codex/repos/devpool-directory/devpool-directory/.codex-worktrees/2026-10-18-directory-sync-repair-geb1be54d99 on branch codex/2026-10-18-directory-sync-repair-geb1be54d99; read AGENTS.md and /home/codex/repos/devpool-directory/devpool-directory/docs/plans/2026-10-18-directory-sync-repair.md in full, then repair and recover directory sync through execution workers and verify production closure reconciliation, keeping each write module in its recorded lane and integration and final validation in canonical.
+
+## Execution adjustments
+
+Pristine baseline build evidence reproduced an Octokit response-type mismatch in src/cli/cleanup.ts; m01 owns the one-line type-only correction, whose emitted JavaScript remains byte-identical. m02 may narrowly extend src/mirror/reconcile.ts to avoid redundant updates when the live mirror already matches the requested title, body, labels, and state; restored history must not cause a content-write burst.
+
+The live audit found 71 stale open mirrors, 128 unique eligible public source issues, and two missing public mirrors. Duplicate pairs #5076/#5931 and #5839/#5969 include unique human implementation and payout discussion in the newer issues; preserve all four. Acceptance compares unique public source URL sets, retains exactly these baseline duplicate pairs, and permits no new duplicates. Automatic cleanup remains held pending an explicit owner archival/deletion decision. Five private source issues observed by the audit are outside the production discovery scope and must not be published.
