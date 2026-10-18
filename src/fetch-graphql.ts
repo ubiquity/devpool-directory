@@ -59,11 +59,12 @@ export async function fetchIssuesForRepoGQL(_octokit: Octokit, full: string, sin
     const res: any = await withBackoff(() => gql(q, { owner, name: repo, since: sinceISO, after }));
     const conn = res?.repository?.issues;
     const nodes: any[] = conn?.nodes ?? [];
+    let reachedCutoff = false;
     for (const n of nodes) {
       if (n.state === "CLOSED" && n.stateReason === "NOT_PLANNED") continue;
       // Early stop if ordered by updatedAt DESC and this node is older than cutoff
-      if (cutoff && n.updatedAt && new Date(n.updatedAt).getTime() < cutoff) {
-        after = undefined; // to break outer loop as well
+      if (cutoff !== undefined && n.updatedAt && new Date(n.updatedAt).getTime() < cutoff) {
+        reachedCutoff = true;
         break;
       }
       out.push({
@@ -81,7 +82,7 @@ export async function fetchIssuesForRepoGQL(_octokit: Octokit, full: string, sin
         updated_at: n.updatedAt ?? new Date().toISOString(),
       });
     }
-    if (!conn?.pageInfo?.hasNextPage || !conn?.pageInfo?.endCursor || !after) break;
+    if (reachedCutoff || !conn?.pageInfo?.hasNextPage || !conn?.pageInfo?.endCursor) break;
     after = conn.pageInfo.endCursor;
   }
   return out;
@@ -115,8 +116,9 @@ export async function fetchPRsForRepoGQL(_octokit: Octokit, full: string, sinceI
     const res: any = await withBackoff(() => gql(q, { owner, name: repo, after }));
     const conn = res?.repository?.pullRequests;
     const nodes: any[] = conn?.nodes ?? [];
+    let reachedCutoff = false;
     for (const n of nodes) {
-      if (cutoff && n.updatedAt && new Date(n.updatedAt).getTime() < cutoff) { after = undefined; break; }
+      if (cutoff !== undefined && n.updatedAt && new Date(n.updatedAt).getTime() < cutoff) { reachedCutoff = true; break; }
       out.push({
         owner,
         repo,
@@ -128,7 +130,7 @@ export async function fetchPRsForRepoGQL(_octokit: Octokit, full: string, sinceI
         updated_at: n.updatedAt ?? new Date().toISOString(),
       });
     }
-    if (!conn?.pageInfo?.hasNextPage || !conn?.pageInfo?.endCursor || !after) break;
+    if (reachedCutoff || !conn?.pageInfo?.hasNextPage || !conn?.pageInfo?.endCursor) break;
     after = conn.pageInfo.endCursor;
   }
   return out;

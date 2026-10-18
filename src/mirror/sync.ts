@@ -95,7 +95,7 @@ export async function syncShard(
         }
       } catch (e: any) {
         console.warn(`[sync] fetchIssues failed for ${full}: ${e?.status ?? e?.message ?? e}`);
-        iss = [];
+        throw e;
       }
       issues.push(...iss);
 
@@ -154,6 +154,7 @@ export async function syncShard(
         prs.push(...rawPrs);
       } catch (e: any) {
         console.warn(`[sync] fetchPRs failed for ${full}: ${e?.status ?? e?.message ?? e}`);
+        throw e;
       }
 
       syncMeta[full] = { lastSyncISO: new Date().toISOString() };
