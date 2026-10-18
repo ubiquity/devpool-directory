@@ -8,6 +8,7 @@
   },
   "scripts": {
     "build": "tsc -p tsconfig.json",
+    "test": "tsx --test tests/fetch-pagination.test.ts tests/sync-failure.test.ts tests/storage-load.test.ts tests/mirror-recovery.test.ts",
     "plan": "npm run build && node dist/cli/plan.js",
     "sync:shard": "npm run build && node dist/cli/sync-shard.js",
     "aggregate": "npm run build && node dist/cli/aggregate.js",
